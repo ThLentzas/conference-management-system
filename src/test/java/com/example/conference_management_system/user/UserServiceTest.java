@@ -7,6 +7,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.testcontainers.shaded.org.apache.commons.lang3.RandomStringUtils;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -15,11 +16,10 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.Random;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.example.conference_management_system.entity.User;
 import com.example.conference_management_system.exception.DuplicateResourceException;
-import org.testcontainers.shaded.org.apache.commons.lang3.RandomStringUtils;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 
 /*
@@ -97,7 +97,7 @@ class UserServiceTest {
 
     /*
         We have to provide a password that follows the requirements otherwise the password validation would throw an
-        error since it happens before the full name.
+        error since it happens before the full name one.
      */
     @ParameterizedTest
     @ValueSource(strings = {"T3st", "T^st"})

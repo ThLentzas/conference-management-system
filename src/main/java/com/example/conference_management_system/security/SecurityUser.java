@@ -1,12 +1,11 @@
 package com.example.conference_management_system.security;
 
-import com.example.conference_management_system.entity.User;
 import org.springframework.security.core.GrantedAuthority;
-
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 
+import com.example.conference_management_system.entity.User;
 
 public record SecurityUser(User user) implements UserDetails {
 

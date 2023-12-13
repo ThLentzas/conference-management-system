@@ -1,5 +1,7 @@
 package com.example.conference_management_system.auth;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -16,7 +18,6 @@ import jakarta.servlet.http.HttpSession;
 
 import lombok.RequiredArgsConstructor;
 
-
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
@@ -24,15 +25,19 @@ class AuthController {
     private final AuthService authService;
 
     @PostMapping("/signup")
-    void registerUser(@Valid @RequestBody RegisterRequest request, HttpSession session) {
+    ResponseEntity<Void> registerUser(@Valid @RequestBody RegisterRequest request, HttpSession session) {
         Authentication authentication = this.authService.registerUser(request);
         setContext(authentication, session);
+
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
     @PostMapping("/login")
-    void loginUser(@Valid @RequestBody LoginRequest request, HttpSession session) {
+    ResponseEntity<Void> loginUser(@Valid @RequestBody LoginRequest request, HttpSession session) {
         Authentication authentication = this.authService.loginUser(request);
         setContext(authentication, session);
+
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @GetMapping("/csrf")

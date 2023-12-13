@@ -10,7 +10,6 @@ import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-
 class UserRepositoryTest extends AbstractUnitTest {
     @Autowired
     private UserRepository underTest;

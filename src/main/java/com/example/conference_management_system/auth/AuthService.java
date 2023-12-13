@@ -14,7 +14,6 @@ import com.example.conference_management_system.user.UserService;
 
 import lombok.RequiredArgsConstructor;
 
-
 @Service
 @RequiredArgsConstructor
 class AuthService {

@@ -3,8 +3,8 @@ package com.example.conference_management_system.auth;
 import jakarta.validation.constraints.NotBlank;
 
 record LoginRequest(
-        @NotBlank(message = "The Username field is necessary")
+        @NotBlank(message = "The username field is required")
         String username,
-        @NotBlank(message = "The Password field is necessary")
+        @NotBlank(message = "The password field is required")
         String password) {
 }

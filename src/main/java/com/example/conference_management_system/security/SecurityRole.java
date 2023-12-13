@@ -1,6 +1,5 @@
 package com.example.conference_management_system.security;
 
-
 import com.example.conference_management_system.entity.Role;
 import org.springframework.security.core.GrantedAuthority;
 

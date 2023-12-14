@@ -8,7 +8,7 @@ import com.example.conference_management_system.entity.User;
 
 import java.util.Optional;
 
-interface UserRepository extends JpaRepository<User, Long> {
+public interface UserRepository extends JpaRepository<User, Long> {
     @Query("""
                 SELECT COUNT(u) > 0
                 FROM User u

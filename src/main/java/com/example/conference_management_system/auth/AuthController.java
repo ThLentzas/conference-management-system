@@ -41,8 +41,8 @@ class AuthController {
     }
 
     @GetMapping("/csrf")
-    CsrfToken csrf(CsrfToken token) {
-        return token;
+    ResponseEntity<CsrfToken> csrf(CsrfToken token) {
+        return new ResponseEntity<>(token, HttpStatus.OK);
     }
 
     /*

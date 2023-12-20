@@ -1,6 +1,5 @@
 package com.example.conference_management_system.entity;
 
-import com.example.conference_management_system.paper.PaperState;
 
 import jakarta.persistence.*;
 
@@ -14,6 +13,8 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 import java.util.List;
+
+import com.example.conference_management_system.paper.PaperState;
 
 @Entity
 @Table(name = "papers", uniqueConstraints = {
@@ -36,16 +37,39 @@ public class Paper {
     @Column(nullable = false)
     @JdbcType(PostgreSQLEnumJdbcType.class)
     private PaperState state;
-    private String fileName;
+    /*
+        Will be stored as csv values.
+     */
+    @Column(nullable = false)
+    private String authors;
+    /*
+        Will be stored as csv values.
+     */
+    private String keywords;
+    private Double score;
     @ManyToMany
     @JoinTable(
             name = "papers_users",
-            joinColumns = @JoinColumn(name = "papers_id"),
-            inverseJoinColumns = @JoinColumn(name = "users_id")
+            joinColumns = @JoinColumn(name = "paper_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
     )
     private List<User> users;
+    @ManyToOne
+    private Conference conference;
 
     public Paper() {
         this.state = PaperState.CREATED;
+    }
+
+    public Paper(
+            String title,
+            String abstractText,
+            String authors,
+            String keywords) {
+        this.title = title;
+        this.abstractText = abstractText;
+        this.state = PaperState.CREATED;
+        this.authors = authors;
+        this.keywords = keywords;
     }
 }

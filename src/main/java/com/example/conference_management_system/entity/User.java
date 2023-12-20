@@ -42,9 +42,9 @@ public class User implements Serializable {
         By default, the Hibernate naming strategies would 1) Replace dots with underscores 2) Change camel case to snake
         case, 3) Lower-case table names. So for the property fullName that the corresponding attribute in the users
         table is also fullName without specifying the @Column(name = "fullname") would result in an error because the
-        camel case of the fullName would be full_name and result in a column not found error.
+        camel case of the fullName would be full_name and result in a column not found error. Better approach to use
+        snake case and name our db column as full_name.
      */
-    @Column(name = "fullname")
     private String fullName;
     /*
         If we leave the default type of LAZY it will fail to get the roles. The UserDetails will be called and the

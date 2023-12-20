@@ -20,3 +20,6 @@ spring:
   docker:
     compose:
       lifecycle-management: start_only
+
+papers:
+  directory: C:\\papers

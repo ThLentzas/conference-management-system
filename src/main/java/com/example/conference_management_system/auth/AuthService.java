@@ -24,9 +24,8 @@ class AuthService {
     Authentication registerUser(RegisterRequest request) {
         User user = new User(request.username(), request.password(), request.fullName());
         this.userService.validateUser(user);
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setPassword(this.passwordEncoder.encode(user.getPassword()));
         user = this.userService.registerUser(user);
-
         SecurityUser securityUser = new SecurityUser(user);
 
         return new UsernamePasswordAuthenticationToken(securityUser, null, securityUser.getAuthorities());

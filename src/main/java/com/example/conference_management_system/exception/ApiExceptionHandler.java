@@ -51,10 +51,24 @@ class ApiExceptionHandler {
         return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(StatusConflictException.class)
-    private ResponseEntity<ApiError> handleStatusConflictException(StatusConflictException sc) {
+    @ExceptionHandler(StateConflictException.class)
+    private ResponseEntity<ApiError> handleStateConflictException(StateConflictException sc) {
         ApiError apiError = new ApiError(sc.getMessage(), HttpStatus.CONFLICT.value());
 
         return new ResponseEntity<>(apiError, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(ServerErrorException.class)
+    private ResponseEntity<ApiError> handleServerErrorException(ServerErrorException see) {
+        ApiError apiError = new ApiError(see.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.value());
+
+        return new ResponseEntity<>(apiError, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(UnsupportedFileException.class)
+    private ResponseEntity<ApiError> handleUnsupportedFileException(UnsupportedFileException ufe) {
+        ApiError apiError = new ApiError(ufe.getMessage(), HttpStatus.BAD_REQUEST.value());
+
+        return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);
     }
 }

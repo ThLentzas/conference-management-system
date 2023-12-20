@@ -1,3 +1,2 @@
-INSERT INTO roles (type) VALUES ('AUTHOR');
 INSERT INTO roles (type) VALUES ('PC_MEMBER');
 INSERT INTO roles (type) VALUES ('PC_CHAIR');

@@ -26,9 +26,9 @@ class PaperController {
                                      @RequestParam("abstractText") String abstractText,
                                      @RequestParam("authors") String authors,
                                      @RequestParam("keywords") String keywords,
-                                     @RequestParam("content") MultipartFile content,
+                                     @RequestParam("file") MultipartFile file,
                                      UriComponentsBuilder uriBuilder) {
-        PaperCreateRequest paperCreateRequest = new PaperCreateRequest(title, abstractText, authors, keywords, content);
+        PaperCreateRequest paperCreateRequest = new PaperCreateRequest(title, abstractText, authors, keywords, file);
         Long id = this.paperService.createPaper(paperCreateRequest);
 
         URI location = uriBuilder

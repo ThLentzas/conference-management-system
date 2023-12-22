@@ -8,7 +8,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 
-import com.example.conference_management_system.exception.CustomAccessDeniedHandler;
+import com.example.conference_management_system.security.CustomAccessDeniedHandler;
+import com.example.conference_management_system.security.CustomAuthenticationEntryPoint;
 
 @Configuration
 @EnableWebSecurity(debug = true)
@@ -19,12 +20,13 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(authorize -> {
                     authorize.requestMatchers("/api/v1/auth/**").permitAll();
-                    authorize.requestMatchers("/api/v1/papers").permitAll();
                     authorize.anyRequest().authenticated();
                 })
-                .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
-                .exceptionHandling(exception-> exception.accessDeniedHandler(new CustomAccessDeniedHandler()));
+                .exceptionHandling(exception -> {
+                    exception.accessDeniedHandler(new CustomAccessDeniedHandler());
+                    exception.authenticationEntryPoint(new CustomAuthenticationEntryPoint());
+                });
 
         return http.build();
     }

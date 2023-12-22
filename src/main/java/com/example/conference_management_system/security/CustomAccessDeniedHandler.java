@@ -1,5 +1,6 @@
-package com.example.conference_management_system.exception;
+package com.example.conference_management_system.security;
 
+import com.example.conference_management_system.exception.ApiError;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
@@ -21,9 +22,7 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
     public void handle(HttpServletRequest request,
                        HttpServletResponse response,
                        AccessDeniedException accessDeniedException) throws IOException {
-        ApiError apiError = new ApiError(
-                "Access denied",
-                HttpStatus.FORBIDDEN.value());
+        ApiError apiError = new ApiError("Access denied");
 
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setStatus(HttpStatus.FORBIDDEN.value());

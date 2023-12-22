@@ -7,14 +7,17 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 
-import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
-
+import com.example.conference_management_system.paper.PaperRepository;
 import com.example.conference_management_system.user.UserRepository;
+
+import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 public class AbstractIntegrationTest {
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private PaperRepository paperRepository;
 
     @ServiceConnection
     protected static final PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>(
@@ -34,6 +37,7 @@ public class AbstractIntegrationTest {
 
     @BeforeEach
     void setup() {
-        userRepository.deleteAll();
+        this.userRepository.deleteAll();
+        this.paperRepository.deleteAll();
     }
 }

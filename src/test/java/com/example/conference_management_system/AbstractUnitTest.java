@@ -3,11 +3,20 @@ package com.example.conference_management_system;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.context.annotation.Import;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 
+import com.example.conference_management_system.config.JpaAuditingConfig;
+
+/*
+    We have to import the JpaAuditingConfig class for the database to auto-generated the created date.
+ */
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Import({
+        JpaAuditingConfig.class
+})
 public class AbstractUnitTest {
 
     @ServiceConnection

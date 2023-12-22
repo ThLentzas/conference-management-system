@@ -56,6 +56,9 @@ class AuthController {
         the Spring Security Context key attribute. That way when we try to authorize the user for subsequent requests
         we could extract the Spring Security Context key attribute and that won't be null. Otherwise, it would result in
         403 FORBIDDEN
+
+        https://docs.spring.io/spring-security/site/docs/3.1.x/reference/technical-overview.html#tech-intro-auth-entry-
+        point 6.4.4
      */
     private static void setContext(Authentication authentication, HttpSession session) {
         SecurityContext context = SecurityContextHolder.createEmptyContext();

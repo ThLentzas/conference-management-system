@@ -23,3 +23,9 @@ spring:
 
 papers:
   directory: C:\\papers
+
+logging:
+  level:
+    org:
+      springframework:
+        security: DEBUG

@@ -22,8 +22,9 @@ class UserRepositoryTest extends AbstractUnitTest {
 
         /*
             Act & Assert
+
             We can't call expected.getUsername() inside the lamda because variables  used in lambda expression should be
-            final or effectively final. When registering a user, they will have no roles by default so we check against
+            final or effectively final. When registering a user, they will have no roles by default, so we check against
             an empty Set.
          */
         this.underTest.findById(expected.getId()).ifPresent(
@@ -38,7 +39,7 @@ class UserRepositoryTest extends AbstractUnitTest {
     }
 
     @Test
-    void shouldReturnTrueWhenSearchingForAUserThatExistsByUserNameIgnoringCase() {
+    void shouldReturnTrueWhenSearchingForAUserThatExistsWithGivenUsernameIgnoringCase() {
         //Arrange
         User actual = new User("user", "password", "test user");
 
@@ -46,6 +47,18 @@ class UserRepositoryTest extends AbstractUnitTest {
         this.underTest.save(actual);
 
         //Assert
-        assertThat(this.underTest.existsByUsernameIgnoreCase(actual.getUsername())).isTrue();
+        assertThat(this.underTest.existsByUsernameIgnoreCase("UsEr")).isTrue();
+    }
+
+    @Test
+    void shouldReturnFalseWhenSearchingForAUserThatDoesNotExistWithGivenUsernameIgnoringCase() {
+        //Arrange
+        User actual = new User("user", "password", "test user");
+
+        //Act
+        this.underTest.save(actual);
+
+        //Assert
+        assertThat(this.underTest.existsByUsernameIgnoreCase("test")).isFalse();
     }
 }

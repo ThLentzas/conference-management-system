@@ -65,8 +65,7 @@ class AuthControllerTest {
                 """, usernameValue);
         String responseBody = """
                 {
-                    "message": "The username field is required",
-                    "statusCode": 400
+                    "message": "The username field is required"
                 }
                 """;
 
@@ -92,8 +91,7 @@ class AuthControllerTest {
                 """, passwordValue);
         String responseBody = """
                 {
-                    "message": "The password field is required",
-                    "statusCode": 400
+                    "message": "The password field is required"
                 }
                 """;
 
@@ -119,8 +117,7 @@ class AuthControllerTest {
                 """, fullNameValue);
         String responseBody = """
                 {
-                    "message": "The full name field is required",
-                    "statusCode": 400
+                    "message": "The full name field is required"
                 }
                 """;
 
@@ -144,8 +141,7 @@ class AuthControllerTest {
                 """;
         String responseBody = """
                 {
-                    "message": "Access denied",
-                    "statusCode": 403
+                    "message": "Access denied"
                 }
                 """;
 
@@ -169,8 +165,7 @@ class AuthControllerTest {
                 """;
         String responseBody = """
                 {
-                    "message": "Access denied",
-                    "statusCode": 403
+                    "message": "Access denied"
                 }
                 """;
 
@@ -212,8 +207,7 @@ class AuthControllerTest {
                 """, usernameValue);
         String responseBody = """
                 {
-                    "message": "The username field is required",
-                    "statusCode": 400
+                    "message": "The username field is required"
                 }
                 """;
 
@@ -238,8 +232,7 @@ class AuthControllerTest {
                 """, passwordValue);
         String responseBody = """
                 {
-                    "message": "The password field is required",
-                    "statusCode": 400
+                    "message": "The password field is required"
                 }
                 """;
 
@@ -262,8 +255,7 @@ class AuthControllerTest {
                 """;
         String responseBody = """
                 {
-                    "message": "Access denied",
-                    "statusCode": 403
+                    "message": "Access denied"
                 }
                 """;
 
@@ -286,8 +278,7 @@ class AuthControllerTest {
                 """;
         String responseBody = """
                 {
-                    "message": "Access denied",
-                    "statusCode": 403
+                    "message": "Access denied"
                 }
                 """;
 

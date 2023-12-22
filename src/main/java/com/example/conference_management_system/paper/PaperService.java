@@ -7,6 +7,8 @@ import com.example.conference_management_system.exception.DuplicateResourceExcep
 import com.example.conference_management_system.exception.UnsupportedFileException;
 import com.example.conference_management_system.utility.FileService;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,8 +20,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PaperService {
     private final PaperRepository paperRepository;
-    private final FileService fileService;
     private final ContentRepository contentRepository;
+    private final FileService fileService;
+    private static final Logger logger = LoggerFactory.getLogger(PaperService.class);
 
     /*
         https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html#content-type-validation
@@ -36,14 +39,15 @@ public class PaperService {
         validatePaper(paperCreateRequest);
 
         if (this.paperRepository.existsByTitleIgnoreCase(paperCreateRequest.title())) {
+            logger.error("Paper creation failed. Duplicate title: {}", paperCreateRequest.title());
             throw new DuplicateResourceException("A paper with the provided title already exists");
         }
 
-        String originalFileName = paperCreateRequest.content().getOriginalFilename();
+        String originalFileName = paperCreateRequest.file().getOriginalFilename();
         String generatedFileName = UUID.randomUUID().toString();
-        this.fileService.storeFile(paperCreateRequest.content(), generatedFileName);
+        this.fileService.storeFile(paperCreateRequest.file(), generatedFileName);
 
-        String fileExtension = this.fileService.findFileExtension(paperCreateRequest.content());
+        String fileExtension = this.fileService.findFileExtension(paperCreateRequest.file());
         Content content = new Content(originalFileName, generatedFileName, fileExtension);
         Paper paper = new Paper(
                 paperCreateRequest.title(),
@@ -62,48 +66,45 @@ public class PaperService {
         validateTitle(paperCreateRequest.title());
         validateAuthors(paperCreateRequest.authors());
         validateAbstractText(paperCreateRequest.abstractText());
-        validateContent(paperCreateRequest.content());
         validateKeywords(paperCreateRequest.keywords());
+        validateFile(paperCreateRequest.file());
     }
 
     private void validateTitle(String title) {
         if (title.isBlank()) {
+            logger.error("Validation failed. Title is blank: {}", title);
             throw new IllegalArgumentException("You must provide the title of the paper");
         }
 
         if (title.length() > 100) {
+            logger.error("Validation failed. Title exceeds max length: {}", title);
             throw new IllegalArgumentException("Title must not exceed 100 characters");
         }
     }
 
     private void validateAuthors(String authorsCsv) {
         String[] authors = authorsCsv.split(",");
-        if (authors.length == 0) {
-            throw new IllegalArgumentException("You must provide at least one author");
-        }
-
         for (String author : authors) {
             if (author.isBlank()) {
-                throw new IllegalArgumentException("Every author you provided must have a name");
+                logger.error("Validation failed: One or more authors are blank: {}", (Object) authors);
+                throw new IllegalArgumentException("Every author you provide must have a name");
             }
         }
     }
 
     private void validateAbstractText(String abstractText) {
         if (abstractText.isBlank()) {
+            logger.error("Validation failed. No abstract text was provided: {}", abstractText);
             throw new IllegalArgumentException("You must provide the abstract text of the paper");
         }
     }
 
     private void validateKeywords(String keywordsCsv) {
         String[] keywords = keywordsCsv.split(",");
-        if (keywords.length == 0) {
-            throw new IllegalArgumentException("You must provide at least one keyword");
-        }
-
         for (String keyword : keywords) {
             if (keyword.isBlank()) {
-                throw new IllegalArgumentException("Every keyword must have a value");
+                logger.error("Validation failed: One or more keywords are blank: {}", (Object) keywords);
+                throw new IllegalArgumentException("Every keyword you provide must have a value");
             }
         }
     }
@@ -111,19 +112,22 @@ public class PaperService {
     /*
         Validating both the name and the Mime type of file. We support only .pdf and .tex files.
      */
-    private void validateContent(MultipartFile content) {
-        String fileName = content.getOriginalFilename();
+    private void validateFile(MultipartFile file) {
+        String fileName = file.getOriginalFilename();
 
         if (fileName != null && !fileName.matches("[a-zA-Z0-9\\- ._]+")) {
+            logger.error("Validation failed. File name contains invalid character: {}", fileName);
             throw new IllegalArgumentException("The file name must contain only alphanumeric characters, hyphen, " +
-                    "underscores_ spaces, and periods");
+                    "underscores spaces, and periods");
         }
 
         if (fileName != null && fileName.length() > 100) {
-            throw new IllegalArgumentException("File name must not exceed 50 characters");
+            logger.error("Validation failed. File name exceeds max length: {}", fileName.length());
+            throw new IllegalArgumentException("File name must not exceed 100 characters");
         }
 
-        if (!this.fileService.isFileSupported(content)) {
+        if (!this.fileService.isFileSupported(file)) {
+            logger.error("Validation failed: Unsupported file type: {}", fileName);
             throw new UnsupportedFileException("The provided file is not supported. Make sure your file is either a"
                     + " pdf or a Latex one");
         }

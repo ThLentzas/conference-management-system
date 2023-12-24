@@ -1,8 +1,18 @@
 package com.example.conference_management_system.entity;
 
-
-import jakarta.persistence.*;
-
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 import org.springframework.data.annotation.CreatedDate;
@@ -12,7 +22,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
-import java.util.List;
+import java.util.Set;
 
 import com.example.conference_management_system.paper.PaperState;
 
@@ -53,9 +63,15 @@ public class Paper {
             joinColumns = @JoinColumn(name = "paper_id"),
             inverseJoinColumns = @JoinColumn(name = "user_id")
     )
-    private List<User> users;
+    private Set<User> users;
     @ManyToOne
     private Conference conference;
+    /*
+        The relationship is bidirectional. I want to return all the reviews for a given a paper and the paper when a
+        query from the reviews side.
+     */
+    @OneToMany(mappedBy = "paper")
+    private Set<Review> reviews;
 
     public Paper() {
         this.state = PaperState.CREATED;

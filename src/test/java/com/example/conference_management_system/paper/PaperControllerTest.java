@@ -42,7 +42,7 @@ class PaperControllerTest {
     private static final String PAPER_PATH = "/api/v1/papers";
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "PC_MEMBER")
     void shouldReturnHTTP201WhenPaperIsCreatedSuccessfully() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
@@ -53,6 +53,10 @@ class PaperControllerTest {
         when(this.paperService.createPaper(any(PaperCreateRequest.class))).thenReturn(1L);
 
         this.mockMvc.perform(multipart(PAPER_PATH).file(pdfFile).with(csrf())
+                        .with(request -> {
+                            request.setMethod("POST");
+                            return request;
+                        })
                         .param("title", "title")
                         .param("abstractText", "abstractText")
                         .param("authors", "author 1, author 2")
@@ -140,7 +144,7 @@ class PaperControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "PC_MEMBER")
     void shouldReturnHTTP400WhenTitleIsBlankInPaperCreateRequest() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
@@ -170,7 +174,7 @@ class PaperControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "PC_MEMBER")
     void shouldReturnHTTP400WhenTitleExceedsMaxLengthInPaperCreateRequest() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
@@ -200,7 +204,7 @@ class PaperControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "PC_MEMBER")
     void shouldReturnHTTP400ForEmptyAuthorsInPaperCreateRequest() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
@@ -230,7 +234,7 @@ class PaperControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "PC_MEMBER")
     void shouldReturnHTTP400WhenAbstractTextIsBlankInPaperCreateRequest() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
@@ -260,7 +264,7 @@ class PaperControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "PC_MEMBER")
     void shouldReturnHTTP400ForEmptyKeywordsInPaperCreateRequest() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
@@ -290,7 +294,7 @@ class PaperControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "PC_MEMBER")
     void shouldReturnHTTP400WhenFilenameContainsInvalidCharactersInPaperCreateRequest() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
@@ -320,7 +324,7 @@ class PaperControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "PC_MEMBER")
     void shouldReturnHTTP400WhenFilenameExceedsMaxLengthInPaperCreateRequest() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
@@ -350,7 +354,7 @@ class PaperControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockUser(roles = "PC_MEMBER")
     void shouldReturnHTTP400WhenFileTypeIsNotSupportedInPaperCreateRequest() throws Exception {
         Path imagePath = ResourceUtils.getFile("classpath:files/test.png").toPath();
         byte[] imageContent = Files.readAllBytes(imagePath);

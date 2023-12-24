@@ -18,11 +18,11 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "comments")
+@Table(name = "reviews")
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
-public class Comment {
+public class Review {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -34,5 +34,5 @@ public class Comment {
     @CreatedDate
     private LocalDate createdDate;
     @Column(nullable = false)
-    private String content;
+    private String comment;
 }

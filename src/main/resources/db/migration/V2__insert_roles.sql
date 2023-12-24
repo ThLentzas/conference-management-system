@@ -1,2 +1,2 @@
-INSERT INTO roles (type) VALUES ('PC_MEMBER');
-INSERT INTO roles (type) VALUES ('PC_CHAIR');
+INSERT INTO roles (type) VALUES ('ROLE_PC_MEMBER');
+INSERT INTO roles (type) VALUES ('ROLE_PC_CHAIR');

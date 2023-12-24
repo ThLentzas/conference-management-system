@@ -82,7 +82,10 @@ class PaperIT extends AbstractIntegrationTest {
                 {
                     "username": "username",
                     "password": "CyN549!@o2Cr",
-                    "fullName": "TestUser"
+                    "fullName": "TestUser",
+                    "roleTypes": [
+                        "PC_CHAIR"
+                    ]
                 }
                 """;
 

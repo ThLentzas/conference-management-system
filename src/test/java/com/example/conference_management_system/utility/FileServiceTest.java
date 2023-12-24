@@ -88,7 +88,7 @@ class FileServiceTest {
                 pdfContent);
 
         //Act
-        this.underTest.storeFile(pdfFile, fileName);
+        this.underTest.saveFile(pdfFile, fileName);
         Path storedFile = tempDir.resolve(fileName);
 
         //Assert

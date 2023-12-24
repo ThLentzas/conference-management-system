@@ -1,5 +1,7 @@
 package com.example.conference_management_system.user;
 
+import com.example.conference_management_system.entity.Role;
+import com.example.conference_management_system.role.RoleType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,8 +15,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
 import java.util.Random;
+import java.util.Set;
 
 import com.example.conference_management_system.entity.User;
 import com.example.conference_management_system.exception.DuplicateResourceException;
@@ -40,7 +42,11 @@ class UserServiceTest {
     @Test
     void shouldRegisterUser() {
         //Arrange
-        User expected = new User("user", "password", "test user");
+        User expected = new User(
+                "user",
+                "password",
+                "test user",
+                Set.of(new Role(RoleType.ROLE_PC_MEMBER)));
         when(this.userRepository.existsByUsernameIgnoreCase(any(String.class))).thenReturn(false);
         when(this.userRepository.save(any(User.class))).thenReturn(expected);
 
@@ -50,13 +56,20 @@ class UserServiceTest {
         //Assert
         assertThat(actual.getUsername()).isEqualTo(expected.getUsername());
         assertThat(actual.getFullName()).isEqualTo("test user");
-        assertThat(actual.getRoles()).isEqualTo(Collections.emptySet());
+        assertThat(actual.getRoles()).hasSize(1);
+        assertThat(actual.getRoles())
+                .extracting(Role::getType)
+                .containsExactlyInAnyOrder(RoleType.ROLE_PC_MEMBER);
     }
 
     @Test
     void shouldThrowDuplicateResourceExceptionWhenRegisteringUserWithExistingUsername() {
         //Arrange
-        User actual = new User("user", "password", "test user");
+        User actual = new User(
+                "user",
+                "password",
+                "test user",
+                Set.of(new Role(RoleType.ROLE_PC_MEMBER)));
         when(this.userRepository.existsByUsernameIgnoreCase(any(String.class))).thenReturn(true);
 
         // Act & Assert
@@ -68,11 +81,11 @@ class UserServiceTest {
     @Test
     void shouldThrowIllegalArgumentExceptionWhenRegisteringUserWithUsernameThatExceedsMaxLength() {
         //Arrange
-        Random random = new Random();
         User actual = new User(
-                RandomStringUtils.randomAlphanumeric(random.nextInt(21) + 21),
+                RandomStringUtils.randomAlphanumeric(new Random().nextInt(21) + 21),
                 "password",
-                "test user");
+                "test user",
+                Set.of(new Role(RoleType.ROLE_PC_MEMBER)));
 
         // Act & Assert
         assertThatThrownBy(() -> underTest.validateUser(actual))
@@ -83,11 +96,11 @@ class UserServiceTest {
     @Test
     void shouldThrowIllegalArgumentExceptionWhenRegisteringUserWithFullNameThatExceedsMaxLength() {
         // Arrange
-        Random random = new Random();
         User actual = new User(
                 "user",
                 "password",
-                RandomStringUtils.randomAlphanumeric(random.nextInt(51) + 51));
+                RandomStringUtils.randomAlphanumeric(new Random().nextInt(51) + 51),
+                Set.of(new Role(RoleType.ROLE_PC_MEMBER)));
 
         // Act & Assert
         assertThatThrownBy(() -> underTest.validateUser(actual))
@@ -103,7 +116,11 @@ class UserServiceTest {
     @ValueSource(strings = {"T3st", "T^st"})
     void shouldThrowIllegalArgumentExceptionForInvalidLastname(String fullName) {
         // Arrange
-        User actual = new User("user", "CyN549!@o2Cr", fullName);
+        User actual = new User(
+                "user",
+                "password",
+                fullName,
+                Set.of(new Role(RoleType.ROLE_PC_MEMBER)));
 
         // Act & Assert
         assertThatThrownBy(() -> underTest.validateUser(actual))

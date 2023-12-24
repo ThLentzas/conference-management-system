@@ -64,7 +64,7 @@ class PaperServiceTest {
         paper.setId(1L);
 
         when(this.paperRepository.existsByTitleIgnoreCase(any(String.class))).thenReturn(false);
-        doNothing().when(this.fileService).storeFile(any(MultipartFile.class), any(String.class));
+        doNothing().when(this.fileService).saveFile(any(MultipartFile.class), any(String.class));
         when(this.fileService.isFileSupported(any(MultipartFile.class))).thenReturn(true);
         when(this.paperRepository.save(any(Paper.class))).thenReturn(paper);
 
@@ -73,7 +73,7 @@ class PaperServiceTest {
 
         //Assert
         assertThat(actual).isEqualTo(1L);
-        verify(this.fileService, times(1)).storeFile(
+        verify(this.fileService, times(1)).saveFile(
                 any(MultipartFile.class),
                 any(String.class));
     }

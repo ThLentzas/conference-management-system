@@ -1,5 +1,7 @@
 package com.example.conference_management_system.auth;
 
+import com.example.conference_management_system.entity.Role;
+import com.example.conference_management_system.role.RoleRepository;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -14,15 +16,37 @@ import com.example.conference_management_system.user.UserService;
 
 import lombok.RequiredArgsConstructor;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 class AuthService {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
+    private final RoleRepository roleRepository;
 
     Authentication registerUser(RegisterRequest request) {
-        User user = new User(request.username(), request.password(), request.fullName());
+        Set<Role> tmp = request.roleTypes().stream()
+                .map(Role::new)
+                .collect(Collectors.toSet());
+
+        /*
+            Setting the roles of the request to the user and then creating the user would result in:
+            object references an unsaved transient instance - save the transient instance before flushing:
+            com.example.conference_management_system.entity.Role
+
+            We have to save the roles first and then save the user. In our case when we call findByType() the entity
+            is added to context, and then we can call save.
+         */
+        Set<Role> roles = new HashSet<>();
+        for (Role role : tmp) {
+            this.roleRepository.findByType(role.getType()).ifPresent(roles::add);
+        }
+
+        User user = new User(request.username(), request.password(), request.fullName(), roles);
         this.userService.validateUser(user);
         user.setPassword(this.passwordEncoder.encode(user.getPassword()));
         user = this.userService.registerUser(user);

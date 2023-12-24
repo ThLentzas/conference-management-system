@@ -25,11 +25,17 @@ import java.io.Serializable;
 @Table(name = "roles")
 @Getter
 @Setter
-@ToString
 public class Role implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @JdbcType(PostgreSQLEnumJdbcType.class)
     private RoleType type;
+
+    public Role() {
+    }
+
+    public Role(RoleType type) {
+        this.type = type;
+    }
 }

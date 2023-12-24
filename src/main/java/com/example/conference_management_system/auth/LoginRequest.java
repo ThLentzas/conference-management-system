@@ -6,5 +6,6 @@ record LoginRequest(
         @NotBlank(message = "The username field is required")
         String username,
         @NotBlank(message = "The password field is required")
-        String password) {
+        String password
+) {
 }

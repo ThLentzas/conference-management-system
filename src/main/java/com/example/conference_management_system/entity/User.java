@@ -1,6 +1,5 @@
 package com.example.conference_management_system.entity;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -13,7 +12,6 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
 import java.io.Serializable;
-import java.util.HashSet;
 import java.util.Set;
 
 import lombok.Getter;
@@ -61,17 +59,19 @@ public class User implements Serializable {
     @ManyToMany
     private Set<Paper> papers;
 
-    /*
-        Initially the user has no role
-     */
     public User() {
-        this.roles = new HashSet<>();
     }
 
     public User(String username, String password, String fullName) {
         this.username = username;
         this.password = password;
         this.fullName = fullName;
-        this.roles = new HashSet<>();
+    }
+
+    public User(String username, String password, String fullName, Set<Role> roles) {
+        this.username = username;
+        this.password = password;
+        this.fullName = fullName;
+        this.roles = roles;
     }
 }

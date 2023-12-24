@@ -1,6 +1,6 @@
 CREATE TYPE role_type AS ENUM (
-    'PC_MEMBER',
-    'PC_CHAIR'
+    'ROLE_PC_MEMBER',
+    'ROLE_PC_CHAIR'
     );
 
 CREATE TABLE IF NOT EXISTS roles (

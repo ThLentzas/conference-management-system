@@ -1,5 +1,7 @@
 package com.example.conference_management_system.auth;
 
+import com.example.conference_management_system.entity.Role;
+import com.example.conference_management_system.role.RoleType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
@@ -22,6 +24,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.example.conference_management_system.config.SecurityConfig;
 import com.example.conference_management_system.entity.User;
 import com.example.conference_management_system.security.SecurityUser;
+
+import java.util.Set;
 
 @WebMvcTest(AuthController.class)
 @Import({
@@ -292,7 +296,7 @@ class AuthControllerTest {
     }
 
     private Authentication getAuthentication() {
-        User user = new User("username", "password", "Test User");
+        User user = new User("username", "password", "Test User", Set.of(new Role(RoleType.ROLE_PC_MEMBER)));
         SecurityUser securityUser = new SecurityUser(user);
 
         return new UsernamePasswordAuthenticationToken(securityUser, null, securityUser.getAuthorities());

@@ -1,12 +1,14 @@
 package com.example.conference_management_system.user;
 
+import com.example.conference_management_system.AbstractUnitTest;
+import com.example.conference_management_system.entity.User;
+import com.example.conference_management_system.entity.Role;
+import com.example.conference_management_system.role.RoleType;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.example.conference_management_system.AbstractUnitTest;
-import com.example.conference_management_system.entity.User;
-
-import java.util.Collections;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -17,7 +19,7 @@ class UserRepositoryTest extends AbstractUnitTest {
     @Test
     void shouldRegisterUser() {
         //Arrange
-        User expected = new User("user", "password", "test user");
+        User expected = new User("user", "password", "test user", Set.of(new Role(RoleType.ROLE_PC_MEMBER)));
         expected = this.underTest.save(expected);
 
         /*
@@ -33,7 +35,9 @@ class UserRepositoryTest extends AbstractUnitTest {
                     assertThat(actual.getUsername()).isEqualTo("user");
                     assertThat(actual.getPassword()).isEqualTo("password");
                     assertThat(actual.getFullName()).isEqualTo("test user");
-                    assertThat(actual.getRoles()).isEqualTo(Collections.emptySet());
+                    assertThat(actual.getRoles())
+                            .extracting(Role::getType)
+                            .containsExactlyInAnyOrder(RoleType.ROLE_PC_MEMBER);
                 }
         );
     }
@@ -41,7 +45,7 @@ class UserRepositoryTest extends AbstractUnitTest {
     @Test
     void shouldReturnTrueWhenSearchingForAUserThatExistsWithGivenUsernameIgnoringCase() {
         //Arrange
-        User actual = new User("user", "password", "test user");
+        User actual = new User("user", "password", "test user", Set.of(new Role(RoleType.ROLE_PC_MEMBER)));
 
         //Act
         this.underTest.save(actual);
@@ -53,7 +57,7 @@ class UserRepositoryTest extends AbstractUnitTest {
     @Test
     void shouldReturnFalseWhenSearchingForAUserThatDoesNotExistWithGivenUsernameIgnoringCase() {
         //Arrange
-        User actual = new User("user", "password", "test user");
+        User actual = new User("user", "password", "test user", Set.of(new Role(RoleType.ROLE_PC_MEMBER)));
 
         //Act
         this.underTest.save(actual);

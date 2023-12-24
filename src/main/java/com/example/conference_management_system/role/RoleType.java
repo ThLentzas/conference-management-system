@@ -1,6 +1,6 @@
 package com.example.conference_management_system.role;
 
 public enum RoleType {
-    PC_CHAIR,
-    PC_MEMBER
+    ROLE_PC_CHAIR,
+    ROLE_PC_MEMBER
 }

@@ -4,15 +4,22 @@ import com.example.conference_management_system.content.ContentRepository;
 import com.example.conference_management_system.entity.Content;
 import com.example.conference_management_system.entity.Paper;
 import com.example.conference_management_system.exception.DuplicateResourceException;
+import com.example.conference_management_system.exception.ResourceNotFoundException;
+import com.example.conference_management_system.exception.ServerErrorException;
 import com.example.conference_management_system.exception.UnsupportedFileException;
+import com.example.conference_management_system.review.ReviewRepository;
 import com.example.conference_management_system.utility.FileService;
 
+import com.example.conference_management_system.utility.UserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.UUID;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
 
@@ -21,8 +28,12 @@ import lombok.RequiredArgsConstructor;
 public class PaperService {
     private final PaperRepository paperRepository;
     private final ContentRepository contentRepository;
+    private final ReviewRepository reviewRepository;
     private final FileService fileService;
     private static final Logger logger = LoggerFactory.getLogger(PaperService.class);
+    private static final String PAPER_NOT_FOUND_MSG = "Paper not found with id: ";
+    private static final String SERVER_ERROR_MSG = "The server encountered an internal error and was unable to " +
+            "complete your request. Please try again later";
 
     /*
         https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html#content-type-validation
@@ -43,12 +54,8 @@ public class PaperService {
             throw new DuplicateResourceException("A paper with the provided title already exists");
         }
 
-        String originalFileName = paperCreateRequest.file().getOriginalFilename();
-        String generatedFileName = UUID.randomUUID().toString();
-        this.fileService.storeFile(paperCreateRequest.file(), generatedFileName);
-
-        String fileExtension = this.fileService.findFileExtension(paperCreateRequest.file());
-        Content content = new Content(originalFileName, generatedFileName, fileExtension);
+        Content content = new Content();
+        setupContent(content, paperCreateRequest.file());
         Paper paper = new Paper(
                 paperCreateRequest.title(),
                 paperCreateRequest.abstractText(),
@@ -60,6 +67,139 @@ public class PaperService {
         this.contentRepository.save(content);
 
         return paper.getId();
+    }
+
+    void updatePaper(Long id, PaperUpdateRequest paperUpdateRequest) {
+        if (paperUpdateRequest.title() == null
+                && paperUpdateRequest.authors() == null
+                && paperUpdateRequest.abstractText() == null
+                && paperUpdateRequest.keywords() == null
+                && paperUpdateRequest.file() == null
+        ) {
+            logger.error("Paper update failed: Only null values were provided");
+            throw new IllegalArgumentException("You must provide at least one property to update the paper");
+        }
+
+        this.paperRepository.findById(id).ifPresentOrElse(paper -> {
+            if (paperUpdateRequest.title() != null) {
+                validateTitle(paperUpdateRequest.title());
+
+                if (this.paperRepository.existsByTitleIgnoreCase(paperUpdateRequest.title())) {
+                    logger.error("Paper update failed. Duplicate title: {}", paperUpdateRequest.title());
+                    throw new DuplicateResourceException("A paper with the provided title already exists");
+                }
+                paper.setTitle(paperUpdateRequest.title());
+            }
+
+            updatePropertyIfNonNull(
+                    paperUpdateRequest.authors(),
+                    this::validateAuthors,
+                    paper::setAuthors
+            );
+
+            updatePropertyIfNonNull(
+                    paperUpdateRequest.abstractText(),
+                    this::validateAbstractText,
+                    paper::setAbstractText
+            );
+
+            updatePropertyIfNonNull(
+                    paperUpdateRequest.keywords(),
+                    this::validateKeywords,
+                    paper::setKeywords
+            );
+
+            if (paperUpdateRequest.file() != null) {
+                validateFile(paperUpdateRequest.file());
+                /*
+                    1) Find the content for the specific paper that contains the original file name, the generated file
+                       name(UUID) and the file extension
+                    2) Delete the file that is stored with the generated name
+                    3) Set up the content values from the new file
+                    4) Update the record in DB
+                 */
+                this.contentRepository.findByPaperId(id).ifPresent(
+                        content -> {
+                            this.fileService.deleteFile(content.getGeneratedFileName());
+                            setupContent(content, paperUpdateRequest.file());
+                            this.contentRepository.save(content);
+                        }
+                );
+            }
+        }, () -> {
+            throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + id);
+        });
+    }
+
+    void addAuthor(Long paperId, AuthorAdditionRequest authorAdditionRequest) {
+        this.paperRepository.findById(paperId).ifPresentOrElse(paper -> {
+            /*
+                 List<String> authors = Arrays.asList(paper.getAuthors().split(",")); We could not call create our list
+                 that way because Arrays.asList() returns a fixed-size list backed by the original array. This means
+                 that the list cannot be structurally modified (we can't add or remove elements from it) When we called
+                 authors.add(author) we would get an UnsupportedOperationException
+             */
+            List<String> authors = new ArrayList<>(Arrays.asList(paper.getAuthors().split(",")));
+
+            if(!authors.contains(authorAdditionRequest.author())) {
+                authors.add(authorAdditionRequest.author());
+                String authorsCsv = String.join(",", authors);
+                paper.setAuthors(authorsCsv);
+
+                this.paperRepository.save(paper);
+            }
+        }, () -> {
+            throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
+        });
+    }
+
+    PaperDTO findPaperById(Long paperId) {
+        /*
+            Since we want to have a return value if the paper is found we can't use ifPresentOrElse().
+         */
+        Paper paper = this.paperRepository.findById(paperId).orElseThrow(() -> new ResourceNotFoundException(
+                PAPER_NOT_FOUND_MSG + paperId));
+        List<String> authorities = UserUtils.getCurrentUserAuthorities();
+        boolean reviewer = isReviewer(paperId);
+
+        if (paper.getState().equals(PaperState.ACCEPTED) && authorities.contains("ROLE_ANONYMOUS")) {
+            return PaperDTO.builder()
+                    .title(paper.getTitle())
+                    .abstractText(paper.getAbstractText())
+                    .keywords(paper.getKeywords().split(","))
+                    .authors(paper.getAuthors().split(","))
+                    .createdDate(paper.getCreatedDate())
+                    .build();
+        }
+
+        if (!paper.getState().equals(PaperState.ACCEPTED) && authorities.contains("ROLE_ANONYMOUS")) {
+            throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
+        }
+
+        Content content = this.contentRepository.findByPaperId(paperId).orElseThrow(() -> {
+            logger.error("Paper found with id: {} but not the content", paperId);
+            return new ServerErrorException(SERVER_ERROR_MSG);
+        });
+        Resource resource = this.fileService.getFile(content.getGeneratedFileName());
+
+        /*
+            In any other case the user is PC_CHAIR or a reviewer assigned to this specific paper and the state is
+            irrelevant
+        */
+        if (reviewer) {
+            return PaperDTO.builder()
+                    .title(paper.getTitle())
+                    .abstractText(paper.getAbstractText())
+                    .keywords(paper.getKeywords().split(","))
+                    .authors(paper.getAuthors().split(","))
+                    .createdDate(paper.getCreatedDate())
+                    .score(paper.getScore())
+                    .reviews(paper.getReviews())
+                    .file(resource)
+                    .build();
+        }
+
+        return null;
     }
 
     private void validatePaper(PaperCreateRequest paperCreateRequest) {
@@ -131,5 +271,32 @@ public class PaperService {
             throw new UnsupportedFileException("The provided file is not supported. Make sure your file is either a"
                     + " pdf or a Latex one");
         }
+    }
+
+    private <T> void updatePropertyIfNonNull(T property, Consumer<T> validator, Consumer<T> updater) {
+        if (property != null) {
+            validator.accept(property);
+            updater.accept(property);
+        }
+    }
+
+    private void setupContent(Content content, MultipartFile file) {
+        String originalFileName = file.getOriginalFilename();
+        String generatedFileName = UUID.randomUUID().toString();
+        String fileExtension = this.fileService.findFileExtension(file);
+        this.fileService.saveFile(file, generatedFileName);
+
+        content.setOriginalFileName(originalFileName);
+        content.setGeneratedFileName(generatedFileName);
+        content.setFileExtension(fileExtension);
+    }
+
+    private boolean isReviewer(Long paperId) {
+        Optional<Long> userId = UserUtils.getCurrentUserId();
+        if (userId.isPresent()) {
+            return this.reviewRepository.isReviewer(paperId, userId.get());
+        }
+
+        return false;
     }
 }

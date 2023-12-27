@@ -33,6 +33,6 @@ public class Review {
     @Column(nullable = false)
     @CreatedDate
     private LocalDate createdDate;
-    @Column(nullable = false)
     private String comment;
+    private Double score;
 }

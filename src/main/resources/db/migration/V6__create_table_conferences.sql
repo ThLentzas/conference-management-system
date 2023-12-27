@@ -1,3 +1,13 @@
+CREATE TYPE conference_state AS ENUM (
+    'CREATED',
+    'SUBMISSION',
+    'ASSIGNMENT',
+    'REVIEW',
+    'DECISION',
+    'FINAL_SUBMISSION',
+    'FINAL'
+);
+
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE IF NOT EXISTS conferences (
@@ -5,7 +15,9 @@ CREATE TABLE IF NOT EXISTS conferences (
     created_date DATE NOT NULL,
     name VARCHAR(50) UNIQUE NOT NULL,
     description TEXT NOT NULL,
-    CONSTRAINT pk_conferences PRIMARY KEY (id)
+    state conference_state,
+    CONSTRAINT pk_conferences PRIMARY KEY (id),
+    CONSTRAINT unique_conferences_name UNIQUE (name)
 );
 
 CREATE TABLE IF NOT EXISTS conferences_users (

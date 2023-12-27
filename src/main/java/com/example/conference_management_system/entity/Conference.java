@@ -1,14 +1,8 @@
 package com.example.conference_management_system.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint
-        ;
+import com.example.conference_management_system.conference.ConferenceState;
+import jakarta.persistence.*;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,6 +10,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -36,4 +31,26 @@ public class Conference {
     private String name;
     @Column(nullable = false)
     private String description;
+    @Column(nullable = false)
+    private ConferenceState state;
+    @ManyToMany
+    @JoinTable(
+            name = "conferences_users",
+            joinColumns = @JoinColumn(name = "conference_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private Set<User> users;
+    @OneToMany(mappedBy = "conference")
+    private Set<Paper> papers;
+
+    public Conference() {
+        this.state = ConferenceState.CREATED;
+    }
+
+    public Conference(String name, String description, Set<User> users) {
+        this.name = name;
+        this.description = description;
+        this.users = users;
+        this.state = ConferenceState.CREATED;
+    }
 }

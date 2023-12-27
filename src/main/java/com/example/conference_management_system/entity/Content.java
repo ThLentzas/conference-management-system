@@ -11,6 +11,10 @@ import jakarta.persistence.OneToOne;
 import lombok.Getter;
 import lombok.Setter;
 
+/*
+    Content is the entity we keep in our database as a reference with the file that we stored in our file system. The
+    file is the pdf or latex file for each paper.
+ */
 @Entity
 @Getter
 @Setter

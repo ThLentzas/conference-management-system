@@ -15,7 +15,11 @@ class PaperRepositoryTest extends AbstractUnitTest {
     @Test
     void shouldReturnTrueWhenSearchingForAPaperThatExistsWithGivenTitleIgnoringCase() {
         //Arrange
-        Paper paper = new Paper("title", "abstractText", "author 1, author2", "keyword 1, keyword 2");
+        Paper paper = new Paper();
+        paper.setTitle("title");
+        paper.setAbstractText("abstractText");
+        paper.setAuthors("author 1, author2");
+        paper.setKeywords("keyword 1, keyword 2");
         this.underTest.save(paper);
 
         //Act & Assert
@@ -25,7 +29,11 @@ class PaperRepositoryTest extends AbstractUnitTest {
     @Test
     void shouldReturnFalseWhenSearchingForAPaperThatDoesNotExistWithGivenTitleIgnoringCase() {
         //Arrange
-        Paper paper = new Paper("title", "abstractText", "author 1, author2", "keyword 1, keyword 2");
+        Paper paper = new Paper();
+        paper.setTitle("title");
+        paper.setAbstractText("abstractText");
+        paper.setAuthors("author 1, author2");
+        paper.setKeywords("keyword 1, keyword 2");
         this.underTest.save(paper);
 
         //Act & Assert

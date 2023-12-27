@@ -24,7 +24,7 @@ public class AbstractIntegrationTest {
             "postgres:15.2-alpine")
             .withUsername("test")
             .withPassword("test")
-            .withDatabaseName("code_assessment_test");
+            .withDatabaseName("conference_ms_test");
 
     @ServiceConnection
     protected static GenericContainer<?> redisContainer = new GenericContainer<>("redis:alpine")

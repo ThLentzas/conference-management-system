@@ -12,6 +12,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.Set;
 
 import lombok.Getter;
@@ -56,10 +57,11 @@ public class User implements Serializable {
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     private Set<Role> roles;
-    @ManyToMany
-    private Set<Paper> papers;
 
     public User() {
+        if(this.roles == null) {
+            this.roles = new HashSet<>();
+        }
     }
 
     public User(String username, String password, String fullName) {

@@ -1,7 +1,5 @@
 package com.example.conference_management_system.auth;
 
-import com.example.conference_management_system.entity.Role;
-import com.example.conference_management_system.role.RoleRepository;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -13,16 +11,21 @@ import com.example.conference_management_system.entity.User;
 import com.example.conference_management_system.exception.UnauthorizedException;
 import com.example.conference_management_system.security.SecurityUser;
 import com.example.conference_management_system.user.UserService;
-
-import lombok.RequiredArgsConstructor;
+import com.example.conference_management_system.entity.Role;
+import com.example.conference_management_system.role.RoleRepository;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+
+import lombok.RequiredArgsConstructor;
+
 @Service
 @RequiredArgsConstructor
-class AuthService {
+public class AuthService {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
@@ -67,5 +70,12 @@ class AuthService {
         }
 
         return authentication;
+    }
+
+    public void invalidateSession(HttpServletRequest servletRequest) {
+        HttpSession session = servletRequest.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
     }
 }

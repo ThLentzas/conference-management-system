@@ -119,6 +119,12 @@ class PaperIT extends AbstractIntegrationTest {
                 .exchange()
                 .expectStatus().isCreated()
                 .expectHeader().exists("Location");
+
+        /*
+            toDO: we need to assert that the papers exists by doing a get request and also that the user has the new
+            role by doing a GET request to that user returning a userDTO.
+         */
+
     }
 
     private byte[] getFileContent() throws IOException {

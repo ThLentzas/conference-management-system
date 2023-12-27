@@ -1,11 +1,10 @@
 package com.example.conference_management_system.paper;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -21,17 +20,17 @@ import java.net.URI;
 class PaperController {
     private final PaperService paperService;
 
-    //@PreAuthorize("hasAnyRole('PC_CHAIR', 'PC_MEMBER')")
     @PostMapping
     ResponseEntity<Void> createPaper(@RequestParam("title") String title,
                                      @RequestParam("abstractText") String abstractText,
                                      @RequestParam("authors") String authors,
                                      @RequestParam("keywords") String keywords,
                                      @RequestParam("file") MultipartFile file,
-                                     UriComponentsBuilder uriBuilder
+                                     UriComponentsBuilder uriBuilder,
+                                     HttpServletRequest servletRequest
     ) {
         PaperCreateRequest paperCreateRequest = new PaperCreateRequest(title, abstractText, authors, keywords, file);
-        Long id = this.paperService.createPaper(paperCreateRequest);
+        Long id = this.paperService.createPaper(paperCreateRequest, servletRequest);
 
         URI location = uriBuilder
                 .path("/api/v1/papers/{id}")
@@ -69,6 +68,14 @@ class PaperController {
     ResponseEntity<PaperDTO> getPaper(@PathVariable ("id") Long id) {
         PaperDTO paper = this.paperService.findPaperById(id);
 
+        if(paper.getFile() != null) {
+
+        }
+
         return new ResponseEntity<>(paper, HttpStatus.OK);
     }
+
+    //assign reviewer only to PC_MEMBER
+
+    //PC_MEMBER are assigned to a conference for paper review.
 }

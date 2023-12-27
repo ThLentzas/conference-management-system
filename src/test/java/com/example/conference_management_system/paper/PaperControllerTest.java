@@ -1,5 +1,6 @@
 package com.example.conference_management_system.paper;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -13,6 +14,7 @@ import org.springframework.util.ResourceUtils;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -50,7 +52,9 @@ class PaperControllerTest {
                 "application/pdf",
                 getFileContent());
 
-        when(this.paperService.createPaper(any(PaperCreateRequest.class))).thenReturn(1L);
+        when(this.paperService.createPaper(
+                any(PaperCreateRequest.class),
+                any(HttpServletRequest.class))).thenReturn(1L);
 
         this.mockMvc.perform(multipart(PAPER_PATH).file(pdfFile).with(csrf())
                         .with(request -> {
@@ -157,7 +161,9 @@ class PaperControllerTest {
                 }
                 """;
 
-        when(this.paperService.createPaper(any(PaperCreateRequest.class))).thenThrow(new IllegalArgumentException(
+        when(this.paperService.createPaper(
+                any(PaperCreateRequest.class),
+                any(HttpServletRequest.class))).thenThrow(new IllegalArgumentException(
                 "You must provide the title of the paper"
         ));
 
@@ -187,7 +193,9 @@ class PaperControllerTest {
                 }
                 """;
 
-        when(this.paperService.createPaper(any(PaperCreateRequest.class))).thenThrow(new IllegalArgumentException(
+        when(this.paperService.createPaper(
+                any(PaperCreateRequest.class),
+                any(HttpServletRequest.class))).thenThrow(new IllegalArgumentException(
                 "Title must not exceed 100 characters"
         ));
 
@@ -217,7 +225,9 @@ class PaperControllerTest {
                 }
                 """;
 
-        when(this.paperService.createPaper(any(PaperCreateRequest.class))).thenThrow(new IllegalArgumentException(
+        when(this.paperService.createPaper(
+                any(PaperCreateRequest.class),
+                any(HttpServletRequest.class))).thenThrow(new IllegalArgumentException(
                 "Every author you provide must have a name"
         ));
 
@@ -247,7 +257,9 @@ class PaperControllerTest {
                 }
                 """;
 
-        when(this.paperService.createPaper(any(PaperCreateRequest.class))).thenThrow(new IllegalArgumentException(
+        when(this.paperService.createPaper(
+                any(PaperCreateRequest.class),
+                any(HttpServletRequest.class))).thenThrow(new IllegalArgumentException(
                 "You must provide the abstract text of the paper"
         ));
 
@@ -277,7 +289,9 @@ class PaperControllerTest {
                 }
                 """;
 
-        when(this.paperService.createPaper(any(PaperCreateRequest.class))).thenThrow(new IllegalArgumentException(
+        when(this.paperService.createPaper(
+                any(PaperCreateRequest.class),
+                any(HttpServletRequest.class))).thenThrow(new IllegalArgumentException(
                 "Every keyword you provide must have a value"
         ));
 
@@ -307,7 +321,9 @@ class PaperControllerTest {
                 }
                 """;
 
-        when(this.paperService.createPaper(any(PaperCreateRequest.class))).thenThrow(new IllegalArgumentException(
+        when(this.paperService.createPaper(
+                any(PaperCreateRequest.class),
+                any(HttpServletRequest.class))).thenThrow(new IllegalArgumentException(
                 "The file name must contain only alphanumeric characters, hyphen, underscores spaces, and periods"
         ));
 
@@ -337,7 +353,9 @@ class PaperControllerTest {
                 }
                 """;
 
-        when(this.paperService.createPaper(any(PaperCreateRequest.class))).thenThrow(new IllegalArgumentException(
+        when(this.paperService.createPaper(
+                any(PaperCreateRequest.class),
+                any(HttpServletRequest.class))).thenThrow(new IllegalArgumentException(
                 "File name must not exceed 100 characters"
         ));
 
@@ -369,7 +387,9 @@ class PaperControllerTest {
                 }
                 """;
 
-        when(this.paperService.createPaper(any(PaperCreateRequest.class))).thenThrow(new UnsupportedFileException(
+        when(this.paperService.createPaper(
+                any(PaperCreateRequest.class),
+                any(HttpServletRequest.class))).thenThrow(new UnsupportedFileException(
                 "The provided file is not supported. Make sure your file is either a pdf or a Latex one"
         ));
 

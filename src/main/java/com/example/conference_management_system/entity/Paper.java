@@ -1,18 +1,6 @@
 package com.example.conference_management_system.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 import org.springframework.data.annotation.CreatedDate;
@@ -48,7 +36,8 @@ public class Paper {
     @JdbcType(PostgreSQLEnumJdbcType.class)
     private PaperState state;
     /*
-        Will be stored as csv values.
+        Will be stored as csv values. We can't have the names of the authors from the papers_users relationship because
+        not all authors are registered users in our system.
      */
     @Column(nullable = false)
     private String authors;
@@ -56,7 +45,6 @@ public class Paper {
         Will be stored as csv values.
      */
     private String keywords;
-    private Double score;
     @ManyToMany
     @JoinTable(
             name = "papers_users",
@@ -72,6 +60,12 @@ public class Paper {
      */
     @OneToMany(mappedBy = "paper")
     private Set<Review> reviews;
+    /*
+        When we query for a paper we also need to fetch the content for that paper(original file name, generated file
+        name, extension)
+     */
+    @OneToOne(mappedBy = "paper")
+    private Content content;
 
     public Paper() {
         this.state = PaperState.CREATED;
@@ -81,11 +75,13 @@ public class Paper {
             String title,
             String abstractText,
             String authors,
-            String keywords) {
+            String keywords,
+            Set<User> users) {
         this.title = title;
         this.abstractText = abstractText;
         this.state = PaperState.CREATED;
         this.authors = authors;
         this.keywords = keywords;
+        this.users = users;
     }
 }

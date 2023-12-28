@@ -60,6 +60,7 @@ public class Paper {
      */
     @OneToMany(mappedBy = "paper")
     private Set<Review> reviews;
+
     /*
         When we query for a paper we also need to fetch the content for that paper(original file name, generated file
         name, extension)
@@ -68,7 +69,7 @@ public class Paper {
     private Content content;
 
     public Paper() {
-        this.state = PaperState.CREATED;
+        this.state = PaperState.ACCEPTED;
     }
 
     public Paper(
@@ -79,7 +80,7 @@ public class Paper {
             Set<User> users) {
         this.title = title;
         this.abstractText = abstractText;
-        this.state = PaperState.CREATED;
+        this.state = PaperState.ACCEPTED;
         this.authors = authors;
         this.keywords = keywords;
         this.users = users;

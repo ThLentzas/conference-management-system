@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -18,8 +19,13 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 
 import com.example.conference_management_system.AbstractIntegrationTest;
+import com.example.conference_management_system.role.RoleType;
 
 @AutoConfigureWebTestClient
 class PaperIT extends AbstractIntegrationTest {
@@ -82,9 +88,9 @@ class PaperIT extends AbstractIntegrationTest {
                 {
                     "username": "username",
                     "password": "CyN549!@o2Cr",
-                    "fullName": "TestUser",
+                    "fullName": "Full Name",
                     "roleTypes": [
-                        "PC_CHAIR"
+                        "ROLE_PC_CHAIR"
                     ]
                 }
                 """;
@@ -105,26 +111,121 @@ class PaperIT extends AbstractIntegrationTest {
         MultipartBodyBuilder bodyBuilder = new MultipartBodyBuilder();
         bodyBuilder.part("title", "title");
         bodyBuilder.part("abstractText", "abstractText");
-        bodyBuilder.part("authors", "author 1, author 2");
-        bodyBuilder.part("keywords", "keyword 1, keyword 2");
+        bodyBuilder.part("authors", "author 1,author 2");
+        bodyBuilder.part("keywords", "keyword 1,keyword 2");
         bodyBuilder.part("file", getFileContent()).filename("test.pdf");
 
         MultiValueMap<String, HttpEntity<?>> multipartBody = bodyBuilder.build();
 
-        webTestClient.post()
+        EntityExchangeResult<byte[]> response = webTestClient.post()
                 .uri(PAPER_PATH + "?_csrf={csrf}", csrfToken)
                 .header("Cookie", sessionId)
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .bodyValue(multipartBody)
                 .exchange()
                 .expectStatus().isCreated()
-                .expectHeader().exists("Location");
+                .expectHeader().exists("Location")
+                .expectBody()
+                .returnResult();
+
+        String location = response.getResponseHeaders().getFirst(HttpHeaders.LOCATION);
+        Long paperId = Long.parseLong(location.substring(location.lastIndexOf('/') + 1));
 
         /*
-            toDO: we need to assert that the papers exists by doing a get request and also that the user has the new
-            role by doing a GET request to that user returning a userDTO.
-         */
+            At this point the user was assigned a new Role(ROLE_AUTHOR) and the previous session is invalid, so we have
+            to request a new csrf and a token to assert that
 
+            1) The GET request to /papers/{id} returns the correct values
+            2) The GET request to /papers/{id}/download returns the file(pdf/tex)
+            3) The user now has a new Role
+         */
+        result = this.webTestClient.get()
+                .uri(AUTH_PATH + "/csrf")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectHeader().exists(HttpHeaders.SET_COOKIE)
+                .expectBody(DefaultCsrfToken.class)
+                .returnResult();
+
+        csrfToken = result.getResponseBody().getToken();
+        cookieHeader = result.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        sessionId = cookieHeader.split(";")[0];
+
+        requestBody = """
+                {
+                    "username": "username",
+                    "password": "CyN549!@o2Cr"
+                }
+                """;
+
+        this.webTestClient.post()
+                .uri(AUTH_PATH + "/login?_csrf={csrf}", csrfToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Cookie", sessionId)
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus().isOk();
+
+        /*
+            GET: /api/v1/papers/{id}
+
+            In the below assertions, we see that the array of authors is of size 3 when the initial paper had only 2,
+            that's because the user who made the request was added also as an author(full name).
+         */
+        this.webTestClient.get()
+                .uri(PAPER_PATH + "/{id}", paperId)
+                .accept(MediaType.APPLICATION_JSON)
+                .header("Cookie", sessionId)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.id").isEqualTo(paperId)
+                .jsonPath("$.title").isEqualTo("title")
+                .jsonPath("$.abstractText").isEqualTo("abstractText")
+                .jsonPath("$.authors.length()").isEqualTo(3)
+                .jsonPath("$.authors[0]").isEqualTo("author 1")
+                .jsonPath("$.authors[1]").isEqualTo("author 2")
+                .jsonPath("$.authors[2]").isEqualTo("Full Name")
+                .jsonPath("$.keywords.length()").isEqualTo(2)
+                .jsonPath("$.keywords[0]").isEqualTo("keyword 1")
+                .jsonPath("$.keywords[1]").isEqualTo("keyword 2")
+                .jsonPath("$._links.download").exists()
+                .jsonPath("$._links.download.href").value(containsString("/api/v1/papers/" + paperId + "/download"));
+
+        /*
+            GET: /api/v1/papers/{id}/download
+         */
+        EntityExchangeResult<byte[]> download = webTestClient.get()
+                .uri(PAPER_PATH + "/{id}/download?_csrf={csrf}", paperId, csrfToken)
+                .header("Cookie", sessionId)
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .expectHeader().contentDisposition(ContentDisposition.attachment()
+                        .filename("test.pdf")
+                        .build())
+                .expectBody(byte[].class)
+                .returnResult();
+
+        byte[] fileContent = download.getResponseBody();
+        assertThat(fileContent).isNotNull();
+
+        /*
+            GET: /api/v1/user
+
+            Asserting that the user has the new role of ROLE_AUTHOR after successfully creating a paper.
+         */
+        this.webTestClient.get()
+                .uri("/api/v1/user")
+                .accept(MediaType.APPLICATION_JSON)
+                .header("Cookie", sessionId)
+                .exchange()
+                .expectBody()
+                /*
+                    Since the object is serialized we check for String values and not RoleType that's the user property.
+                 */
+                .jsonPath("$.roles").value(roles ->
+                        assertThat((List<String>) roles).contains(RoleType.ROLE_AUTHOR.name()));
     }
 
     private byte[] getFileContent() throws IOException {

@@ -12,6 +12,9 @@ spring:
     baseline-description: "init"
     baseline-version: 0
     locations: classpath:db/migration
+  jackson:
+    mapper:
+      accept-case-insensitive-enums: true
   jpa:
     show-sql: true
     properties:
@@ -20,6 +23,7 @@ spring:
   docker:
     compose:
       lifecycle-management: start_only
+
 
 papers:
   directory: C:\\papers

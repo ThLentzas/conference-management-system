@@ -1,12 +1,34 @@
 package com.example.conference_management_system.paper;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
+import org.springframework.core.io.Resource;
+import org.springframework.hateoas.Link;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.example.conference_management_system.paper.dto.AuthorAdditionRequest;
+import com.example.conference_management_system.paper.dto.PaperCreateRequest;
+import com.example.conference_management_system.paper.dto.PaperDTO;
+import com.example.conference_management_system.paper.dto.PaperFile;
+import com.example.conference_management_system.paper.dto.PaperUpdateRequest;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 
 import lombok.RequiredArgsConstructor;
 
@@ -65,14 +87,31 @@ class PaperController {
     }
 
     @GetMapping("/{id}")
-    ResponseEntity<PaperDTO> getPaper(@PathVariable ("id") Long id) {
+    ResponseEntity<PaperDTO> getPaper(@PathVariable("id") Long id) {
         PaperDTO paper = this.paperService.findPaperById(id);
-
-        if(paper.getFile() != null) {
-
-        }
+        Link download = linkTo(methodOn(PaperController.class).downloadPaper(id)).withRel("download");
+        paper.add(download);
 
         return new ResponseEntity<>(paper, HttpStatus.OK);
+    }
+
+    /*
+        Using .filename(paperFile.originalFileName(), StandardCharsets.UTF_8), it triggers the use of RFC 5987 encoding
+        for non-ASCII characters, which is meant to handle special characters in filenames safely. However, this can
+        lead to unexpected results in certain browsers or environments that don't handle this encoding well.
+     */
+    @PreAuthorize("hasAnyRole('AUTHOR', 'PC_MEMBER', 'PC_CHAIR')")
+    @GetMapping("/{id}/download")
+    ResponseEntity<Resource> downloadPaper(@PathVariable("id") Long id) {
+        PaperFile paperFile = this.paperService.downloadPaperFile(id);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDisposition(ContentDisposition.attachment()
+                .filename(paperFile.originalFileName())
+                .build());
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+
+        return new ResponseEntity<>(paperFile.file(), headers, HttpStatus.OK);
     }
 
     //assign reviewer only to PC_MEMBER

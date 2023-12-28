@@ -2,16 +2,18 @@ package com.example.conference_management_system.paper;
 
 import com.example.conference_management_system.conference.ConferenceRepository;
 import com.example.conference_management_system.content.ContentRepository;
-import com.example.conference_management_system.entity.Conference;
 import com.example.conference_management_system.entity.Content;
 import com.example.conference_management_system.entity.Paper;
 import com.example.conference_management_system.entity.Review;
 import com.example.conference_management_system.exception.DuplicateResourceException;
 import com.example.conference_management_system.exception.ResourceNotFoundException;
-import com.example.conference_management_system.exception.ServerErrorException;
 import com.example.conference_management_system.exception.UnsupportedFileException;
-import com.example.conference_management_system.review.ReviewDTO;
-import com.example.conference_management_system.review.ReviewRepository;
+import com.example.conference_management_system.paper.dto.*;
+import com.example.conference_management_system.review.*;
+import com.example.conference_management_system.review.dto.AuthorReviewDTO;
+import com.example.conference_management_system.review.dto.PCChairReviewDTO;
+import com.example.conference_management_system.review.dto.ReviewDTO;
+import com.example.conference_management_system.review.dto.ReviewerReviewDTO;
 import com.example.conference_management_system.role.RoleService;
 import com.example.conference_management_system.role.RoleType;
 import com.example.conference_management_system.security.SecurityUser;
@@ -78,8 +80,8 @@ public class PaperService {
         Paper paper = new Paper(
                 paperCreateRequest.title(),
                 paperCreateRequest.abstractText(),
-                paperCreateRequest.keywords(),
                 String.join(",", authors),
+                paperCreateRequest.keywords(),
                 Set.of(securityUser.user())
         );
         paper = this.paperRepository.save(paper);
@@ -177,25 +179,14 @@ public class PaperService {
     /*
         Based on the role of the user that makes the GET request for a paper, we have to return different properties of
         the PaperDTO.
-
-        A visitor does not have access to the actual pdf or latex file of the paper
-        The author of the paper can see the reviews but not the name of the reviewers
-        The reviewer(ROLE_PC_MEMBER) can see all the information about the paper but not other reviews
-        The PC_CHAIR if the paper belongs to the conference where they have the role PC_CHAIR have full access to that
-        paper
-
-        In any other case we return the same information that a visitor will have if the paper is in ACCEPTED state,
-        otherwise 404 NOT_FOUND
      */
     PaperDTO findPaperById(Long paperId) {
-        Set<ReviewDTO> reviews = new HashSet<>();
         ReviewDTO reviewDTO;
         /*
             Since we want to have a return value if the paper is found we can't use ifPresentOrElse().
          */
         Paper paper = this.paperRepository.findById(paperId).orElseThrow(() -> new ResourceNotFoundException(
                 PAPER_NOT_FOUND_MSG + paperId));
-        Resource resource = this.fileService.getFile(paper.getContent().getGeneratedFileName());
         SecurityUser securityUser = (SecurityUser) SecurityContextHolder.getContext()
                 .getAuthentication()
                 .getPrincipal();
@@ -203,78 +194,118 @@ public class PaperService {
         if (paper.getConference() != null && this.conferenceRepository.isPC_CHAIR(
                 paper.getConference().getId(),
                 securityUser.user().getId())) {
+
+            Set<PCChairReviewDTO> reviews = new HashSet<>();
             for (Review review : paper.getReviews()) {
-                reviewDTO = ReviewDTO.builder()
-                        .id(review.getId())
-                        .score(review.getScore())
-                        .comment(review.getComment())
-                        .createdDate(review.getCreatedDate())
-                        .reviewer(review.getUser().getUsername())
-                        .build();
-                reviews.add(reviewDTO);
+                reviewDTO = new PCChairReviewDTO(
+                        review.getId(),
+                        review.getPaper().getId(),
+                        review.getCreatedDate(),
+                        review.getComment(),
+                        review.getScore(),
+                        review.getUser().getUsername()
+                );
+                reviews.add((PCChairReviewDTO) reviewDTO);
             }
 
-            return PaperDTO.builder()
-                    .id(paperId)
-                    .title(paper.getTitle())
-                    .abstractText(paper.getAbstractText())
-                    .keywords(paper.getKeywords().split(","))
-                    .authors(paper.getAuthors().split(","))
-                    .state(paper.getState())
-                    .createdDate(paper.getCreatedDate())
-                    .file(resource)
-                    .reviews(reviews)
-                    .build();
+            return new PCChairPaperDTO(
+                    paperId,
+                    paper.getCreatedDate(),
+                    paper.getTitle(),
+                    paper.getAbstractText(),
+                    paper.getAuthors().split(","),
+                    paper.getKeywords().split(","),
+                    paper.getState(),
+                    reviews
+            );
         }
 
         if (this.reviewRepository.isReviewer(paperId, securityUser.user().getId())) {
-            return PaperDTO.builder()
-                    .id(paperId)
-                    .title(paper.getTitle())
-                    .abstractText(paper.getAbstractText())
-                    .keywords(paper.getKeywords().split(","))
-                    .authors(paper.getAuthors().split(","))
-                    .state(paper.getState())
-                    .createdDate(paper.getCreatedDate())
-                    .file(resource)
-                    .build();
+            Set<ReviewerReviewDTO> reviews = new HashSet<>();
+            for (Review review : paper.getReviews()) {
+                reviewDTO = new ReviewerReviewDTO(
+                        review.getId(),
+                        review.getPaper().getId(),
+                        review.getCreatedDate(),
+                        review.getComment(),
+                        review.getScore(),
+                        review.getUser().getUsername()
+                );
+                reviews.add((ReviewerReviewDTO) reviewDTO);
+            }
+            return new ReviewerPaperDTO(
+                    paperId,
+                    paper.getCreatedDate(),
+                    paper.getTitle(),
+                    paper.getAbstractText(),
+                    paper.getAuthors().split(","),
+                    paper.getKeywords().split(","),
+                    paper.getState(),
+                    reviews
+            );
         }
 
         if (this.paperRepository.isAuthor(paperId, securityUser.user().getId())) {
+            Set<AuthorReviewDTO> reviews = new HashSet<>();
             for (Review review : paper.getReviews()) {
-                reviewDTO = ReviewDTO.builder()
-                        .id(review.getId())
-                        .score(review.getScore())
-                        .comment(review.getComment())
-                        .createdDate(review.getCreatedDate())
-                        .build();
-                reviews.add(reviewDTO);
+                reviewDTO = new AuthorReviewDTO(
+                        review.getId(),
+                        review.getPaper().getId(),
+                        review.getCreatedDate(),
+                        review.getComment(),
+                        review.getScore()
+                );
+                reviews.add((AuthorReviewDTO) reviewDTO);
             }
 
-            return PaperDTO.builder()
-                    .id(paperId)
-                    .title(paper.getTitle())
-                    .abstractText(paper.getAbstractText())
-                    .keywords(paper.getKeywords().split(","))
-                    .authors(paper.getAuthors().split(","))
-                    .createdDate(paper.getCreatedDate())
-                    .reviews(reviews)
-                    .file(resource)
-                    .build();
+            return new AuthorPaperDTO(
+                    paperId,
+                    paper.getCreatedDate(),
+                    paper.getTitle(),
+                    paper.getAbstractText(),
+                    paper.getAuthors().split(","),
+                    paper.getKeywords().split(","),
+                    paper.getState(),
+                    reviews
+            );
         }
 
         if (!paper.getState().equals(PaperState.ACCEPTED)) {
             throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
         }
 
-        return PaperDTO.builder()
-                .id(paperId)
-                .title(paper.getTitle())
-                .abstractText(paper.getAbstractText())
-                .keywords(paper.getKeywords().split(","))
-                .authors(paper.getAuthors().split(","))
-                .createdDate(paper.getCreatedDate())
-                .build();
+        /*
+            For any other case, visitor, reviewer but not in the requested paper, PC_CHAIR but the requested paper is
+            not assigned to their conference we return the same properties.
+         */
+        return new PaperDTO(
+                paperId,
+                paper.getCreatedDate(),
+                paper.getTitle(),
+                paper.getAbstractText(),
+                paper.getAuthors().split(","),
+                paper.getKeywords().split(",")
+        );
+    }
+
+    PaperFile downloadPaperFile(Long id) {
+        Paper paper = this.paperRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException(
+                PAPER_NOT_FOUND_MSG + id));
+        SecurityUser securityUser = (SecurityUser) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        if(!this.paperRepository.isAuthor(id, securityUser.user().getId())
+                && !this.reviewRepository.isReviewer(paper.getId(), securityUser.user().getId())
+                && (paper.getConference() != null && !this.conferenceRepository.isPC_CHAIR(
+                        paper.getConference().getId(),
+                        securityUser.user().getId()))) {
+            throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + id);
+        }
+
+        Resource file = this.fileService.getFile(paper.getContent().getGeneratedFileName());
+
+        return new PaperFile(file, paper.getContent().getOriginalFileName());
     }
 
     private void validatePaper(PaperCreateRequest paperCreateRequest) {

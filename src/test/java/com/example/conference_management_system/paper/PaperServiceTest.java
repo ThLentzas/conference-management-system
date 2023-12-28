@@ -1,8 +1,9 @@
 package com.example.conference_management_system.paper;
 
-import com.example.conference_management_system.auth.AuthService;
+import com.example.conference_management_system.conference.ConferenceRepository;
 import com.example.conference_management_system.entity.User;
-import com.example.conference_management_system.review.ReviewService;
+import com.example.conference_management_system.paper.dto.PaperCreateRequest;
+import com.example.conference_management_system.review.ReviewRepository;
 import com.example.conference_management_system.role.RoleService;
 import com.example.conference_management_system.role.RoleType;
 import com.example.conference_management_system.security.SecurityUser;
@@ -24,12 +25,15 @@ import org.testcontainers.shaded.org.apache.commons.lang3.RandomStringUtils;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 
@@ -47,11 +51,11 @@ class PaperServiceTest {
     @Mock
     private UserRepository userRepository;
     @Mock
+    private ReviewRepository reviewRepository;
+    @Mock
+    private ConferenceRepository conferenceRepository;
+    @Mock
     private RoleService roleService;
-    @Mock
-    private AuthService authService;
-    @Mock
-    private ReviewService reviewService;
     @Mock
     private FileService fileService;
     private PaperService underTest;
@@ -62,9 +66,9 @@ class PaperServiceTest {
                 paperRepository,
                 contentRepository,
                 userRepository,
+                reviewRepository,
+                conferenceRepository,
                 roleService,
-                authService,
-                reviewService,
                 fileService);
     }
 
@@ -97,7 +101,6 @@ class PaperServiceTest {
                 Set.of(user));
         paper.setId(1L);
 
-        when(this.authService.getAuthenticatedUser()).thenReturn(Optional.of(securityUser));
         when(this.paperRepository.existsByTitleIgnoreCase(any(String.class))).thenReturn(false);
         doNothing().when(this.roleService).assignRole(
                 any(SecurityUser.class),

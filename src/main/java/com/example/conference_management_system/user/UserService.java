@@ -1,11 +1,16 @@
 package com.example.conference_management_system.user;
 
+import com.example.conference_management_system.exception.ResourceNotFoundException;
+import com.example.conference_management_system.security.SecurityUser;
 import org.passay.CharacterRule;
 import org.passay.EnglishCharacterData;
 import org.passay.LengthRule;
 import org.passay.PasswordData;
 import org.passay.PasswordValidator;
 import org.passay.RuleResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.example.conference_management_system.entity.User;
@@ -17,6 +22,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
+    private static final String USER_NOT_FOUND_MSG = "User not found with id: ";
+    private static final UserDTOMapper dtoMapper = new UserDTOMapper();
 
     public User registerUser(User user) {
         if (this.userRepository.existsByUsernameIgnoreCase(user.getUsername())) {
@@ -24,6 +32,14 @@ public class UserService {
         }
 
         return this.userRepository.save(user);
+    }
+
+    UserDTO findUserById() {
+        SecurityUser securityUser = (SecurityUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        User user = this.userRepository.findById(securityUser.user().getId()).orElseThrow(() ->
+                new ResourceNotFoundException(USER_NOT_FOUND_MSG + securityUser.user().getId()));
+
+        return dtoMapper.apply(user);
     }
 
     public void validateUser(User user) {
@@ -35,8 +51,8 @@ public class UserService {
             throw new IllegalArgumentException("Invalid full name. Full name must not exceed 50 characters");
         }
 
-        if (!user.getFullName().matches("^[a-zA-Z]*$")) {
-            throw new IllegalArgumentException("Invalid full name. Full name should contain only characters");
+        if (!user.getFullName().matches("^[a-zA-Z ]*$")) {
+            throw new IllegalArgumentException("Invalid full name. Full name should contain only characters and spaces");
         }
 
         PasswordValidator validator = new org.passay.PasswordValidator(

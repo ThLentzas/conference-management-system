@@ -1,5 +1,6 @@
 package com.example.conference_management_system.paper;
 
+import com.example.conference_management_system.paper.dto.PaperCreateRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

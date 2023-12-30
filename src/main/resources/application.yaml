@@ -32,4 +32,4 @@ logging:
   level:
     org:
       springframework:
-        security: DEBUG
+        security: TRACE # TRACE for more specific logging, filters getting invoked etc

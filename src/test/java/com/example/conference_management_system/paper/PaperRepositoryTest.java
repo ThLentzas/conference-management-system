@@ -20,6 +20,7 @@ class PaperRepositoryTest extends AbstractUnitTest {
         paper.setAbstractText("abstractText");
         paper.setAuthors("author 1, author2");
         paper.setKeywords("keyword 1, keyword 2");
+
         this.underTest.save(paper);
 
         //Act & Assert
@@ -34,6 +35,7 @@ class PaperRepositoryTest extends AbstractUnitTest {
         paper.setAbstractText("abstractText");
         paper.setAuthors("author 1, author2");
         paper.setKeywords("keyword 1, keyword 2");
+
         this.underTest.save(paper);
 
         //Act & Assert

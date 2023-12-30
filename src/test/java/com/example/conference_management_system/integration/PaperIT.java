@@ -113,7 +113,7 @@ class PaperIT extends AbstractIntegrationTest {
         bodyBuilder.part("abstractText", "abstractText");
         bodyBuilder.part("authors", "author 1,author 2");
         bodyBuilder.part("keywords", "keyword 1,keyword 2");
-        bodyBuilder.part("file", getFileContent()).filename("test.pdf");
+        bodyBuilder.part("file", getFileContent("test.pdf")).filename("test.pdf");
 
         MultiValueMap<String, HttpEntity<?>> multipartBody = bodyBuilder.build();
 
@@ -228,8 +228,265 @@ class PaperIT extends AbstractIntegrationTest {
                         assertThat((List<String>) roles).contains(RoleType.ROLE_AUTHOR.name()));
     }
 
-    private byte[] getFileContent() throws IOException {
-        Path pdfPath = ResourceUtils.getFile("classpath:files/test.pdf").toPath();
-        return Files.readAllBytes(pdfPath);
+    @Test
+    void shouldUpdatePaper() throws IOException {
+         /*
+            Getting the csrf token and the cookie of the current session for subsequent requests.
+
+            The CsrfToken is an interface, and we can not specify it as EntityExchangeResult<CsrfToken>. It would result
+            in a deserialization error. The default implementation of that interface is the DefaultCsrfToken, so we
+            specify that instead.
+         */
+        EntityExchangeResult<DefaultCsrfToken> result = this.webTestClient.get()
+                .uri(AUTH_PATH + "/csrf")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectHeader().exists(HttpHeaders.SET_COOKIE)
+                .expectBody(DefaultCsrfToken.class)
+                .returnResult();
+
+        String csrfToken = result.getResponseBody().getToken();
+        /*
+            The cookie in the response Header(SET_COOKIE) is in the form of
+            SESSION=OTU2ODllODktYjZhMS00YmUxLTk1NGEtMDk0ZTBmODg0Mzhm; Path=/; HttpOnly; SameSite=Lax
+
+            By splitting with ";" we get the first value which then we set it in the Cookie request header. The expected
+            value is SESSION= plus some value.
+         */
+        String cookieHeader = result.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        String sessionId = cookieHeader.split(";")[0];
+        String requestBody = """
+                {
+                    "username": "username",
+                    "password": "CyN549!@o2Cr",
+                    "fullName": "Full Name",
+                    "roleTypes": [
+                        "ROLE_AUTHOR"
+                    ]
+                }
+                """;
+
+        this.webTestClient.post()
+                .uri(AUTH_PATH + "/signup?_csrf={csrf}", csrfToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Cookie", sessionId)
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus().isCreated();
+
+        /*
+            Each .part() call adds a part to the multipart request
+            1st argument: name of the part. Must match the @RequestParam in the PaperController
+            2nd argument: content
+         */
+        MultipartBodyBuilder bodyBuilder = new MultipartBodyBuilder();
+        bodyBuilder.part("title", "title");
+        bodyBuilder.part("abstractText", "abstractText");
+        bodyBuilder.part("authors", "author 1,author 2");
+        bodyBuilder.part("keywords", "keyword 1,keyword 2");
+        bodyBuilder.part("file", getFileContent("test.pdf")).filename("test.pdf");
+
+        MultiValueMap<String, HttpEntity<?>> multipartBody = bodyBuilder.build();
+
+        EntityExchangeResult<byte[]> response = webTestClient.post()
+                .uri(PAPER_PATH + "?_csrf={csrf}", csrfToken)
+                .header("Cookie", sessionId)
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .bodyValue(multipartBody)
+                .exchange()
+                .expectStatus().isCreated()
+                .expectHeader().exists("Location")
+                .expectBody()
+                .returnResult();
+
+        String location = response.getResponseHeaders().getFirst(HttpHeaders.LOCATION);
+        Long paperId = Long.parseLong(location.substring(location.lastIndexOf('/') + 1));
+
+        /*
+            At this point in the shouldCreatePaper() test the user had a new role and their current session was
+            invalidated, so we had to retrieve a new csrf token and a cookie. In this test the user initially had the
+            role ROLE_AUTHOR, so we continue in the same session.
+         */
+
+        bodyBuilder = new MultipartBodyBuilder();
+        bodyBuilder.part("title", "new title");
+        bodyBuilder.part("abstractText", "new abstractText");
+        bodyBuilder.part("keywords", "new keyword");
+        bodyBuilder.part("file", getFileContent("test.tex")).filename("test.tex");
+
+        multipartBody = bodyBuilder.build();
+
+        this.webTestClient.put()
+                .uri(PAPER_PATH + "/{id}?_csrf={csrf}", paperId, csrfToken)
+                .header("Cookie", sessionId)
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .bodyValue(multipartBody)
+                .exchange()
+                .expectStatus().isNoContent();
+
+        /*
+            GET: /api/v1/papers/{id}
+
+            In the below assertions, we see that the keywords now are 1 instead of 2 previously
+         */
+        this.webTestClient.get()
+                .uri(PAPER_PATH + "/{id}", paperId)
+                .accept(MediaType.APPLICATION_JSON)
+                .header("Cookie", sessionId)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.id").isEqualTo(paperId)
+                .jsonPath("$.title").isEqualTo("new title")
+                .jsonPath("$.abstractText").isEqualTo("new abstractText")
+                .jsonPath("$.authors.length()").isEqualTo(3)
+                .jsonPath("$.authors[0]").isEqualTo("author 1")
+                .jsonPath("$.authors[1]").isEqualTo("author 2")
+                .jsonPath("$.authors[2]").isEqualTo("Full Name")
+                .jsonPath("$.keywords.length()").isEqualTo(1)
+                .jsonPath("$.keywords[0]").isEqualTo("new keyword")
+                .jsonPath("$._links.download").exists()
+                .jsonPath("$._links.download.href").value(containsString("/api/v1/papers/" + paperId + "/download"));
+
+        /*
+            GET: /api/v1/papers/{id}/download
+         */
+        EntityExchangeResult<byte[]> download = webTestClient.get()
+                .uri(PAPER_PATH + "/{id}/download?_csrf={csrf}", paperId, csrfToken)
+                .header("Cookie", sessionId)
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .expectHeader().contentDisposition(ContentDisposition.attachment()
+                        .filename("test.tex")
+                        .build())
+                .expectBody(byte[].class)
+                .returnResult();
+
+        byte[] fileContent = download.getResponseBody();
+        assertThat(fileContent).isNotNull();
+    }
+
+    @Test
+    void shouldAddCoAuthor() throws IOException {
+        /*
+            Getting the csrf token and the cookie of the current session for subsequent requests.
+
+            The CsrfToken is an interface, and we can not specify it as EntityExchangeResult<CsrfToken>. It would result
+            in a deserialization error. The default implementation of that interface is the DefaultCsrfToken, so we
+            specify that instead.
+         */
+        EntityExchangeResult<DefaultCsrfToken> result = this.webTestClient.get()
+                .uri(AUTH_PATH + "/csrf")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectHeader().exists(HttpHeaders.SET_COOKIE)
+                .expectBody(DefaultCsrfToken.class)
+                .returnResult();
+
+        String csrfToken = result.getResponseBody().getToken();
+        /*
+            The cookie in the response Header(SET_COOKIE) is in the form of
+            SESSION=OTU2ODllODktYjZhMS00YmUxLTk1NGEtMDk0ZTBmODg0Mzhm; Path=/; HttpOnly; SameSite=Lax
+
+            By splitting with ";" we get the first value which then we set it in the Cookie request header. The expected
+            value is SESSION= plus some value.
+         */
+        String cookieHeader = result.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        String sessionId = cookieHeader.split(";")[0];
+        String requestBody = """
+                {
+                    "username": "username",
+                    "password": "CyN549!@o2Cr",
+                    "fullName": "Full Name",
+                    "roleTypes": [
+                        "ROLE_PC_CHAIR"
+                    ]
+                }
+                """;
+
+        this.webTestClient.post()
+                .uri(AUTH_PATH + "/signup?_csrf={csrf}", csrfToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Cookie", sessionId)
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus().isCreated();
+
+        result = this.webTestClient.get()
+                .uri(AUTH_PATH + "/csrf")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectHeader().exists(HttpHeaders.SET_COOKIE)
+                .expectBody(DefaultCsrfToken.class)
+                .returnResult();
+
+        csrfToken = result.getResponseBody().getToken();
+        cookieHeader = result.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        sessionId = cookieHeader.split(";")[0];
+
+        requestBody = """
+                {
+                    "username": "new username",
+                    "password": "CyN549!@o2Cr",
+                    "fullName": "Test",
+                    "roleTypes": [
+                        "ROLE_PC_MEMBER"
+                    ]
+                }
+                """;
+
+        this.webTestClient.post()
+                .uri(AUTH_PATH + "/signup?_csrf={csrf}", csrfToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Cookie", sessionId)
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus().isCreated();
+
+        /*
+            Each .part() call adds a part to the multipart request
+            1st argument: name of the part. Must match the @RequestParam in the PaperController
+            2nd argument: content
+         */
+        MultipartBodyBuilder bodyBuilder = new MultipartBodyBuilder();
+        bodyBuilder.part("title", "title");
+        bodyBuilder.part("abstractText", "abstractText");
+        bodyBuilder.part("authors", "author 1,author 2");
+        bodyBuilder.part("keywords", "keyword 1,keyword 2");
+        bodyBuilder.part("file", getFileContent("test.pdf")).filename("test.pdf");
+
+        MultiValueMap<String, HttpEntity<?>> multipartBody = bodyBuilder.build();
+
+        EntityExchangeResult<byte[]> response = webTestClient.post()
+                .uri(PAPER_PATH + "?_csrf={csrf}", csrfToken)
+                .header("Cookie", sessionId)
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .bodyValue(multipartBody)
+                .exchange()
+                .expectStatus().isCreated()
+                .expectHeader().exists("Location")
+                .expectBody()
+                .returnResult();
+
+        String location = response.getResponseHeaders().getFirst(HttpHeaders.LOCATION);
+        Long paperId = Long.parseLong(location.substring(location.lastIndexOf('/') + 1));
+        requestBody = """
+                {
+                    "id": 1
+                }
+                """;
+
+        this.webTestClient.put()
+                .uri(PAPER_PATH + "/{id}/author?_csrf={csrf}", paperId, csrfToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus().isNoContent();
+    }
+
+    private byte[] getFileContent(String fileName) throws IOException {
+        Path path = ResourceUtils.getFile("classpath:files/" + fileName).toPath();
+        return Files.readAllBytes(path);
     }
 }

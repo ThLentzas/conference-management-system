@@ -1,5 +1,7 @@
 package com.example.conference_management_system.paper;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.hateoas.Link;
 import org.springframework.http.ContentDisposition;
@@ -8,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,6 +44,7 @@ import java.net.URI;
 @RequestMapping("/api/v1/papers")
 class PaperController {
     private final PaperService paperService;
+    private static final Logger logger = LoggerFactory.getLogger(PaperController.class);
 
     @PostMapping
     ResponseEntity<Void> createPaper(@RequestParam("title") String title,
@@ -48,12 +52,14 @@ class PaperController {
                                      @RequestParam("authors") String authors,
                                      @RequestParam("keywords") String keywords,
                                      @RequestParam("file") MultipartFile file,
+                                     Authentication authentication,
                                      UriComponentsBuilder uriBuilder,
                                      HttpServletRequest servletRequest
     ) {
         PaperCreateRequest paperCreateRequest = new PaperCreateRequest(title, abstractText, authors, keywords, file);
-        Long id = this.paperService.createPaper(paperCreateRequest, servletRequest);
+        logger.info("Paper create request: {}", paperCreateRequest);
 
+        Long id = this.paperService.createPaper(paperCreateRequest, authentication, servletRequest);
         URI location = uriBuilder
                 .path("/api/v1/papers/{id}")
                 .buildAndExpand(id)
@@ -73,6 +79,8 @@ class PaperController {
                                      @RequestParam(value = "file", required = false) MultipartFile file
     ) {
         PaperUpdateRequest paperUpdateRequest = new PaperUpdateRequest(title, abstractText, authors, keywords, file);
+        logger.info("Paper update request: {}", paperUpdateRequest);
+
         this.paperService.updatePaper(id, paperUpdateRequest);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -80,8 +88,10 @@ class PaperController {
 
     @PutMapping("/{id}/author")
     ResponseEntity<Void> addAuthor(@PathVariable("id") Long id,
-                                   @Valid @RequestBody AuthorAdditionRequest authorAdditionRequest) {
-        this.paperService.addAuthor(id, authorAdditionRequest);
+                                   @Valid @RequestBody AuthorAdditionRequest authorAdditionRequest,
+                                   Authentication authentication) {
+        logger.info("Paper co-author addition request: {}", authorAdditionRequest);
+        this.paperService.addCoAuthor(id, authentication, authorAdditionRequest);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }

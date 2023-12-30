@@ -15,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -156,6 +157,8 @@ class AuthControllerTest {
                         status().isForbidden(),
                         content().json(responseBody)
                 );
+
+        verifyNoInteractions(authService);
     }
 
     @Test
@@ -180,6 +183,8 @@ class AuthControllerTest {
                         status().isForbidden(),
                         content().json(responseBody)
                 );
+
+        verifyNoInteractions(authService);
     }
 
     @Test
@@ -270,6 +275,8 @@ class AuthControllerTest {
                         status().isForbidden(),
                         content().json(responseBody)
                 );
+
+        verifyNoInteractions(authService);
     }
 
     @Test
@@ -293,6 +300,8 @@ class AuthControllerTest {
                         status().isForbidden(),
                         content().json(responseBody)
                 );
+
+        verifyNoInteractions(authService);
     }
 
     private Authentication getAuthentication() {

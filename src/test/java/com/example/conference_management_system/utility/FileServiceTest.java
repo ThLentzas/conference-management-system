@@ -76,7 +76,7 @@ class FileServiceTest {
     }
 
     @Test
-    void shouldStoreFile() throws IOException {
+    void shouldSaveFile() throws IOException {
         //Arrange
         String fileName = UUID.randomUUID().toString();
         Path pdfPath = ResourceUtils.getFile("src/test/resources/files/test.pdf").toPath();
@@ -93,6 +93,28 @@ class FileServiceTest {
 
         //Assert
         assertThat(Files.exists(storedFile)).isTrue();
+    }
+
+    @Test
+    void shouldDeleteFile() throws IOException {
+        //Arrange
+        String fileName = UUID.randomUUID().toString();
+        Path pdfPath = ResourceUtils.getFile("src/test/resources/files/test.pdf").toPath();
+        byte[] pdfContent = Files.readAllBytes(pdfPath);
+        MultipartFile pdfFile = new MockMultipartFile(
+                "file",
+                "test.pdf",
+                "application/pdf",
+                pdfContent);
+
+        this.underTest.saveFile(pdfFile, fileName);
+
+        //Act
+        this.underTest.deleteFile(fileName);
+        Path storedFile = tempDir.resolve(fileName);
+
+        //Assert
+        assertThat(Files.exists(storedFile)).isFalse();
     }
 
     @Test

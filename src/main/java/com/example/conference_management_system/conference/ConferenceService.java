@@ -1,5 +1,6 @@
 package com.example.conference_management_system.conference;
 
+import com.example.conference_management_system.auth.AuthService;
 import com.example.conference_management_system.entity.Conference;
 import com.example.conference_management_system.exception.DuplicateResourceException;
 import com.example.conference_management_system.role.RoleService;
@@ -20,8 +21,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ConferenceService {
     private final ConferenceRepository conferenceRepository;
-    private final RoleService roleService;
     private final UserRepository userRepository;
+    private final RoleService roleService;
+    private final AuthService authService;
     private static final Logger logger = LoggerFactory.getLogger(ConferenceService.class);
     private static final String SERVER_ERROR_MSG = "The server encountered an internal error and was unable to " +
             "complete your request. Please try again later";
@@ -43,7 +45,10 @@ public class ConferenceService {
             throw new DuplicateResourceException("A conference with the provided name already exists");
         }
 
-        this.roleService.assignRole(securityUser, RoleType.ROLE_PC_CHAIR, servletRequest);
+        if(this.roleService.assignRole(securityUser.user(), RoleType.ROLE_PC_CHAIR)) {
+            this.authService.invalidateSession(servletRequest);
+
+        }
 
         Conference conference = new Conference(
                 conferenceCreateRequest.name(),

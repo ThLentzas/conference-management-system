@@ -1,15 +1,5 @@
 package com.example.conference_management_system.paper;
 
-import com.example.conference_management_system.conference.ConferenceRepository;
-import com.example.conference_management_system.entity.User;
-import com.example.conference_management_system.paper.dto.PaperCreateRequest;
-import com.example.conference_management_system.review.ReviewRepository;
-import com.example.conference_management_system.role.RoleService;
-import com.example.conference_management_system.role.RoleType;
-import com.example.conference_management_system.security.SecurityUser;
-import com.example.conference_management_system.user.UserRepository;
-
-import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,30 +8,49 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.util.ResourceUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.testcontainers.shaded.org.apache.commons.lang3.RandomStringUtils;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import com.example.conference_management_system.content.ContentRepository;
+import com.example.conference_management_system.utility.FileService;
+import com.example.conference_management_system.exception.UnsupportedFileException;
+import com.example.conference_management_system.conference.ConferenceRepository;
+import com.example.conference_management_system.paper.dto.PaperCreateRequest;
+import com.example.conference_management_system.review.ReviewRepository;
+import com.example.conference_management_system.role.RoleService;
+import com.example.conference_management_system.user.UserRepository;
+import com.example.conference_management_system.auth.AuthService;
+import com.example.conference_management_system.entity.Paper;
+import com.example.conference_management_system.entity.Role;
+import com.example.conference_management_system.entity.User;
+import com.example.conference_management_system.exception.DuplicateResourceException;
+import com.example.conference_management_system.exception.ResourceNotFoundException;
+import com.example.conference_management_system.paper.dto.AuthorAdditionRequest;
+import com.example.conference_management_system.paper.dto.PaperUpdateRequest;
+import com.example.conference_management_system.role.RoleType;
+import com.example.conference_management_system.security.SecurityUser;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 
-import com.example.conference_management_system.content.ContentRepository;
-import com.example.conference_management_system.utility.FileService;
-import com.example.conference_management_system.entity.Paper;
-import com.example.conference_management_system.exception.UnsupportedFileException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import jakarta.servlet.http.HttpServletRequest;
+
+/*
+    Create paper is tested via an integration test
+ */
 @ExtendWith(MockitoExtension.class)
 class PaperServiceTest {
     @Mock
@@ -58,6 +67,8 @@ class PaperServiceTest {
     private RoleService roleService;
     @Mock
     private FileService fileService;
+    @Mock
+    private AuthService authService;
     private PaperService underTest;
 
     @BeforeEach
@@ -69,55 +80,8 @@ class PaperServiceTest {
                 reviewRepository,
                 conferenceRepository,
                 roleService,
-                fileService);
-    }
-
-    @Test
-    void shouldCreatePaper() throws IOException {
-        //Arrange
-        MultipartFile pdfFile = new MockMultipartFile(
-                "file",
-                "test.pdf",
-                "application/pdf",
-                getFileContent());
-        PaperCreateRequest paperCreateRequest = new PaperCreateRequest(
-                "title",
-                "abstractText",
-                "author 1, author2",
-                "keyword 1, keyword 2",
-                pdfFile
-        );
-        HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
-        User user = new User();
-        user.setId(1L);
-        user.setFullName("author 3");
-        SecurityUser securityUser = new SecurityUser(user);
-
-        Paper paper = new Paper(
-                "title",
-                "abstractText",
-                "author 1, author2, author3",
-                "keyword 1, keyword 2",
-                Set.of(user));
-        paper.setId(1L);
-
-        when(this.paperRepository.existsByTitleIgnoreCase(any(String.class))).thenReturn(false);
-        doNothing().when(this.roleService).assignRole(
-                any(SecurityUser.class),
-                any(RoleType.class),
-                any(HttpServletRequest.class));
-        doNothing().when(this.fileService).saveFile(any(MultipartFile.class), any(String.class));
-        when(this.fileService.isFileSupported(any(MultipartFile.class))).thenReturn(true);
-        when(this.paperRepository.save(any(Paper.class))).thenReturn(paper);
-
-        //Act
-        Long actual = this.underTest.createPaper(paperCreateRequest, httpServletRequest);
-
-        //Assert
-        assertThat(actual).isEqualTo(1L);
-        verify(this.fileService, times(1)).saveFile(
-                any(MultipartFile.class),
-                any(String.class));
+                fileService,
+                authService);
     }
 
     @Test
@@ -135,8 +99,9 @@ class PaperServiceTest {
                 "keyword 1, keyword 2",
                 pdfFile
         );
+        Authentication authentication = getAuthentication();
 
-        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, httpServletRequest))
+        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, authentication, httpServletRequest))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("You must provide the title of the paper");
     }
@@ -158,9 +123,10 @@ class PaperServiceTest {
                 "keyword 1, keyword 2",
                 pdfFile
         );
+        Authentication authentication = getAuthentication();
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, httpServletRequest))
+        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, authentication, httpServletRequest))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Title must not exceed 100 characters");
     }
@@ -184,9 +150,10 @@ class PaperServiceTest {
                 "keyword 1, keyword 2",
                 pdfFile
         );
+        Authentication authentication = getAuthentication();
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, httpServletRequest))
+        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, authentication, httpServletRequest))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Every author you provide must have a name");
     }
@@ -207,9 +174,10 @@ class PaperServiceTest {
                 "keyword 1, keyword 2",
                 pdfFile
         );
+        Authentication authentication = getAuthentication();
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, httpServletRequest))
+        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, authentication, httpServletRequest))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("You must provide the abstract text of the paper");
     }
@@ -233,9 +201,10 @@ class PaperServiceTest {
                 keywordsCsv,
                 pdfFile
         );
+        Authentication authentication = getAuthentication();
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, httpServletRequest))
+        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, authentication, httpServletRequest))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Every keyword you provide must have a value");
     }
@@ -256,9 +225,10 @@ class PaperServiceTest {
                 "keyword 1, keyword 2",
                 pdfFile
         );
+        Authentication authentication = getAuthentication();
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, httpServletRequest))
+        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, authentication, httpServletRequest))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("The file name must contain only alphanumeric characters, hyphen, underscores spaces, " +
                         "and periods");
@@ -279,9 +249,10 @@ class PaperServiceTest {
                 "keyword 1, keyword 2",
                 pdfFile
         );
+        Authentication authentication = getAuthentication();
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, httpServletRequest))
+        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, authentication, httpServletRequest))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("File name must not exceed 100 characters");
     }
@@ -303,13 +274,202 @@ class PaperServiceTest {
                 "keyword 1, keyword 2",
                 imageFile
         );
+        Authentication authentication = getAuthentication();
 
         when(this.fileService.isFileSupported(any(MultipartFile.class))).thenReturn(false);
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, httpServletRequest))
+        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, authentication, httpServletRequest))
                 .isInstanceOf(UnsupportedFileException.class)
                 .hasMessage("The provided file is not supported. Make sure your file is either a pdf or a Latex one");
+    }
+
+    @Test
+    void shouldThrowDuplicateResourceExceptionWhenRequestTitleExistsForPaperCreateRequest() throws Exception {
+        HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
+        MultipartFile pdfFile = new MockMultipartFile(
+                "file",
+                "test.pdf",
+                "application/pdf",
+                getFileContent());
+        PaperCreateRequest paperCreateRequest = new PaperCreateRequest(
+                "title",
+                "abstractText",
+                "author 1, author2",
+                "keyword 1, keyword 2",
+                pdfFile
+        );
+        Authentication authentication = getAuthentication();
+
+        when(this.paperRepository.existsByTitleIgnoreCase(any(String.class))).thenReturn(true);
+        when(this.fileService.isFileSupported(any(MultipartFile.class))).thenReturn(true);
+
+        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, authentication, httpServletRequest))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessage("A paper with the provided title already exists");
+    }
+
+    /*
+        There is no point to test validation again since it's already tested in the createPaper() for updatePaper()
+     */
+    @Test
+    void shouldThrowIllegalArgumentExceptionWhenAllPropertiesAreNullForPaperUpdateRequest() {
+        PaperUpdateRequest paperUpdateRequest = new PaperUpdateRequest(
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        assertThatThrownBy(() -> this.underTest.updatePaper(1L, paperUpdateRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("You must provide at least one property to update the paper");
+    }
+
+    @Test
+    void shouldThrowDuplicateResourceExceptionWhenRequestTitleExistsForPaperUpdateRequest() throws Exception {
+        MultipartFile pdfFile = new MockMultipartFile(
+                "file",
+                "test.pdf",
+                "application/pdf",
+                getFileContent());
+        PaperUpdateRequest paperUpdateRequest = new PaperUpdateRequest(
+                "title",
+                "abstractText",
+                "author 1, author2",
+                "keyword 1, keyword 2",
+                pdfFile
+        );
+        Paper paper = new Paper();
+        paper.setTitle("title");
+        paper.setId(1L);
+
+        when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.of(paper));
+        when(this.paperRepository.existsByTitleIgnoreCase(any(String.class))).thenReturn(true);
+
+        assertThatThrownBy(() -> this.underTest.updatePaper(1L, paperUpdateRequest))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessage("A paper with the provided title already exists");
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenPaperIsNotFoundForPaperUpdateRequest() throws Exception {
+        MultipartFile pdfFile = new MockMultipartFile(
+                "file",
+                "test.pdf",
+                "application/pdf",
+                getFileContent());
+        PaperUpdateRequest paperUpdateRequest = new PaperUpdateRequest(
+                "title",
+                "abstractText",
+                "author 1, author2",
+                "keyword 1, keyword 2",
+                pdfFile
+        );
+
+        when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> this.underTest.updatePaper(1L, paperUpdateRequest))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Paper not found with id: 1");
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenPaperIsNotFoundForAuthorAdditionRequest() {
+        AuthorAdditionRequest authorAdditionRequest = new AuthorAdditionRequest(1L);
+        Authentication authentication = getAuthentication();
+
+        when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> this.underTest.addCoAuthor(1L, authentication, authorAdditionRequest))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Paper not found with id: 1");
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenRequestingUserIsNotPaperAuthorForAuthorAdditionRequest() {
+        AuthorAdditionRequest authorAdditionRequest = new AuthorAdditionRequest(1L);
+        Authentication authentication = getAuthentication();
+        Paper paper = new Paper();
+        paper.setTitle("title");
+        paper.setUsers(Collections.emptySet());
+        paper.setId(1L);
+
+
+        when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.of(paper));
+
+        assertThatThrownBy(() -> this.underTest.addCoAuthor(1L, authentication, authorAdditionRequest))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Paper not found with id: 1");
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenCoAuthorToAddIsNotFound() {
+        AuthorAdditionRequest authorAdditionRequest = new AuthorAdditionRequest(1L);
+        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+
+        Paper paper = new Paper();
+        paper.setTitle("title");
+        paper.setId(1L);
+        paper.setUsers(Set.of(securityUser.user()));
+
+        when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.of(paper));
+        when(this.userRepository.findById(any(Long.class))).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> this.underTest.addCoAuthor(1L, authentication, authorAdditionRequest))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("User not found with id: 1 to be added as co-author");
+    }
+
+    @Test
+    void shouldThrowDuplicateResourceExceptionWhenCoAuthorIsAlreadyAdded() {
+        AuthorAdditionRequest authorAdditionRequest = new AuthorAdditionRequest(2L);
+        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+
+        User coAuthor = new User("test", "test", "Test User", Set.of(new Role(RoleType.ROLE_AUTHOR)));
+        coAuthor.setId(2L);
+        Paper paper = new Paper();
+        paper.setTitle("title");
+        paper.setId(1L);
+        paper.setUsers(Set.of(securityUser.user(), coAuthor));
+
+        when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.of(paper));
+        when(this.userRepository.findById(any(Long.class))).thenReturn(Optional.of(coAuthor));
+
+        assertThatThrownBy(() -> this.underTest.addCoAuthor(1L, authentication, authorAdditionRequest))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessage("User with name: Test User is already an author for the paper with id: 1");
+
+    }
+
+    @Test
+    void shouldThrowDuplicateResourceExceptionWhenRequestingUserAddsSelfAsCoAuthor() {
+        AuthorAdditionRequest authorAdditionRequest = new AuthorAdditionRequest(1L);
+        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+
+        Paper paper = new Paper();
+        paper.setTitle("title");
+        paper.setId(1L);
+        paper.setUsers(Set.of(securityUser.user()));
+
+        when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.of(paper));
+        when(this.userRepository.findById(any(Long.class))).thenReturn(Optional.of(securityUser.user()));
+
+        assertThatThrownBy(() -> this.underTest.addCoAuthor(1L, authentication, authorAdditionRequest))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessage("User with name: Full Name is already an author for the paper with id: 1");
+    }
+
+    private Authentication getAuthentication() {
+        User user = new User("username", "password", "Full Name", Set.of(new Role(RoleType.ROLE_AUTHOR)));
+        user.setId(1L);
+        SecurityUser securityUser = new SecurityUser(user);
+
+        return new UsernamePasswordAuthenticationToken(securityUser, null, securityUser.getAuthorities());
     }
 
     private byte[] getFileContent() throws IOException {

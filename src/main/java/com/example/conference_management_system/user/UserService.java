@@ -39,6 +39,8 @@ public class UserService {
         User user = this.userRepository.findById(securityUser.user().getId()).orElseThrow(() ->
                 new ResourceNotFoundException(USER_NOT_FOUND_MSG + securityUser.user().getId()));
 
+        logger.info("User retrieved with id: {}", user.getId());
+
         return dtoMapper.apply(user);
     }
 

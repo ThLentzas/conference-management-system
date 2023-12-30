@@ -1,15 +1,24 @@
 package com.example.conference_management_system.paper;
 
+import com.example.conference_management_system.auth.AuthService;
 import com.example.conference_management_system.conference.ConferenceRepository;
 import com.example.conference_management_system.content.ContentRepository;
 import com.example.conference_management_system.entity.Content;
 import com.example.conference_management_system.entity.Paper;
 import com.example.conference_management_system.entity.Review;
+import com.example.conference_management_system.entity.User;
 import com.example.conference_management_system.exception.DuplicateResourceException;
 import com.example.conference_management_system.exception.ResourceNotFoundException;
 import com.example.conference_management_system.exception.UnsupportedFileException;
-import com.example.conference_management_system.paper.dto.*;
-import com.example.conference_management_system.review.*;
+import com.example.conference_management_system.paper.dto.AuthorAdditionRequest;
+import com.example.conference_management_system.paper.dto.AuthorPaperDTO;
+import com.example.conference_management_system.paper.dto.PCChairPaperDTO;
+import com.example.conference_management_system.paper.dto.PaperCreateRequest;
+import com.example.conference_management_system.paper.dto.PaperDTO;
+import com.example.conference_management_system.paper.dto.PaperFile;
+import com.example.conference_management_system.paper.dto.PaperUpdateRequest;
+import com.example.conference_management_system.paper.dto.ReviewerPaperDTO;
+import com.example.conference_management_system.review.ReviewRepository;
 import com.example.conference_management_system.review.dto.AuthorReviewDTO;
 import com.example.conference_management_system.review.dto.PCChairReviewDTO;
 import com.example.conference_management_system.review.dto.ReviewDTO;
@@ -31,6 +40,7 @@ import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -49,6 +59,7 @@ public class PaperService {
     private final ConferenceRepository conferenceRepository;
     private final RoleService roleService;
     private final FileService fileService;
+    private final AuthService authService;
     private static final Logger logger = LoggerFactory.getLogger(PaperService.class);
     private static final String PAPER_NOT_FOUND_MSG = "Paper not found with id: ";
     private static final String SERVER_ERROR_MSG = "The server encountered an internal error and was unable to " +
@@ -59,19 +70,29 @@ public class PaperService {
         must also be assigned the role ROLE_AUTHOR and their name must be added as one of the paper's authors if not
         already. In both cases if the condition is true prior the check, both ignored.
      */
-    Long createPaper(PaperCreateRequest paperCreateRequest, HttpServletRequest servletRequest) {
+    Long createPaper(PaperCreateRequest paperCreateRequest,
+                     Authentication authentication,
+                     HttpServletRequest servletRequest) {
         validatePaper(paperCreateRequest);
-
-        SecurityUser securityUser = (SecurityUser) SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getPrincipal();
 
         if (this.paperRepository.existsByTitleIgnoreCase(paperCreateRequest.title())) {
             logger.error("Paper creation failed. Duplicate title: {}", paperCreateRequest.title());
             throw new DuplicateResourceException("A paper with the provided title already exists");
         }
 
-        this.roleService.assignRole(securityUser, RoleType.ROLE_AUTHOR, servletRequest);
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+        /*
+            If the current user is assigned a new role, for example ROLE_AUTHOR it means that now they have access
+            to AUTHOR endpoints in subsequent requests but making one request to an AUTHOR access endpoint would
+            result in 403 despite them having the role. The reason is the token/cookie was generated upon the user
+            logging in/signing up and had the roles at that time. In order to give the user access to new endpoints
+            either we invalidate the session or we revoke the jwt and we force to log in again.
+        */
+        if (this.roleService.assignRole(securityUser.user(), RoleType.ROLE_AUTHOR)) {
+            logger.warn("Current user was assigned a new role. Invalidating current session");
+            this.authService.invalidateSession(servletRequest);
+        }
+
         Set<String> authors = new HashSet<>(List.of(paperCreateRequest.authors().split(";")));
         authors.add(securityUser.user().getFullName());
 
@@ -149,13 +170,62 @@ public class PaperService {
                         }
                 );
             }
+
+            this.paperRepository.save(paper);
         }, () -> {
+            logger.error("Paper update failed: Paper not found with: {}", id);
             throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + id);
         });
     }
 
-    void addAuthor(Long paperId, AuthorAdditionRequest authorAdditionRequest) {
+    /*
+        securityUser = user who made the request, author of the paper
+        user = co-author, retrieved based on the id
+     */
+    void addCoAuthor(Long paperId, Authentication authentication, AuthorAdditionRequest authorAdditionRequest) {
         this.paperRepository.findById(paperId).ifPresentOrElse(paper -> {
+            SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+
+            /*
+                Case: The user that made the request is not amongst the authors of the paper
+             */
+            if (!paper.getUsers().contains(securityUser.user())) {
+                logger.error("Co-author addition failed. User with id: {} is not author for paper with id: {}",
+                        securityUser.user().getId(),
+                        paperId);
+                throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
+            }
+
+            /*
+                Case: The user who is to be added as a co-author is not found, meaning it's not a registered user in
+                our system
+             */
+            User user = this.userRepository.findById(authorAdditionRequest.id()).orElseThrow(() -> {
+                logger.error("Co-author addition failed. User with id: {} was not found to be added as co-author",
+                        authorAdditionRequest.id());
+                return new ResourceNotFoundException("User not found with id: " + authorAdditionRequest.id() +
+                        " to be added as co-author");
+            });
+
+            /*
+                If the user to be added as a co-author already is or the user who made the request, requested themselves
+                to be added as author.
+             */
+            if(paper.getUsers().contains(user) || user.getId().equals(securityUser.user().getId())) {
+                logger.error("Co-author addition failed. User with id: {} is already an author for paper with id: {}",
+                        user.getId(), paperId);
+                throw new DuplicateResourceException(
+                        "User with name: " + user.getFullName() + " is already an author for the paper with id: " +
+                                paperId);
+            }
+
+            /*
+                If the user(co-author) was assigned a new role we update the entry in the db
+             */
+            if (this.roleService.assignRole(user, RoleType.ROLE_AUTHOR)) {
+                this.userRepository.save(user);
+            }
+
             /*
                  List<String> authors = Arrays.asList(paper.getAuthors().split(",")); We could not call create our list
                  that way because Arrays.asList() returns a fixed-size list backed by the original array. This means
@@ -163,22 +233,28 @@ public class PaperService {
                  authors.add(author) we would get an UnsupportedOperationException
              */
             List<String> authors = new ArrayList<>(Arrays.asList(paper.getAuthors().split(",")));
+            authors.add(user.getFullName());
 
-            if (!authors.contains(authorAdditionRequest.author())) {
-                authors.add(authorAdditionRequest.author());
-                String authorsCsv = String.join(",", authors);
-                paper.setAuthors(authorsCsv);
+            /*
+                Case: We don't check if the author's name is already part of the authors in the paper because we could
+                have 2 authors with the same name. If it was the addition of an author that's already an author for the
+                paper we would have caught that previously.
+             */
+            String authorsCsv = String.join(",", authors);
+            paper.setAuthors(authorsCsv);
+            paper.getUsers().add(user);
 
-                this.paperRepository.save(paper);
-            }
+            this.paperRepository.save(paper);
         }, () -> {
+            logger.error("Co-Author addition failed. Paper not found with id: {}", paperId);
             throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
         });
     }
 
     /*
-        Based on the role of the user that makes the GET request for a paper, we have to return different properties of
-        the PaperDTO.
+        Based on the role of the user that makes the GET request for a paper, we would have to return different
+        properties of the PaperDTO. We could use a builder to avoid multiple constructors, but it's the PaperDTO that
+        gets serialized u
      */
     PaperDTO findPaperById(Long paperId) {
         ReviewDTO reviewDTO;
@@ -295,11 +371,11 @@ public class PaperService {
                 .getAuthentication()
                 .getPrincipal();
 
-        if(!this.paperRepository.isAuthor(id, securityUser.user().getId())
+        if (!this.paperRepository.isAuthor(id, securityUser.user().getId())
                 && !this.reviewRepository.isReviewer(paper.getId(), securityUser.user().getId())
                 && (paper.getConference() != null && !this.conferenceRepository.isPC_CHAIR(
-                        paper.getConference().getId(),
-                        securityUser.user().getId()))) {
+                paper.getConference().getId(),
+                securityUser.user().getId()))) {
             throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + id);
         }
 

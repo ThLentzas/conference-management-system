@@ -125,6 +125,6 @@ class UserServiceTest {
         // Act & Assert
         assertThatThrownBy(() -> underTest.validateUser(actual))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Invalid full name. Full name should contain only characters");
+                .hasMessage("Invalid full name. Full name should contain only characters and spaces");
     }
 }

@@ -1,5 +1,6 @@
 package com.example.conference_management_system.integration;
 
+import com.example.conference_management_system.user.UserDTO;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +33,7 @@ class PaperIT extends AbstractIntegrationTest {
     @Autowired
     private WebTestClient webTestClient;
     private static final String AUTH_PATH = "/api/v1/auth";
+    private static final String USER_PATH = "/api/v1/users";
     private static final String PAPER_PATH = "/api/v1/papers";
 
     /*
@@ -216,7 +218,7 @@ class PaperIT extends AbstractIntegrationTest {
             Asserting that the user has the new role of ROLE_AUTHOR after successfully creating a paper.
          */
         this.webTestClient.get()
-                .uri("/api/v1/user")
+                .uri(USER_PATH + "?username={username}", "username")
                 .accept(MediaType.APPLICATION_JSON)
                 .header("Cookie", sessionId)
                 .exchange()
@@ -431,7 +433,7 @@ class PaperIT extends AbstractIntegrationTest {
                     "password": "CyN549!@o2Cr",
                     "fullName": "Test",
                     "roleTypes": [
-                        "ROLE_PC_MEMBER"
+                        "ROLE_AUTHOR"
                     ]
                 }
                 """;
@@ -471,18 +473,43 @@ class PaperIT extends AbstractIntegrationTest {
 
         String location = response.getResponseHeaders().getFirst(HttpHeaders.LOCATION);
         Long paperId = Long.parseLong(location.substring(location.lastIndexOf('/') + 1));
-        requestBody = """
+
+        UserDTO user = this.webTestClient.get()
+                .uri(USER_PATH + "?username={username}", "username")
+                .header("Cookie", sessionId)
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(UserDTO.class)
+                .returnResult()
+                .getResponseBody();
+
+        requestBody = String.format("""
                 {
-                    "id": 1
+                    "id": %d
                 }
-                """;
+                """, Long.valueOf(user.id()));
 
         this.webTestClient.put()
                 .uri(PAPER_PATH + "/{id}/author?_csrf={csrf}", paperId, csrfToken)
+                .header("Cookie", sessionId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(requestBody)
                 .exchange()
                 .expectStatus().isNoContent();
+
+        this.webTestClient.get()
+                .uri(USER_PATH + "?username={username}", "username")
+                .header("Cookie", sessionId)
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                /*
+                    Since the object is serialized we check for String values and not RoleType that's the user property.
+                 */
+                .jsonPath("$.roles").value(roles ->
+                        assertThat((List<String>) roles).contains(RoleType.ROLE_AUTHOR.name()));
     }
 
     private byte[] getFileContent(String fileName) throws IOException {

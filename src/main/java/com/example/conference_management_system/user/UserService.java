@@ -34,6 +34,16 @@ public class UserService {
         return this.userRepository.save(user);
     }
 
+    UserDTO findUserByUsername(String username) {
+        User user = this.userRepository.findUserByUsername(username).orElseThrow(() -> {
+            logger.error("No user found with username: {}", username);
+
+            return new ResourceNotFoundException("User not found with username: " + username);
+        });
+
+        return dtoMapper.apply(user);
+    }
+
     UserDTO findUserById() {
         SecurityUser securityUser = (SecurityUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         User user = this.userRepository.findById(securityUser.user().getId()).orElseThrow(() ->

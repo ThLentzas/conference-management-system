@@ -211,7 +211,7 @@ public class PaperService {
                 If the user to be added as a co-author already is or the user who made the request, requested themselves
                 to be added as author.
              */
-            if(paper.getUsers().contains(user) || user.getId().equals(securityUser.user().getId())) {
+            if (paper.getUsers().contains(user) || user.getId().equals(securityUser.user().getId())) {
                 logger.error("Co-author addition failed. User with id: {} is already an author for paper with id: {}",
                         user.getId(), paperId);
                 throw new DuplicateResourceException(
@@ -223,6 +223,9 @@ public class PaperService {
                 If the user(co-author) was assigned a new role we update the entry in the db
              */
             if (this.roleService.assignRole(user, RoleType.ROLE_AUTHOR)) {
+                logger.info("Author addition request: User with id: {} was assigned a new role type: {}",
+                        user.getId(),
+                        RoleType.ROLE_AUTHOR);
                 this.userRepository.save(user);
             }
 

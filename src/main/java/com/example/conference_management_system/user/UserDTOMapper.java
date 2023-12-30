@@ -17,6 +17,7 @@ class UserDTOMapper implements Function<User, UserDTO> {
                 .collect(Collectors.toSet());
 
         return new UserDTO(
+                user.getId(),
                 user.getUsername(),
                 user.getFullName(),
                 roles

@@ -22,7 +22,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class RoleService {
     private final RoleRepository roleRepository;
-    private final AuthService authService;
     private static final Logger logger = LoggerFactory.getLogger(RoleService.class);
     private static final String SERVER_ERROR_MSG = "The server encountered an internal error and was unable to " +
             "complete your request. Please try again later";
@@ -38,7 +37,6 @@ public class RoleService {
                 .toList();
         if (!roleTypes.contains(role.getType())) {
             user.getRoles().add(role);
-            logger.info("User with id: {} was assigned a new role type: {}", user.getId(), role.getType());
 
             return true;
         }

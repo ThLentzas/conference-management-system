@@ -14,12 +14,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
                 FROM User u
                 WHERE LOWER(u.username) = LOWER(:username)
             """)
-    boolean existsByUsernameIgnoreCase(@Param("username")String username);
+    boolean existsByUsernameIgnoreCase(@Param("username") String username);
 
     @Query("""
                 SELECT u
                 FROM User u
-                WHERE u.username = :username
+                WHERE LOWER(u.username) = LOWER(:username)
             """)
     Optional<User> findUserByUsername(@Param("username") String username);
 }

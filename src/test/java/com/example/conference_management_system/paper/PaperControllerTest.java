@@ -48,10 +48,10 @@ import jakarta.servlet.http.HttpServletRequest;
         SecurityConfig.class
 })
 class PaperControllerTest {
-    @MockBean
-    private PaperService paperService;
     @Autowired
     private MockMvc mockMvc;
+    @MockBean
+    private PaperService paperService;
     private static final String PAPER_PATH = "/api/v1/papers";
 
     /*

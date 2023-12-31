@@ -136,7 +136,7 @@ class PaperIT extends AbstractIntegrationTest {
 
         /*
             At this point the user was assigned a new Role(ROLE_AUTHOR) and the previous session is invalid, so we have
-            to request a new csrf and a token to assert that
+            to request a new csrf and a cookie to assert that
 
             1) The GET request to /papers/{id} returns the correct values
             2) The GET request to /papers/{id}/download returns the file(pdf/tex)

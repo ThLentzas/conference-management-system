@@ -89,9 +89,9 @@ class PaperController {
 
     @PreAuthorize("hasRole('AUTHOR')")
     @PutMapping("/{id}/author")
-    ResponseEntity<Void> addAuthor(@PathVariable("id") Long id,
-                                   @Valid @RequestBody AuthorAdditionRequest authorAdditionRequest,
-                                   Authentication authentication) {
+    ResponseEntity<Void> addCoAuthor(@PathVariable("id") Long id,
+                                     @Valid @RequestBody AuthorAdditionRequest authorAdditionRequest,
+                                     Authentication authentication) {
         logger.info("Paper co-author addition request: {}", authorAdditionRequest);
         this.paperService.addCoAuthor(id, authentication, authorAdditionRequest);
 
@@ -99,8 +99,8 @@ class PaperController {
     }
 
     @GetMapping("/{id}")
-    ResponseEntity<PaperDTO> getPaper(@PathVariable("id") Long id) {
-        PaperDTO paper = this.paperService.findPaperById(id);
+    ResponseEntity<PaperDTO> findPaperById(@PathVariable("id") Long id, Authentication authentication) {
+        PaperDTO paper = this.paperService.findPaperById(id, authentication);
         Link download = linkTo(methodOn(PaperController.class).downloadPaper(id)).withRel("download");
         paper.add(download);
 

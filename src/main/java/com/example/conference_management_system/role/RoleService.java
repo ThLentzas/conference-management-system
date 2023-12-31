@@ -36,6 +36,7 @@ public class RoleService {
                 .map(Role::getType)
                 .toList();
         if (!roleTypes.contains(role.getType())) {
+            logger.info("User with id: {} was assigned a new role type: {}", user.getId(), roleType);
             user.getRoles().add(role);
 
             return true;

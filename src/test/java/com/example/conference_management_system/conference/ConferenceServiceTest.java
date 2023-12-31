@@ -1,6 +1,7 @@
 package com.example.conference_management_system.conference;
 
 import com.example.conference_management_system.auth.AuthService;
+import com.example.conference_management_system.conference.dto.ConferenceCreateRequest;
 import com.example.conference_management_system.entity.Conference;
 import com.example.conference_management_system.entity.Role;
 import com.example.conference_management_system.entity.User;

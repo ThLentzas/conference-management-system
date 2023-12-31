@@ -30,7 +30,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.conference_management_system.config.SecurityConfig;
-import com.example.conference_management_system.exception.UnsupportedFileException;
 import com.example.conference_management_system.exception.ResourceNotFoundException;
 import com.example.conference_management_system.paper.dto.PaperCreateRequest;
 import com.example.conference_management_system.paper.dto.PaperUpdateRequest;
@@ -38,9 +37,6 @@ import com.example.conference_management_system.paper.dto.PaperUpdateRequest;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Random;
-
-import org.testcontainers.shaded.org.apache.commons.lang3.RandomStringUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -225,7 +221,7 @@ class PaperControllerTest {
 
     @Test
     @WithMockUser(roles = "PC_MEMBER")
-    void shouldReturnHTTP400WhenTitleIsBlankInPaperCreateRequest() throws Exception {
+    void shouldReturnHTTP400WhenTitleIsBlankOnPaperCreate() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
                 "test.pdf",
@@ -295,7 +291,7 @@ class PaperControllerTest {
      */
     @Test
     @WithMockUser(roles = "AUTHOR")
-    void shouldReturnHTTP400WhenAllValuesAreNullForPaperUpdateRequest() throws Exception {
+    void shouldReturnHTTP400WhenAllValuesAreNullOnPaperUpdate() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
                 "test.pdf",
@@ -325,7 +321,7 @@ class PaperControllerTest {
 
     @Test
     @WithMockUser(roles = "AUTHOR")
-    void shouldReturnHTTP404WhenPaperIsNotFoundForPaperUpdateRequest() throws Exception {
+    void shouldReturnHTTP404WhenPaperIsNotFoundOnPaperUpdate() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
                 "test.pdf",
@@ -476,7 +472,7 @@ class PaperControllerTest {
 
     @Test
     @WithMockUser(roles = "AUTHOR")
-    void shouldReturnHTTP404WhenPaperIsNotFoundForAuthorAdditionRequest() throws Exception {
+    void shouldReturnHTTP404WhenPaperIsNotFoundOnAuthorAddition() throws Exception {
         String requestBody = """
                 {
                     "id": 2
@@ -504,7 +500,7 @@ class PaperControllerTest {
 
     @Test
     @WithMockUser(roles = "AUTHOR")
-    void shouldReturnHTTP409WhenCoAuthorIsAlreadyAddedForAuthorAdditionRequest() throws Exception {
+    void shouldReturnHTTP409WhenCoAuthorIsAlreadyAddedOnAuthorAddition() throws Exception {
         String requestBody = """
                 {
                     "id": 2
@@ -555,30 +551,6 @@ class PaperControllerTest {
     }
 
     @Test
-    void shouldReturnHTTP403WhenAddCoAuthorIsCalledWithNoCsrf() throws Exception {
-        String requestBody = """
-                {
-                    "id": 2
-                }
-                """;
-        String responseBody = """
-                {
-                    "message": "Access denied"
-                }
-                """;
-
-        this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
-                .andExpectAll(
-                        status().isForbidden(),
-                        content().json(responseBody)
-                );
-
-        verifyNoInteractions(paperService);
-    }
-
-    @Test
     void shouldReturnHTTP403WhenAddCoAuthorIsCalledWithInvalidCsrf() throws Exception {
         String requestBody = """
                 {
@@ -602,7 +574,29 @@ class PaperControllerTest {
         verifyNoInteractions(paperService);
     }
 
+    @Test
+    void shouldReturnHTTP403WhenAddCoAuthorIsCalledWithNoCsrf() throws Exception {
+        String requestBody = """
+                {
+                    "id": 2
+                }
+                """;
+        String responseBody = """
+                {
+                    "message": "Access denied"
+                }
+                """;
 
+        this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpectAll(
+                        status().isForbidden(),
+                        content().json(responseBody)
+                );
+
+        verifyNoInteractions(paperService);
+    }
 
     private byte[] getFileContent() throws IOException {
         Path pdfPath = ResourceUtils.getFile("classpath:files/test.pdf").toPath();

@@ -259,16 +259,17 @@ public class PaperService {
         properties of the PaperDTO. We could use a builder to avoid multiple constructors, but it's the PaperDTO that
         gets serialized u
      */
-    PaperDTO findPaperById(Long paperId) {
+    PaperDTO findPaperById(Long paperId, Authentication authentication) {
         ReviewDTO reviewDTO;
         /*
             Since we want to have a return value if the paper is found we can't use ifPresentOrElse().
          */
-        Paper paper = this.paperRepository.findById(paperId).orElseThrow(() -> new ResourceNotFoundException(
-                PAPER_NOT_FOUND_MSG + paperId));
-        SecurityUser securityUser = (SecurityUser) SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getPrincipal();
+        Paper paper = this.paperRepository.findById(paperId).orElseThrow(() -> {
+            logger.error("Paper not found with id: {}", paperId);
+
+            return new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
+        });
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
 
         if (paper.getConference() != null && this.conferenceRepository.isPc_ChairAtConference(
                 paper.getConference().getId(),

@@ -59,7 +59,10 @@ class PaperRepositoryTest extends AbstractUnitTest {
         this.userRepository.save(user);
         this.underTest.save(paper);
 
-        assertThat(this.underTest.isAuthorAtPaper(paper.getId(), 2L)).isFalse();
+        /*
+            user.getId() + 1 => is to make sure the ids won't match
+         */
+        assertThat(this.underTest.isAuthorAtPaper(paper.getId(), user.getId() + 1)).isFalse();
     }
 
     private Paper getPaper() {

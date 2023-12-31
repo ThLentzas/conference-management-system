@@ -1,11 +1,16 @@
 package com.example.conference_management_system.conference;
 
+import com.example.conference_management_system.conference.dto.ConferenceCreateRequest;
+import com.example.conference_management_system.conference.dto.ConferenceDTO;
+import com.example.conference_management_system.conference.dto.PaperSubmissionRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.CurrentSecurityContext;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -48,6 +53,27 @@ class ConferenceController {
     @PutMapping("/{id}/start-submission")
     ResponseEntity<Void> startSubmission(@PathVariable("id") UUID id, Authentication authentication) {
         this.conferenceService.startSubmission(id, authentication);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    /*
+         https://docs.spring.io/spring-security/reference/servlet/authentication/anonymous.html
+     */
+    @GetMapping("/{id}")
+    ResponseEntity<ConferenceDTO> findConferenceById(@PathVariable("id") UUID id,
+                                                     @CurrentSecurityContext SecurityContext context) {
+        ConferenceDTO conferenceDTO = this.conferenceService.findConferenceById(id, context);
+
+        return new ResponseEntity<>(conferenceDTO, HttpStatus.OK);
+    }
+
+    @PreAuthorize("hasRole('AUTHOR')")
+    @PostMapping("/{id}/submit")
+    ResponseEntity<Void> submitPaper(@PathVariable("id") UUID id,
+                                     @RequestBody PaperSubmissionRequest paperSubmissionRequest) {
+        this.conferenceService.submitPaper(id, paperSubmissionRequest);
+
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }

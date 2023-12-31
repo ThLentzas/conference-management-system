@@ -270,7 +270,7 @@ public class PaperService {
                 .getAuthentication()
                 .getPrincipal();
 
-        if (paper.getConference() != null && this.conferenceRepository.isPC_CHAIR(
+        if (paper.getConference() != null && this.conferenceRepository.isPc_ChairAtConference(
                 paper.getConference().getId(),
                 securityUser.user().getId())) {
 
@@ -299,7 +299,7 @@ public class PaperService {
             );
         }
 
-        if (this.reviewRepository.isReviewer(paperId, securityUser.user().getId())) {
+        if (this.reviewRepository.isReviewerAtPaper(paperId, securityUser.user().getId())) {
             Set<ReviewerReviewDTO> reviews = new HashSet<>();
             for (Review review : paper.getReviews()) {
                 reviewDTO = new ReviewerReviewDTO(
@@ -324,7 +324,7 @@ public class PaperService {
             );
         }
 
-        if (this.paperRepository.isAuthor(paperId, securityUser.user().getId())) {
+        if (this.paperRepository.isAuthorAtPaper(paperId, securityUser.user().getId())) {
             Set<AuthorReviewDTO> reviews = new HashSet<>();
             for (Review review : paper.getReviews()) {
                 reviewDTO = new AuthorReviewDTO(
@@ -374,9 +374,9 @@ public class PaperService {
                 .getAuthentication()
                 .getPrincipal();
 
-        if (!this.paperRepository.isAuthor(id, securityUser.user().getId())
-                && !this.reviewRepository.isReviewer(paper.getId(), securityUser.user().getId())
-                && (paper.getConference() != null && !this.conferenceRepository.isPC_CHAIR(
+        if (!this.paperRepository.isAuthorAtPaper(id, securityUser.user().getId())
+                && !this.reviewRepository.isReviewerAtPaper(paper.getId(), securityUser.user().getId())
+                && (paper.getConference() != null && !this.conferenceRepository.isPc_ChairAtConference(
                 paper.getConference().getId(),
                 securityUser.user().getId()))) {
             throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + id);

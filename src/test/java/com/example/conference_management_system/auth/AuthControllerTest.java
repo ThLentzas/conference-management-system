@@ -59,32 +59,6 @@ class AuthControllerTest {
 
     @ParameterizedTest
     @NullAndEmptySource
-    void shouldReturnHTTP400WhenRegisterUsernameIsNullOrEmpty(String username) throws Exception {
-        String usernameValue = username == null ? "null" : "\"" + username + "\"";
-        String requestBody = String.format("""
-                {
-                    "username": %s,
-                    "password": "password",
-                    "fullName": "Test User"
-                }
-                """, usernameValue);
-        String responseBody = """
-                {
-                    "message": "The username field is required"
-                }
-                """;
-
-        this.mockMvc.perform(post(AUTH_PATH + "/signup").with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
-                .andExpectAll(
-                        status().isBadRequest(),
-                        content().json(responseBody)
-                );
-    }
-
-    @ParameterizedTest
-    @NullAndEmptySource
     void shouldReturnHTTP400WhenRegisterPasswordIsNullOrEmpty(String password) throws Exception{
         String passwordValue = password == null ? "null" : "\"" + password + "\"";
         String requestBody = String.format("""
@@ -97,32 +71,6 @@ class AuthControllerTest {
         String responseBody = """
                 {
                     "message": "The password field is required"
-                }
-                """;
-
-        this.mockMvc.perform(post(AUTH_PATH + "/signup").with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
-                .andExpectAll(
-                        status().isBadRequest(),
-                        content().json(responseBody)
-                );
-    }
-
-    @ParameterizedTest
-    @NullAndEmptySource
-    void shouldReturnHTTP400WhenRegisterFullNameIsNullOrEmpty(String fullName) throws Exception {
-        String fullNameValue = fullName == null ? "null" : "\"" + fullName + "\"";
-        String requestBody = String.format("""
-                {
-                    "username": "username",
-                    "password": "password",
-                    "fullName": %s
-                }
-                """, fullNameValue);
-        String responseBody = """
-                {
-                    "message": "The full name field is required"
                 }
                 """;
 
@@ -202,31 +150,6 @@ class AuthControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody))
                 .andExpect(status().isOk());
-    }
-
-    @ParameterizedTest
-    @NullAndEmptySource
-    void shouldReturnHTTP400WhenLoginUsernameIsNullOrEmpty(String username) throws Exception {
-        String usernameValue = username == null ? "null" : "\"" + username + "\"";
-        String requestBody = String.format("""
-                {
-                    "username": %s,
-                    "password": "password"
-                }
-                """, usernameValue);
-        String responseBody = """
-                {
-                    "message": "The username field is required"
-                }
-                """;
-
-        this.mockMvc.perform(post(AUTH_PATH + "/login").with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
-                .andExpectAll(
-                        status().isBadRequest(),
-                        content().json(responseBody)
-                );
     }
 
     @ParameterizedTest

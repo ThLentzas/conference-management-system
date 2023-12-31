@@ -55,7 +55,7 @@ public class Paper {
     @ManyToOne
     private Conference conference;
     /*
-        The relationship is bidirectional. I want to return all the reviews for a given a paper and the paper when a
+        The relationship is bidirectional. I want to return all the reviews for a given a paper and the paper when I
         query from the reviews side.
      */
     @OneToMany(mappedBy = "paper")

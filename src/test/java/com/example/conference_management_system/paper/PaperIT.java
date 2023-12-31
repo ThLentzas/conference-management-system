@@ -1,6 +1,5 @@
-package com.example.conference_management_system.integration;
+package com.example.conference_management_system.paper;
 
-import com.example.conference_management_system.user.UserDTO;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,11 +21,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
+import com.example.conference_management_system.AbstractIntegrationTest;
+import com.example.conference_management_system.role.RoleType;
+import com.example.conference_management_system.user.UserDTO;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 
-import com.example.conference_management_system.AbstractIntegrationTest;
-import com.example.conference_management_system.role.RoleType;
 
 @AutoConfigureWebTestClient
 class PaperIT extends AbstractIntegrationTest {

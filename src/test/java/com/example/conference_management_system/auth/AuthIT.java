@@ -1,4 +1,4 @@
-package com.example.conference_management_system.integration;
+package com.example.conference_management_system.auth;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

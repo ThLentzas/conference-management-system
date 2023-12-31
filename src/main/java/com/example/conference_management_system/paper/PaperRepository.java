@@ -20,5 +20,5 @@ public interface PaperRepository extends JpaRepository<Paper, Long> {
                 JOIN p.users u
                 WHERE p.id = :paperId AND u.id = :userId
             """)
-    boolean isAuthor(@Param("paperId") Long paperId, @Param("userId") Long userId);
+    boolean isAuthorAtPaper(@Param("paperId") Long paperId, @Param("userId") Long userId);
 }

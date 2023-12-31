@@ -1,5 +1,6 @@
 package com.example.conference_management_system.paper;
 
+import com.example.conference_management_system.exception.DuplicateResourceException;
 import com.example.conference_management_system.paper.dto.AuthorAdditionRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -86,6 +87,43 @@ class PaperControllerTest {
                 .andExpectAll(
                         status().isCreated(),
                         header().string("Location", containsString(PAPER_PATH + "/" + 1L))
+                );
+    }
+
+    @Test
+    @WithMockUser(roles = "PC_MEMBER")
+    void shouldReturnHTTP409WhenCreatingPaperWithExistingTitle() throws Exception {
+        MockMultipartFile pdfFile = new MockMultipartFile(
+                "file",
+                "test.pdf",
+                "application/pdf",
+                getFileContent()
+        );
+        String responseBody = """
+                {
+                    "message": "A paper with the provided title already exists"
+                }
+                """;
+
+        when(this.paperService.createPaper(
+                any(PaperCreateRequest.class),
+                any(Authentication.class),
+                any(HttpServletRequest.class))).thenThrow(new DuplicateResourceException(
+                "A paper with the provided title already exists"));
+
+        this.mockMvc.perform(multipart(PAPER_PATH).file(pdfFile).with(csrf())
+                        .with(request -> {
+                            request.setMethod("POST");
+                            return request;
+                        })
+                        .param("title", "title")
+                        .param("abstractText", "abstractText")
+                        .param("authors", "author 1, author 2")
+                        .param("keywords", "keyword 1, keyword 2")
+                        .contentType(MediaType.MULTIPART_FORM_DATA))
+                .andExpectAll(
+                        status().isConflict(),
+                        content().json(responseBody)
                 );
     }
 
@@ -225,275 +263,7 @@ class PaperControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PC_MEMBER")
-    void shouldReturnHTTP400WhenTitleExceedsMaxLengthInPaperCreateRequest() throws Exception {
-        MockMultipartFile pdfFile = new MockMultipartFile(
-                "file",
-                "test.pdf",
-                "application/pdf",
-                getFileContent()
-        );
-        String responseBody = """
-                {
-                    "message": "Title must not exceed 100 characters"
-                }
-                """;
-
-        when(this.paperService.createPaper(
-                any(PaperCreateRequest.class),
-                any(Authentication.class),
-                any(HttpServletRequest.class))).thenThrow(new IllegalArgumentException(
-                "Title must not exceed 100 characters"
-        ));
-
-        this.mockMvc.perform(multipart(PAPER_PATH).file(pdfFile).with(csrf())
-                        .with(request -> {
-                            request.setMethod("POST");
-                            return request;
-                        })
-                        .param("title", RandomStringUtils.randomAlphanumeric(new Random().nextInt(100) + 101))
-                        .param("abstractText", "abstractText")
-                        .param("authors", "author 1, author 2")
-                        .param("keywords", "keyword 1, keyword 2")
-                        .contentType(MediaType.MULTIPART_FORM_DATA))
-                .andExpectAll(
-                        status().isBadRequest(),
-                        content().json(responseBody)
-                );
-    }
-
-    @Test
-    @WithMockUser(roles = "PC_MEMBER")
-    void shouldReturnHTTP400ForEmptyAuthorsInPaperCreateRequest() throws Exception {
-        MockMultipartFile pdfFile = new MockMultipartFile(
-                "file",
-                "test.pdf",
-                "application/pdf",
-                getFileContent()
-        );
-        String responseBody = """
-                {
-                    "message": "Every author you provide must have a name"
-                }
-                """;
-
-        when(this.paperService.createPaper(
-                any(PaperCreateRequest.class),
-                any(Authentication.class),
-                any(HttpServletRequest.class))).thenThrow(new IllegalArgumentException(
-                "Every author you provide must have a name"
-        ));
-
-        this.mockMvc.perform(multipart(PAPER_PATH).file(pdfFile).with(csrf())
-                        .with(request -> {
-                            request.setMethod("POST");
-                            return request;
-                        })
-                        .param("title", "title")
-                        .param("abstractText", "abstractText")
-                        .param("authors", "author 1, ")
-                        .param("keywords", "keyword 1, keyword 2")
-                        .contentType(MediaType.MULTIPART_FORM_DATA))
-                .andExpectAll(
-                        status().isBadRequest(),
-                        content().json(responseBody)
-                );
-    }
-
-    @Test
-    @WithMockUser(roles = "PC_MEMBER")
-    void shouldReturnHTTP400WhenAbstractTextIsBlankInPaperCreateRequest() throws Exception {
-        MockMultipartFile pdfFile = new MockMultipartFile(
-                "file",
-                "test.pdf",
-                "application/pdf",
-                getFileContent()
-        );
-        String responseBody = """
-                {
-                    "message": "You must provide the abstract text of the paper"
-                }
-                """;
-
-        when(this.paperService.createPaper(
-                any(PaperCreateRequest.class),
-                any(Authentication.class),
-                any(HttpServletRequest.class))).thenThrow(new IllegalArgumentException(
-                "You must provide the abstract text of the paper"
-        ));
-
-        this.mockMvc.perform(multipart(PAPER_PATH).file(pdfFile).with(csrf())
-                        .with(request -> {
-                            request.setMethod("POST");
-                            return request;
-                        })
-                        .param("title", "title")
-                        .param("abstractText", "")
-                        .param("authors", "author 1, author 2")
-                        .param("keywords", "keyword 1, keyword 2")
-                        .contentType(MediaType.MULTIPART_FORM_DATA))
-                .andExpectAll(
-                        status().isBadRequest(),
-                        content().json(responseBody)
-                );
-    }
-
-    @Test
-    @WithMockUser(roles = "PC_MEMBER")
-    void shouldReturnHTTP400ForEmptyKeywordsInPaperCreateRequest() throws Exception {
-        MockMultipartFile pdfFile = new MockMultipartFile(
-                "file",
-                "test.pdf",
-                "application/pdf",
-                getFileContent()
-        );
-        String responseBody = """
-                {
-                    "message": "Every keyword you provide must have a value"
-                }
-                """;
-
-        when(this.paperService.createPaper(
-                any(PaperCreateRequest.class),
-                any(Authentication.class),
-                any(HttpServletRequest.class))).thenThrow(new IllegalArgumentException(
-                "Every keyword you provide must have a value"
-        ));
-
-        this.mockMvc.perform(multipart(PAPER_PATH).file(pdfFile).with(csrf())
-                        .with(request -> {
-                            request.setMethod("POST");
-                            return request;
-                        })
-                        .param("title", "title")
-                        .param("abstractText", "abstractText")
-                        .param("authors", "author 1, author 2")
-                        .param("keywords", "keyword 1, ")
-                        .contentType(MediaType.MULTIPART_FORM_DATA))
-                .andExpectAll(
-                        status().isBadRequest(),
-                        content().json(responseBody)
-                );
-    }
-
-    @Test
-    @WithMockUser(roles = "PC_MEMBER")
-    void shouldReturnHTTP400WhenFilenameContainsInvalidCharactersInPaperCreateRequest() throws Exception {
-        MockMultipartFile pdfFile = new MockMultipartFile(
-                "file",
-                "test@.pdf",
-                "application/pdf",
-                getFileContent()
-        );
-        String responseBody = """
-                {
-                    "message": "The file name must contain only alphanumeric characters, hyphen, underscores spaces, and periods"
-                }
-                """;
-
-        when(this.paperService.createPaper(
-                any(PaperCreateRequest.class),
-                any(Authentication.class),
-                any(HttpServletRequest.class))).thenThrow(new IllegalArgumentException(
-                "The file name must contain only alphanumeric characters, hyphen, underscores spaces, and periods"
-        ));
-
-        this.mockMvc.perform(multipart(PAPER_PATH).file(pdfFile).with(csrf())
-                        .with(request -> {
-                            request.setMethod("POST");
-                            return request;
-                        })
-                        .param("title", "title")
-                        .param("abstractText", "abstractText")
-                        .param("authors", "author 1, author 2")
-                        .param("keywords", "keyword 1, keyword 2")
-                        .contentType(MediaType.MULTIPART_FORM_DATA))
-                .andExpectAll(
-                        status().isBadRequest(),
-                        content().json(responseBody)
-                );
-    }
-
-    @Test
-    @WithMockUser(roles = "PC_MEMBER")
-    void shouldReturnHTTP400WhenFilenameExceedsMaxLengthInPaperCreateRequest() throws Exception {
-        MockMultipartFile pdfFile = new MockMultipartFile(
-                "file",
-                RandomStringUtils.randomAlphanumeric(new Random().nextInt(100) + 101) + ".pdf",
-                "application/pdf",
-                getFileContent()
-        );
-        String responseBody = """
-                {
-                    "message": "File name must not exceed 100 characters"
-                }
-                """;
-
-        when(this.paperService.createPaper(
-                any(PaperCreateRequest.class),
-                any(Authentication.class),
-                any(HttpServletRequest.class))).thenThrow(new IllegalArgumentException(
-                "File name must not exceed 100 characters"
-        ));
-
-        this.mockMvc.perform(multipart(PAPER_PATH).file(pdfFile).with(csrf())
-                        .with(request -> {
-                            request.setMethod("POST");
-                            return request;
-                        })
-                        .param("title", "title")
-                        .param("abstractText", "abstractText")
-                        .param("authors", "author 1, author 2")
-                        .param("keywords", "keyword 1, keyword 2")
-                        .contentType(MediaType.MULTIPART_FORM_DATA))
-                .andExpectAll(
-                        status().isBadRequest(),
-                        content().json(responseBody)
-                );
-    }
-
-    @Test
-    @WithMockUser(roles = "PC_MEMBER")
-    void shouldReturnHTTP400WhenFileTypeIsNotSupportedInPaperCreateRequest() throws Exception {
-        Path imagePath = ResourceUtils.getFile("classpath:files/test.png").toPath();
-        byte[] imageContent = Files.readAllBytes(imagePath);
-        MockMultipartFile pdfFile = new MockMultipartFile(
-                "file",
-                "test.pdf",
-                "application/pdf",
-                imageContent
-        );
-        String responseBody = """
-                {
-                    "message": "The provided file is not supported. Make sure your file is either a pdf or a Latex one"
-                }
-                """;
-
-        when(this.paperService.createPaper(
-                any(PaperCreateRequest.class),
-                any(Authentication.class),
-                any(HttpServletRequest.class))).thenThrow(new UnsupportedFileException(
-                "The provided file is not supported. Make sure your file is either a pdf or a Latex one"
-        ));
-
-        this.mockMvc.perform(multipart(PAPER_PATH).file(pdfFile).with(csrf())
-                        .with(request -> {
-                            request.setMethod("POST");
-                            return request;
-                        })
-                        .param("title", "title")
-                        .param("abstractText", "abstractText")
-                        .param("authors", "author 1, author 2")
-                        .param("keywords", "keyword 1, keyword 2")
-                        .contentType(MediaType.MULTIPART_FORM_DATA))
-                .andExpectAll(
-                        status().isBadRequest(),
-                        content().json(responseBody)
-                );
-    }
-
-    @Test
-    @WithMockUser(roles = "PC_MEMBER")
+    @WithMockUser(roles = "AUTHOR")
     void shouldReturnHTTP204WhenPaperIsUpdatedSuccessfully() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
@@ -524,7 +294,7 @@ class PaperControllerTest {
         param("title", null) => error values must not be empty.
      */
     @Test
-    @WithMockUser(roles = "PC_MEMBER")
+    @WithMockUser(roles = "AUTHOR")
     void shouldReturnHTTP400WhenAllValuesAreNullForPaperUpdateRequest() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
@@ -554,7 +324,7 @@ class PaperControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PC_MEMBER")
+    @WithMockUser(roles = "AUTHOR")
     void shouldReturnHTTP404WhenPaperIsNotFoundForPaperUpdateRequest() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
@@ -698,11 +468,140 @@ class PaperControllerTest {
                 any(Authentication.class),
                 any(AuthorAdditionRequest.class));
 
-        this.mockMvc.perform(put(PAPER_PATH + "/{id}", 1L).with(csrf())
+        this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isNoContent());
     }
+
+    @Test
+    @WithMockUser(roles = "AUTHOR")
+    void shouldReturnHTTP404WhenPaperIsNotFoundForAuthorAdditionRequest() throws Exception {
+        String requestBody = """
+                {
+                    "id": 2
+                }
+                """;
+        String responseBody = """
+                {
+                    "message": "Paper was not found with id: 1"
+                }
+                """;
+
+        doThrow(new ResourceNotFoundException("Paper was not found with id: 1")).when(this.paperService).addCoAuthor(
+                any(Long.class),
+                any(Authentication.class),
+                any(AuthorAdditionRequest.class));
+
+        this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpectAll(
+                        status().isNotFound(),
+                        content().json(responseBody)
+                );
+    }
+
+    @Test
+    @WithMockUser(roles = "AUTHOR")
+    void shouldReturnHTTP409WhenCoAuthorIsAlreadyAddedForAuthorAdditionRequest() throws Exception {
+        String requestBody = """
+                {
+                    "id": 2
+                }
+                """;
+        String responseBody = """
+                {
+                    "message": "User with name: Test User is already an author for the paper with id: 1"
+                }
+                """;
+
+        doThrow(new DuplicateResourceException(
+                "User with name: Test User is already an author for the paper with id: 1")).when(this.paperService)
+                .addCoAuthor(any(Long.class), any(Authentication.class), any(AuthorAdditionRequest.class));
+
+        this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpectAll(
+                        status().isConflict(),
+                        content().json(responseBody)
+                );
+
+    }
+
+    @Test
+    void shouldReturnHTTP401WhenAddCoAuthorIsCalledByUnauthenticatedUser() throws Exception {
+        String requestBody = """
+                {
+                    "id": 2
+                }
+                """;
+        String responseBody = """
+                {
+                    "message": "Unauthorized"
+                }
+                """;
+
+        this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpectAll(
+                        status().isUnauthorized(),
+                        content().json(responseBody)
+                );
+
+        verifyNoInteractions(paperService);
+    }
+
+    @Test
+    void shouldReturnHTTP403WhenAddCoAuthorIsCalledWithNoCsrf() throws Exception {
+        String requestBody = """
+                {
+                    "id": 2
+                }
+                """;
+        String responseBody = """
+                {
+                    "message": "Access denied"
+                }
+                """;
+
+        this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpectAll(
+                        status().isForbidden(),
+                        content().json(responseBody)
+                );
+
+        verifyNoInteractions(paperService);
+    }
+
+    @Test
+    void shouldReturnHTTP403WhenAddCoAuthorIsCalledWithInvalidCsrf() throws Exception {
+        String requestBody = """
+                {
+                    "id": 2
+                }
+                """;
+        String responseBody = """
+                {
+                    "message": "Access denied"
+                }
+                """;
+
+        this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L).with(csrf().useInvalidToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpectAll(
+                        status().isForbidden(),
+                        content().json(responseBody)
+                );
+
+        verifyNoInteractions(paperService);
+    }
+
 
 
     private byte[] getFileContent() throws IOException {

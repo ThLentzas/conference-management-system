@@ -70,6 +70,7 @@ class PaperController {
         return new ResponseEntity<>(headers, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasRole('AUTHOR')")
     @PutMapping("/{id}")
     ResponseEntity<Void> updatePaper(@PathVariable("id") Long id,
                                      @RequestParam(value = "title", required = false) String title,
@@ -86,6 +87,7 @@ class PaperController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
+    @PreAuthorize("hasRole('AUTHOR')")
     @PutMapping("/{id}/author")
     ResponseEntity<Void> addAuthor(@PathVariable("id") Long id,
                                    @Valid @RequestBody AuthorAdditionRequest authorAdditionRequest,

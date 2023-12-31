@@ -21,5 +21,5 @@ public interface ConferenceRepository extends JpaRepository<Conference, UUID> {
                 JOIN c.users u
                 WHERE c.id = :conferenceId AND u.id = :userId
             """)
-    boolean isPC_CHAIR(@Param("conferenceId") UUID conferenceId, @Param("userId") Long userId);
+    boolean isPc_ChairAtConference(@Param("conferenceId") UUID conferenceId, @Param("userId") Long userId);
 }

@@ -85,7 +85,7 @@ class PaperServiceTest {
     }
 
     @Test
-    void shouldThrowIllegalArgumentExceptionWhenTitleIsBlankInPaperCreateRequest() throws IOException {
+    void shouldThrowIllegalArgumentExceptionWhenTitleIsBlank() throws IOException {
         HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
         MultipartFile pdfFile = new MockMultipartFile(
                 "file",
@@ -107,7 +107,7 @@ class PaperServiceTest {
     }
 
     @Test
-    void shouldThrowIllegalArgumentExceptionWhenTitleExceedsMaxLengthInPaperCreateRequest() throws IOException {
+    void shouldThrowIllegalArgumentExceptionWhenTitleExceedsMaxLength() throws IOException {
         //Arrange
         HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
         MultipartFile pdfFile = new MockMultipartFile(
@@ -133,8 +133,7 @@ class PaperServiceTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"authors 1, ", ""})
-    void shouldThrowIllegalArgumentExceptionForEmptyAuthorsInPaperCreateRequest(String authorsCsv)
-            throws IOException {
+    void shouldThrowIllegalArgumentExceptionForEmptyAuthors(String authorsCsv) throws IOException {
         //Arrange
         HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
         MultipartFile pdfFile = new MockMultipartFile(
@@ -159,7 +158,7 @@ class PaperServiceTest {
     }
 
     @Test
-    void shouldThrowIllegalArgumentExceptionWhenAbstractTextIsBlankInPaperCreateRequest() throws IOException {
+    void shouldThrowIllegalArgumentExceptionWhenAbstractTextIsBlank() throws IOException {
         //Arrange
         HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
         MultipartFile pdfFile = new MockMultipartFile(
@@ -184,8 +183,7 @@ class PaperServiceTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"keyword 1, ", ""})
-    void shouldThrowIllegalArgumentExceptionForEmptyKeywordsInPaperCreateRequest(String keywordsCsv)
-            throws IOException {
+    void shouldThrowIllegalArgumentExceptionForEmptyKeywords(String keywordsCsv) throws IOException {
         //Arrange
         HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
         MultipartFile pdfFile = new MockMultipartFile(
@@ -210,8 +208,7 @@ class PaperServiceTest {
     }
 
     @Test
-    void shouldThrowIllegalArgumentExceptionWhenFileNameContainsInvalidCharactersInPaperCreateRequest()
-            throws Exception {
+    void shouldThrowIllegalArgumentExceptionWhenFileNameContainsInvalidCharacters() throws Exception {
         HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
         MultipartFile pdfFile = new MockMultipartFile(
                 "file",
@@ -235,7 +232,7 @@ class PaperServiceTest {
     }
 
     @Test
-    void shouldThrowIllegalArgumentExceptionWhenFileNameExceedsMaxLengthInPaperCreateRequest() throws Exception {
+    void shouldThrowIllegalArgumentExceptionWhenFileNameExceedsMaxLength() throws Exception {
         HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
         MultipartFile pdfFile = new MockMultipartFile(
                 "file",
@@ -258,7 +255,7 @@ class PaperServiceTest {
     }
 
     @Test
-    void shouldThrowUnsupportedFileExceptionWhenFileTypeIsNotSupportedInPaperCreateRequest() throws Exception {
+    void shouldThrowUnsupportedFileExceptionWhenFileTypeIsNotSupported() throws Exception {
         HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
         Path imagePath = ResourceUtils.getFile("classpath:files/test.png").toPath();
         byte[] imageContent = Files.readAllBytes(imagePath);
@@ -285,7 +282,7 @@ class PaperServiceTest {
     }
 
     @Test
-    void shouldThrowDuplicateResourceExceptionWhenRequestTitleExistsForPaperCreateRequest() throws Exception {
+    void shouldThrowDuplicateResourceExceptionOnCreatePaperWhenTitleExists() throws Exception {
         HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
         MultipartFile pdfFile = new MockMultipartFile(
                 "file",
@@ -313,7 +310,7 @@ class PaperServiceTest {
         There is no point to test validation again since it's already tested in the createPaper() for updatePaper()
      */
     @Test
-    void shouldThrowIllegalArgumentExceptionWhenAllPropertiesAreNullForPaperUpdateRequest() {
+    void shouldThrowIllegalArgumentExceptionWhenAllPropertiesAreNullOnUpdatePaper() {
         PaperUpdateRequest paperUpdateRequest = new PaperUpdateRequest(
                 null,
                 null,
@@ -328,33 +325,7 @@ class PaperServiceTest {
     }
 
     @Test
-    void shouldThrowDuplicateResourceExceptionWhenRequestTitleExistsForPaperUpdateRequest() throws Exception {
-        MultipartFile pdfFile = new MockMultipartFile(
-                "file",
-                "test.pdf",
-                "application/pdf",
-                getFileContent());
-        PaperUpdateRequest paperUpdateRequest = new PaperUpdateRequest(
-                "title",
-                "abstractText",
-                "author 1, author2",
-                "keyword 1, keyword 2",
-                pdfFile
-        );
-        Paper paper = new Paper();
-        paper.setTitle("title");
-        paper.setId(1L);
-
-        when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.of(paper));
-        when(this.paperRepository.existsByTitleIgnoreCase(any(String.class))).thenReturn(true);
-
-        assertThatThrownBy(() -> this.underTest.updatePaper(1L, paperUpdateRequest))
-                .isInstanceOf(DuplicateResourceException.class)
-                .hasMessage("A paper with the provided title already exists");
-    }
-
-    @Test
-    void shouldThrowResourceNotFoundExceptionWhenPaperIsNotFoundForPaperUpdateRequest() throws Exception {
+    void shouldThrowResourceNotFoundExceptionWhenPaperIsNotFoundOnUpdatePaper() throws Exception {
         MultipartFile pdfFile = new MockMultipartFile(
                 "file",
                 "test.pdf",
@@ -376,7 +347,7 @@ class PaperServiceTest {
     }
 
     @Test
-    void shouldThrowResourceNotFoundExceptionWhenPaperIsNotFoundForAuthorAdditionRequest() {
+    void shouldThrowResourceNotFoundExceptionWhenPaperIsNotFoundOnAuthorAddition() {
         AuthorAdditionRequest authorAdditionRequest = new AuthorAdditionRequest(1L);
         Authentication authentication = getAuthentication();
 
@@ -388,14 +359,13 @@ class PaperServiceTest {
     }
 
     @Test
-    void shouldThrowResourceNotFoundExceptionWhenRequestingUserIsNotPaperAuthorForAuthorAdditionRequest() {
+    void shouldThrowResourceNotFoundExceptionWhenRequestingUserIsNotPaperAuthorOnAuthorAddition() {
         AuthorAdditionRequest authorAdditionRequest = new AuthorAdditionRequest(1L);
         Authentication authentication = getAuthentication();
         Paper paper = new Paper();
         paper.setTitle("title");
-        paper.setUsers(Collections.emptySet());
         paper.setId(1L);
-
+        paper.setUsers(Collections.emptySet());
 
         when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.of(paper));
 

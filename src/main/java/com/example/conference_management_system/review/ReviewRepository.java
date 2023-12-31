@@ -12,5 +12,5 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
                 WHERE r.paper.id = :paperId AND r.user.id = :userId
             """
     )
-    boolean isReviewer(@Param("paperId") Long paperId, @Param("userId") Long userId);
+    boolean isReviewerAtPaper(@Param("paperId") Long paperId, @Param("userId") Long userId);
 }

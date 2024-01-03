@@ -385,6 +385,32 @@ class ConferenceControllerTest {
 
     @Test
     @WithMockUser(roles = "AUTHOR")
+    void shouldReturnHTTP204WhenPaperIsSubmittedSuccessfully() throws Exception {
+        UUID id = UUID.randomUUID();
+        String requestBody = """
+                {
+                    "paperId": 1
+                }
+                """;
+        doNothing().when(this.conferenceService).submitPaper(
+                any(UUID.class),
+                any(PaperSubmissionRequest.class),
+                any(Authentication.class)
+        );
+
+        this.mockMvc.perform(post(CONFERENCE_PATH + "/{id}/papers", id).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isNoContent());
+
+        verify(this.conferenceService, times(1)).submitPaper(
+                any(UUID.class),
+                any(PaperSubmissionRequest.class),
+                any(Authentication.class));
+    }
+
+    @Test
+    @WithMockUser(roles = "AUTHOR")
     void shouldReturnHTTP404WhenConferenceIsNotFoundOnSubmitPaper() throws Exception {
         UUID id = UUID.randomUUID();
         String requestBody = """
@@ -487,6 +513,39 @@ class ConferenceControllerTest {
                         status().isForbidden(),
                         content().json(responseBody)
                 );
+    }
+
+    @Test
+    @WithMockUser(roles = "PC_CHAIR")
+    void shouldReturnHTTP204WhenReviewerIsAssignedSuccessfully() throws Exception {
+        UUID conferenceId = UUID.randomUUID();
+        String requestBody = """
+                {
+                    "userId": 1
+                }
+                """;
+        doNothing().when(this.conferenceService)
+                .assignReviewer(
+                        any(UUID.class),
+                        any(Long.class),
+                        any(ReviewerAssignmentRequest.class),
+                        any(Authentication.class)
+                );
+
+        this.mockMvc.perform(post(CONFERENCE_PATH + "/{conferenceId}/papers/{paperId}/reviewer", conferenceId, 1L)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpectAll(
+                        status().isNoContent()
+                );
+
+        verify(this.conferenceService, times(1)).assignReviewer(
+                any(UUID.class),
+                any(Long.class),
+                any(ReviewerAssignmentRequest.class),
+                any(Authentication.class)
+        );
     }
 
     @Test
@@ -652,5 +711,108 @@ class ConferenceControllerTest {
                         status().isForbidden(),
                         content().json(responseBody)
                 );
+    }
+
+    @Test
+    @WithMockUser(roles = "PC_CHAIR")
+    void shouldReturnHTTP204WhenConferenceStartReviewIsSuccessful() throws Exception {
+        doNothing().when(this.conferenceService).startSubmission(any(UUID.class), any(Authentication.class));
+
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/review", UUID.randomUUID()).with(csrf()))
+                .andExpect(status().isNoContent());
+
+        verify(this.conferenceService, times(1)).startReview(any(UUID.class), any(Authentication.class));
+    }
+
+    @Test
+    @WithMockUser(roles = "PC_CHAIR")
+    void shouldReturnHTTP404WhenConferenceIsNotFoundOnStartReview() throws Exception {
+        UUID id = UUID.randomUUID();
+        String responseBody = String.format("""
+                {
+                    "message": "Conference not found with id: %s"
+                }
+                """, id);
+        doThrow(new ResourceNotFoundException("Conference not found with id: " + id)).when(this.conferenceService)
+                .startReview(any(UUID.class), any(Authentication.class));
+
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/review", id).with(csrf()))
+                .andExpectAll(
+                        status().isNotFound(),
+                        content().json(responseBody)
+                );
+    }
+
+    @Test
+    @WithMockUser(roles = "PC_CHAIR")
+    void shouldReturnHTTP409WhenConferenceIsNotInAssignmentStateOnStartReview() throws Exception {
+        doThrow(new StateConflictException("Conference is in the state: " + ConferenceState.DECISION.name() + " " +
+                "and can not start reviews")).when(this.conferenceService).startReview(
+                any(UUID.class),
+                any(Authentication.class));
+
+        String responseBody = String.format("""
+                {
+                    "message": "Conference is in the state: %s and can not start reviews"
+                }
+                """, ConferenceState.DECISION.name());
+
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/review", UUID.randomUUID()).with(csrf()))
+                .andExpectAll(
+                        status().isConflict(),
+                        content().json(responseBody)
+                );
+    }
+
+    @Test
+    void shouldReturnHTTP401WhenStartReviewIsCalledByUnauthenticatedUser() throws Exception {
+        String responseBody = """
+                {
+                    "message": "Unauthorized"
+                }
+                """;
+
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/review", UUID.randomUUID()).with(csrf()))
+                .andExpectAll(
+                        status().isUnauthorized(),
+                        content().json(responseBody)
+                );
+
+        verifyNoInteractions(this.conferenceService);
+    }
+
+    @Test
+    void shouldReturnHTTP403WhenStartReviewIsCalledWithInvalidCsrfToken() throws Exception {
+        String responseBody = """
+                {
+                    "message": "Access denied"
+                }
+                """;
+
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/review", UUID.randomUUID())
+                        .with(csrf().useInvalidToken()))
+                .andExpectAll(
+                        status().isForbidden(),
+                        content().json(responseBody)
+                );
+
+        verifyNoInteractions(this.conferenceService);
+    }
+
+    @Test
+    void shouldReturnHTTP403WhenStartReviewIsCalledWithNoCsrfToken() throws Exception {
+        String responseBody = """
+                {
+                    "message": "Access denied"
+                }
+                """;
+
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/review", UUID.randomUUID()))
+                .andExpectAll(
+                        status().isForbidden(),
+                        content().json(responseBody)
+                );
+
+        verifyNoInteractions(this.conferenceService);
     }
 }

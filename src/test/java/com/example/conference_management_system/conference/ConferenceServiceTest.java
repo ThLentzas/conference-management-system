@@ -63,7 +63,8 @@ class ConferenceServiceTest {
                 paperRepository,
                 reviewRepository,
                 roleService,
-                authService);
+                authService
+        );
     }
 
     @Test
@@ -88,7 +89,8 @@ class ConferenceServiceTest {
         Authentication authentication = getAuthentication();
         ConferenceCreateRequest conferenceCreateRequest = new ConferenceCreateRequest(
                 RandomStringUtils.randomAlphanumeric(new Random().nextInt(50) + 51),
-                "description");
+                "description"
+        );
 
         assertThatThrownBy(() -> this.underTest.createConference(
                 conferenceCreateRequest,
@@ -175,6 +177,47 @@ class ConferenceServiceTest {
                 .isInstanceOf(StateConflictException.class)
                 .hasMessage("Conference is in the state: " + conference.getState().name() + " and can not start " +
                         "assignment");
+    }
+
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenConferenceIsNotFoundOnStartReview() {
+        UUID id = UUID.randomUUID();
+        Authentication authentication = getAuthentication();
+
+        when(this.conferenceRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> this.underTest.startReview(id, authentication))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Conference not found with id: " + id);
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenRequestingUserIsNotPcChairInTheConferenceOnStartReview() {
+        Conference conference = getConference();
+        Authentication authentication = getAuthentication();
+
+        when(this.conferenceRepository.findById(any(UUID.class))).thenReturn(Optional.of(conference));
+        when(this.conferenceRepository.isPcChairAtConference(any(UUID.class), any(Long.class))).thenReturn(false);
+
+        assertThatThrownBy(() -> this.underTest.startReview(conference.getId(), authentication))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Conference not found with id: " + conference.getId());
+    }
+
+    @Test
+    void shouldThrowStateConflictExceptionWhenConferenceIsNotInAssignmentStateOnStartReview() {
+        Conference conference = getConference();
+        conference.setState(ConferenceState.DECISION);
+        Authentication authentication = getAuthentication();
+
+        when(this.conferenceRepository.findById(any(UUID.class))).thenReturn(Optional.of(conference));
+        when(this.conferenceRepository.isPcChairAtConference(any(UUID.class), any(Long.class))).thenReturn(true);
+
+        assertThatThrownBy(() -> this.underTest.startReview(conference.getId(), authentication))
+                .isInstanceOf(StateConflictException.class)
+                .hasMessage("Conference is in the state: " + conference.getState().name() + " and can not start " +
+                        "reviews");
     }
 
     @Test
@@ -395,9 +438,7 @@ class ConferenceServiceTest {
         Paper paper = getPaper();
         paper.setState(PaperState.SUBMITTED);
         paper.setConference(conference);
-        User user = new User();
-        user.setId(2L);
-        user.setRoles(new HashSet<>());
+        User user = getUser(2L, new HashSet<>());
         Authentication authentication = getAuthentication();
         ReviewerAssignmentRequest reviewerAssignmentRequest = new ReviewerAssignmentRequest(1L);
 
@@ -420,9 +461,7 @@ class ConferenceServiceTest {
         Paper paper = getPaper();
         paper.setState(PaperState.SUBMITTED);
         paper.setConference(conference);
-        User user = new User();
-        user.setId(1L);
-        user.setRoles(Set.of(new Role(RoleType.ROLE_REVIEWER)));
+        User user = getUser(1L, Set.of(new Role(RoleType.ROLE_REVIEWER)));
         Review review = new Review(paper, user);
         Authentication authentication = getAuthentication();
         ReviewerAssignmentRequest reviewerAssignmentRequest = new ReviewerAssignmentRequest(1L);
@@ -448,17 +487,11 @@ class ConferenceServiceTest {
         Paper paper = getPaper();
         paper.setState(PaperState.SUBMITTED);
         paper.setConference(conference);
-        User user1 = new User();
-        user1.setId(1L);
-        user1.setRoles(Set.of(new Role(RoleType.ROLE_REVIEWER)));
-        User user2 = new User();
-        user2.setId(2L);
-        user2.setRoles(Set.of(new Role(RoleType.ROLE_REVIEWER)));
+        User user1 = getUser(1L, Set.of(new Role(RoleType.ROLE_REVIEWER)));
+        User user2 = getUser(2L, Set.of(new Role(RoleType.ROLE_REVIEWER)));
+        User user3 = getUser(3L, Set.of(new Role(RoleType.ROLE_REVIEWER)));
         Review review1 = new Review(paper, user1);
         Review review2 = new Review(paper, user2);
-        User user3 = new User();
-        user3.setId(3L);
-        user3.setRoles(Set.of(new Role(RoleType.ROLE_REVIEWER)));
         Authentication authentication = getAuthentication();
         ReviewerAssignmentRequest reviewerAssignmentRequest = new ReviewerAssignmentRequest(3L);
 
@@ -475,7 +508,6 @@ class ConferenceServiceTest {
                 authentication)).isInstanceOf(StateConflictException.class)
                 .hasMessageContaining("Paper has the maximum number of reviewers");
     }
-
 
     private Authentication getAuthentication() {
         User user = new User("username", "password", "Full Name", Set.of(new Role(RoleType.ROLE_AUTHOR)));
@@ -500,5 +532,13 @@ class ConferenceServiceTest {
         paper.setTitle("title");
 
         return paper;
+    }
+
+    private User getUser(Long id, Set<Role> roles) {
+        User user = new User();
+        user.setId(id);
+        user.setRoles(roles);
+
+        return user;
     }
 }

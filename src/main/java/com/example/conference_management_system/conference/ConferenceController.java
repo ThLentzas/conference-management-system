@@ -5,6 +5,7 @@ import com.example.conference_management_system.conference.dto.ConferenceDTO;
 import com.example.conference_management_system.conference.dto.PaperSubmissionRequest;
 import com.example.conference_management_system.conference.dto.ReviewerAssignmentRequest;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.Response;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -84,6 +85,14 @@ class ConferenceController {
                                         @RequestBody ReviewerAssignmentRequest reviewerAssignmentRequest,
                                         Authentication authentication) {
         this.conferenceService.assignReviewer(conferenceId, paperId, reviewerAssignmentRequest, authentication);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @PreAuthorize("hasRole('PC_CHAIR')")
+    @PutMapping("/{id}/review")
+    ResponseEntity<Void> startReview(@PathVariable("id") UUID id, Authentication authentication) {
+        this.conferenceService.startReview(id, authentication);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }

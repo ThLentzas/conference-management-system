@@ -105,8 +105,8 @@ public class ConferenceService {
         }
 
         conference.setState(ConferenceState.SUBMISSION);
-        logger.info("Conference with id: {} transitioned to state: {}", id, conference.getState());
         this.conferenceRepository.save(conference);
+        logger.info("Conference with id: {} transitioned to state: {}", id, conference.getState());
     }
 
     void startAssignment(UUID id, Authentication authentication) {
@@ -133,8 +133,36 @@ public class ConferenceService {
         }
 
         conference.setState(ConferenceState.ASSIGNMENT);
-        logger.info("Conference with id: {} transitioned to state: {}", id, conference.getState());
         this.conferenceRepository.save(conference);
+        logger.info("Conference with id: {} transitioned to state: {}", id, conference.getState());
+    }
+
+    void startReview(UUID id, Authentication authentication) {
+        Conference conference = this.conferenceRepository.findById(id).orElseThrow(() -> {
+            logger.error("Start review failed. Conference not found with id: {}", id);
+
+            return new ResourceNotFoundException(CONFERENCE_NOT_FOUND_MSG + id);
+        });
+
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+        if (!this.conferenceRepository.isPcChairAtConference(id, securityUser.user().getId())) {
+            logger.error("Start review failed. User with id: {} is not PC_CHAIR at conference with id: {}",
+                    securityUser.user().getId(), id);
+
+            throw new ResourceNotFoundException(CONFERENCE_NOT_FOUND_MSG + id);
+        }
+
+        if (!conference.getState().equals(ConferenceState.ASSIGNMENT)) {
+            logger.error("Start review failed. Conference with id: {} is in state: {} and can not transition to: "
+                    + "{}", id, conference.getState(), ConferenceState.REVIEW);
+
+            throw new StateConflictException("Conference is in the state: " + conference.getState().name()
+                    + " and can not start reviews");
+        }
+
+        conference.setState(ConferenceState.REVIEW);
+        this.conferenceRepository.save(conference);
+        logger.info("Conference with id: {} transitioned to state: {}", id, conference.getState());
     }
 
     void submitPaper(UUID id, PaperSubmissionRequest paperSubmissionRequest, Authentication authentication) {

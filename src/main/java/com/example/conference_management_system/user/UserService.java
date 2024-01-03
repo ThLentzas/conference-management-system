@@ -26,12 +26,12 @@ public class UserService {
     private static final String USER_NOT_FOUND_MSG = "User not found with id: ";
     private static final UserDTOMapper dtoMapper = new UserDTOMapper();
 
-    public User registerUser(User user) {
+    public void registerUser(User user) {
         if (this.userRepository.existsByUsernameIgnoreCase(user.getUsername())) {
             throw new DuplicateResourceException("The provided username already exists");
         }
 
-        return this.userRepository.save(user);
+        this.userRepository.save(user);
     }
 
     UserDTO findUserByUsername(String username) {

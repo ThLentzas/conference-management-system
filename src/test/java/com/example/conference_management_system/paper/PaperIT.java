@@ -26,7 +26,6 @@ import com.example.conference_management_system.role.RoleType;
 import com.example.conference_management_system.user.UserDTO;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.containsString;
 
 
 @AutoConfigureWebTestClient
@@ -191,9 +190,7 @@ class PaperIT extends AbstractIntegrationTest {
                 .jsonPath("$.authors[2]").isEqualTo("Full Name")
                 .jsonPath("$.keywords.length()").isEqualTo(2)
                 .jsonPath("$.keywords[0]").isEqualTo("keyword 1")
-                .jsonPath("$.keywords[1]").isEqualTo("keyword 2")
-                .jsonPath("$._links.download").exists()
-                .jsonPath("$._links.download.href").value(containsString("/api/v1/papers/" + paperId + "/download"));
+                .jsonPath("$.keywords[1]").isEqualTo("keyword 2");
 
         /*
             GET: /api/v1/papers/{id}/download
@@ -347,9 +344,7 @@ class PaperIT extends AbstractIntegrationTest {
                 .jsonPath("$.authors[1]").isEqualTo("author 2")
                 .jsonPath("$.authors[2]").isEqualTo("Full Name")
                 .jsonPath("$.keywords.length()").isEqualTo(1)
-                .jsonPath("$.keywords[0]").isEqualTo("new keyword")
-                .jsonPath("$._links.download").exists()
-                .jsonPath("$._links.download.href").value(containsString("/api/v1/papers/" + paperId + "/download"));
+                .jsonPath("$.keywords[0]").isEqualTo("new keyword");
 
         /*
             GET: /api/v1/papers/{id}/download

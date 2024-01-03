@@ -27,6 +27,7 @@ import com.example.conference_management_system.exception.UnauthorizedException;
 import com.example.conference_management_system.security.SecurityUser;
 import com.example.conference_management_system.user.UserService;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -54,7 +55,7 @@ class AuthServiceTest {
                 "user",
                 "password",
                 "test user",
-                Set.of(RoleType.ROLE_PC_MEMBER));
+                Set.of(RoleType.ROLE_AUTHOR));
         Set<Role> roles = registerRequest.roleTypes().stream()
                 .map(Role::new)
                 .collect(Collectors.toSet());
@@ -66,16 +67,19 @@ class AuthServiceTest {
                 null,
                 securityUser.getAuthorities());
 
-        doNothing().when(this.userService).validateUser(any(User.class));
         when(this.passwordEncoder.encode(any(String.class))).thenReturn("password");
-        when(this.userService.registerUser(any(User.class))).thenReturn(user);
+        when(this.roleRepository.findByType(any(RoleType.class))).thenReturn(Optional.of(new Role(
+                RoleType.ROLE_AUTHOR)));
+        doNothing().when(this.userService).validateUser(any(User.class));
+        doNothing().when(this.userService).registerUser(any(User.class));
 
         //Act
         Authentication actual = this.underTest.registerUser(registerRequest);
 
         //Assert
         assertThat(actual).isEqualTo(expected);
-        verify(this.passwordEncoder, times(1)).encode(any(String.class));
+        verify(this.userService, times(1)).validateUser(any(User.class));
+        verify(this.userService, times(1)).registerUser(any(User.class));
     }
 
     @Test
@@ -85,7 +89,7 @@ class AuthServiceTest {
         User user = new User();
         user.setUsername(loginRequest.username());
         user.setPassword(loginRequest.password());
-        user.setRoles(Set.of(new Role(RoleType.ROLE_PC_MEMBER)));
+        user.setRoles(Set.of(new Role(RoleType.ROLE_AUTHOR)));
         SecurityUser securityUser = new SecurityUser(user);
         Authentication expected = new UsernamePasswordAuthenticationToken(
                 securityUser,
@@ -107,8 +111,8 @@ class AuthServiceTest {
         //Arrange
         LoginRequest request = new LoginRequest("username", "password");
 
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenThrow(new BadCredentialsException("Username or password is incorrect"));
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenThrow(
+                new BadCredentialsException("Username or password is incorrect"));
 
         //Act Assert
         assertThatThrownBy(() -> underTest.loginUser(request))

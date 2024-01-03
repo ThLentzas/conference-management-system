@@ -8,17 +8,20 @@ import java.time.LocalDate;
 @Getter
 @Setter
 public class ReviewerReviewDTO extends ReviewDTO {
+    private LocalDate assignedDate;
     private String reviewer;
 
     public ReviewerReviewDTO(
             Long id,
             Long paperId,
-            LocalDate createdDate,
+            LocalDate assignedDate,
+            LocalDate reviewedDate,
             String comment,
             Double score,
             String reviewer
     ) {
-        super(id, paperId, createdDate, comment, score);
+        super(id, paperId, reviewedDate, comment, score);
+        this.assignedDate = assignedDate;
         this.reviewer = reviewer;
     }
 }

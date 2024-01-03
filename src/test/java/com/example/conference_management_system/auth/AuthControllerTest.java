@@ -228,7 +228,7 @@ class AuthControllerTest {
     }
 
     private Authentication getAuthentication() {
-        User user = new User("username", "password", "Test User", Set.of(new Role(RoleType.ROLE_PC_MEMBER)));
+        User user = new User("username", "password", "Test User", Set.of(new Role(RoleType.ROLE_AUTHOR)));
         SecurityUser securityUser = new SecurityUser(user);
 
         return new UsernamePasswordAuthenticationToken(securityUser, null, securityUser.getAuthorities());

@@ -19,7 +19,7 @@ class UserRepositoryTest extends AbstractUnitTest {
     @Test
     void shouldRegisterUser() {
         //Arrange
-        User expected = new User("user", "password", "test user", Set.of(new Role(RoleType.ROLE_PC_MEMBER)));
+        User expected = new User("user", "password", "test user", Set.of(new Role(RoleType.ROLE_AUTHOR)));
         expected = this.underTest.save(expected);
 
         /*
@@ -37,7 +37,7 @@ class UserRepositoryTest extends AbstractUnitTest {
                     assertThat(actual.getFullName()).isEqualTo("test user");
                     assertThat(actual.getRoles())
                             .extracting(Role::getType)
-                            .containsExactlyInAnyOrder(RoleType.ROLE_PC_MEMBER);
+                            .containsExactlyInAnyOrder(RoleType.ROLE_AUTHOR);
                 }
         );
     }
@@ -45,7 +45,7 @@ class UserRepositoryTest extends AbstractUnitTest {
     @Test
     void shouldReturnTrueWhenSearchingForAUserThatExistsWithGivenUsernameIgnoringCase() {
         //Arrange
-        User actual = new User("user", "password", "test user", Set.of(new Role(RoleType.ROLE_PC_MEMBER)));
+        User actual = new User("user", "password", "test user", Set.of(new Role(RoleType.ROLE_AUTHOR)));
 
         //Act
         this.underTest.save(actual);
@@ -57,7 +57,7 @@ class UserRepositoryTest extends AbstractUnitTest {
     @Test
     void shouldReturnFalseWhenSearchingForAUserThatDoesNotExistWithGivenUsernameIgnoringCase() {
         //Arrange
-        User actual = new User("user", "password", "test user", Set.of(new Role(RoleType.ROLE_PC_MEMBER)));
+        User actual = new User("user", "password", "test user", Set.of(new Role(RoleType.ROLE_AUTHOR)));
 
         //Act
         this.underTest.save(actual);

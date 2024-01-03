@@ -3,7 +3,6 @@ package com.example.conference_management_system.paper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
-import org.springframework.hateoas.Link;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -11,6 +10,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.CurrentSecurityContext;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,8 +28,6 @@ import com.example.conference_management_system.paper.dto.PaperDTO;
 import com.example.conference_management_system.paper.dto.PaperFile;
 import com.example.conference_management_system.paper.dto.PaperUpdateRequest;
 
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -54,8 +53,7 @@ class PaperController {
                                      @RequestParam("file") MultipartFile file,
                                      Authentication authentication,
                                      UriComponentsBuilder uriBuilder,
-                                     HttpServletRequest servletRequest
-    ) {
+                                     HttpServletRequest servletRequest) {
         PaperCreateRequest paperCreateRequest = new PaperCreateRequest(title, abstractText, authors, keywords, file);
         logger.info("Paper create request: {}", paperCreateRequest);
 
@@ -77,12 +75,12 @@ class PaperController {
                                      @RequestParam(value = "abstractText", required = false) String abstractText,
                                      @RequestParam(value = "authors", required = false) String authors,
                                      @RequestParam(value = "keywords", required = false) String keywords,
-                                     @RequestParam(value = "file", required = false) MultipartFile file
-    ) {
+                                     @RequestParam(value = "file", required = false) MultipartFile file,
+                                     Authentication authentication) {
         PaperUpdateRequest paperUpdateRequest = new PaperUpdateRequest(title, abstractText, authors, keywords, file);
         logger.info("Paper update request: {}", paperUpdateRequest);
 
-        this.paperService.updatePaper(id, paperUpdateRequest);
+        this.paperService.updatePaper(id, paperUpdateRequest, authentication);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -99,10 +97,9 @@ class PaperController {
     }
 
     @GetMapping("/{id}")
-    ResponseEntity<PaperDTO> findPaperById(@PathVariable("id") Long id, Authentication authentication) {
-        PaperDTO paper = this.paperService.findPaperById(id, authentication);
-        Link download = linkTo(methodOn(PaperController.class).downloadPaper(id)).withRel("download");
-        paper.add(download);
+    ResponseEntity<PaperDTO> findPaperById(@PathVariable("id") Long id,
+                                           @CurrentSecurityContext SecurityContext securityContext) {
+        PaperDTO paper = this.paperService.findPaperById(id, securityContext);
 
         return new ResponseEntity<>(paper, HttpStatus.OK);
     }

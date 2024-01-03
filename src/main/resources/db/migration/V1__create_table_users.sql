@@ -1,6 +1,6 @@
 CREATE TYPE role_type AS ENUM (
     'ROLE_AUTHOR',
-    'ROLE_PC_MEMBER',
+    'ROLE_REVIEWER',
     'ROLE_PC_CHAIR'
     );
 

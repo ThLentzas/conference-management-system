@@ -13,7 +13,7 @@ import java.time.LocalDate;
 public class ReviewDTO {
     private Long id;
     private Long paperId;
-    private LocalDate createdDate;
+    private LocalDate reviewedDate;
     private String comment;
     private Double score;
 }

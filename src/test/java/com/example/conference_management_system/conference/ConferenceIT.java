@@ -144,8 +144,10 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .jsonPath("$.conferenceState").isEqualTo("CREATED")
                 .jsonPath("$.users[0].username").isEqualTo("username")
                 .jsonPath("$.users[0].fullName").isEqualTo("Full Name")
-                .jsonPath("$.users[0].roles[0]").isEqualTo("ROLE_AUTHOR")
-                .jsonPath("$.users[0].roles[1]").isEqualTo("ROLE_PC_CHAIR")
+                .jsonPath("$.users[0].roles").value(roles ->
+                        assertThat((List<String>) roles).contains(
+                                RoleType.ROLE_PC_CHAIR.name(),
+                                RoleType.ROLE_AUTHOR.name()))
                 .jsonPath("$.papers").isEmpty();
 
         /*
@@ -200,7 +202,8 @@ class ConferenceIT extends AbstractIntegrationTest {
                     "password": "CyN549!@o2Cr",
                     "fullName": "Full Name",
                     "roleTypes": [
-                        "ROLE_PC_CHAIR"
+                        "ROLE_PC_CHAIR",
+                        "ROLE_AUTHOR"
                     ]
                 }
                 """;
@@ -239,7 +242,7 @@ class ConferenceIT extends AbstractIntegrationTest {
             token and cookie
          */
         this.webTestClient.put()
-                .uri(CONFERENCE_PATH + "/{id}/start-submission?_csrf={csrf}", conferenceId, csrfToken)
+                .uri(CONFERENCE_PATH + "/{id}/submission?_csrf={csrf}", conferenceId, csrfToken)
                 .header("Cookie", sessionId)
                 .exchange()
                 .expectStatus().isNoContent();

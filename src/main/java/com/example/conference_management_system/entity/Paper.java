@@ -1,6 +1,7 @@
 package com.example.conference_management_system.entity;
 
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 import org.springframework.data.annotation.CreatedDate;
@@ -20,6 +21,7 @@ import com.example.conference_management_system.paper.PaperState;
 })
 @Getter
 @Setter
+@EqualsAndHashCode
 @EntityListeners(AuditingEntityListener.class)
 public class Paper {
     @Id
@@ -69,7 +71,7 @@ public class Paper {
     private Content content;
 
     public Paper() {
-        this.state = PaperState.ACCEPTED;
+        this.state = PaperState.CREATED;
     }
 
     public Paper(
@@ -80,7 +82,7 @@ public class Paper {
             Set<User> users) {
         this.title = title;
         this.abstractText = abstractText;
-        this.state = PaperState.ACCEPTED;
+        this.state = PaperState.CREATED;
         this.authors = authors;
         this.keywords = keywords;
         this.users = users;

@@ -5,24 +5,20 @@ import com.example.conference_management_system.conference.ConferenceRepository;
 import com.example.conference_management_system.content.ContentRepository;
 import com.example.conference_management_system.entity.Content;
 import com.example.conference_management_system.entity.Paper;
-import com.example.conference_management_system.entity.Review;
 import com.example.conference_management_system.entity.User;
 import com.example.conference_management_system.exception.DuplicateResourceException;
 import com.example.conference_management_system.exception.ResourceNotFoundException;
 import com.example.conference_management_system.exception.UnsupportedFileException;
 import com.example.conference_management_system.paper.dto.AuthorAdditionRequest;
-import com.example.conference_management_system.paper.dto.AuthorPaperDTO;
-import com.example.conference_management_system.paper.dto.PCChairPaperDTO;
 import com.example.conference_management_system.paper.dto.PaperCreateRequest;
 import com.example.conference_management_system.paper.dto.PaperDTO;
 import com.example.conference_management_system.paper.dto.PaperFile;
 import com.example.conference_management_system.paper.dto.PaperUpdateRequest;
-import com.example.conference_management_system.paper.dto.ReviewerPaperDTO;
+import com.example.conference_management_system.paper.mapper.AuthorPaperDTOMapper;
+import com.example.conference_management_system.paper.mapper.PCChairPaperDTOMapper;
+import com.example.conference_management_system.paper.mapper.PaperDTOMapper;
+import com.example.conference_management_system.paper.mapper.ReviewerPaperDTOMapper;
 import com.example.conference_management_system.review.ReviewRepository;
-import com.example.conference_management_system.review.dto.AuthorReviewDTO;
-import com.example.conference_management_system.review.dto.PCChairReviewDTO;
-import com.example.conference_management_system.review.dto.ReviewDTO;
-import com.example.conference_management_system.review.dto.ReviewerReviewDTO;
 import com.example.conference_management_system.role.RoleService;
 import com.example.conference_management_system.role.RoleType;
 import com.example.conference_management_system.security.SecurityUser;
@@ -41,6 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -60,10 +57,12 @@ public class PaperService {
     private final RoleService roleService;
     private final FileService fileService;
     private final AuthService authService;
+    private final PCChairPaperDTOMapper pcChairPaperDTOMapper = new PCChairPaperDTOMapper();
+    private final AuthorPaperDTOMapper authorPaperDTOMapper = new AuthorPaperDTOMapper();
+    private final ReviewerPaperDTOMapper reviewerPaperDTOMapper = new ReviewerPaperDTOMapper();
+    private final PaperDTOMapper paperDTOMapper = new PaperDTOMapper();
     private static final Logger logger = LoggerFactory.getLogger(PaperService.class);
     private static final String PAPER_NOT_FOUND_MSG = "Paper not found with id: ";
-    private static final String SERVER_ERROR_MSG = "The server encountered an internal error and was unable to " +
-            "complete your request. Please try again later";
 
     /*
         In order to create a paper a user has to be authenticated. The user that made the request to create the paper
@@ -105,7 +104,8 @@ public class PaperService {
                 paperCreateRequest.keywords(),
                 Set.of(securityUser.user())
         );
-        paper = this.paperRepository.save(paper);
+
+        this.paperRepository.save(paper);
         content.setPaper(paper);
         this.contentRepository.save(content);
         this.userRepository.save(securityUser.user());
@@ -113,7 +113,7 @@ public class PaperService {
         return paper.getId();
     }
 
-    void updatePaper(Long id, PaperUpdateRequest paperUpdateRequest) {
+    void updatePaper(Long id, PaperUpdateRequest paperUpdateRequest, Authentication authentication) {
         if (paperUpdateRequest.title() == null
                 && paperUpdateRequest.authors() == null
                 && paperUpdateRequest.abstractText() == null
@@ -125,6 +125,12 @@ public class PaperService {
         }
 
         this.paperRepository.findById(id).ifPresentOrElse(paper -> {
+            SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+            if(!this.paperRepository.isAuthorAtPaper(id, securityUser.user().getId())) {
+                logger.error("Paper update failed. User with id: {} is not author for paper with id: {}",
+                        securityUser.user().getId(), id);
+            }
+
             if (paperUpdateRequest.title() != null) {
                 validateTitle(paperUpdateRequest.title());
 
@@ -174,6 +180,7 @@ public class PaperService {
             this.paperRepository.save(paper);
         }, () -> {
             logger.error("Paper update failed: Paper not found with: {}", id);
+
             throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + id);
         });
     }
@@ -191,8 +198,7 @@ public class PaperService {
              */
             if (!paper.getUsers().contains(securityUser.user())) {
                 logger.error("Co-author addition failed. User with id: {} is not author for paper with id: {}",
-                        securityUser.user().getId(),
-                        paperId);
+                        securityUser.user().getId(), paperId);
                 throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
             }
 
@@ -214,17 +220,15 @@ public class PaperService {
             if (paper.getUsers().contains(user) || user.getId().equals(securityUser.user().getId())) {
                 logger.error("Co-author addition failed. User with id: {} is already an author for paper with id: {}",
                         user.getId(), paperId);
-                throw new DuplicateResourceException(
-                        "User with name: " + user.getFullName() + " is already an author for the paper with id: " +
-                                paperId);
+                throw new DuplicateResourceException("User with name: " + user.getFullName() + " is already an author "
+                        + "for the paper with id: " + paperId);
             }
 
             /*
                 If the user(co-author) was assigned a new role we update the entry in the db
              */
             if (this.roleService.assignRole(user, RoleType.ROLE_AUTHOR)) {
-                logger.info("Author addition request: User with id: {} was assigned a new role type: {}",
-                        user.getId(),
+                logger.info("Author addition request: User with id: {} was assigned a new role type: {}", user.getId(),
                         RoleType.ROLE_AUTHOR);
                 this.userRepository.save(user);
             }
@@ -256,11 +260,9 @@ public class PaperService {
 
     /*
         Based on the role of the user that makes the GET request for a paper, we would have to return different
-        properties of the PaperDTO. We could use a builder to avoid multiple constructors, but it's the PaperDTO that
-        gets serialized u
+        properties of the PaperDTO.
      */
-    PaperDTO findPaperById(Long paperId, Authentication authentication) {
-        ReviewDTO reviewDTO;
+    PaperDTO findPaperById(Long paperId, SecurityContext context) {
         /*
             Since we want to have a return value if the paper is found we can't use ifPresentOrElse().
          */
@@ -269,103 +271,27 @@ public class PaperService {
 
             return new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
         });
-        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
 
-        if (paper.getConference() != null && this.conferenceRepository.isPc_ChairAtConference(
-                paper.getConference().getId(),
-                securityUser.user().getId())) {
-
-            Set<PCChairReviewDTO> reviews = new HashSet<>();
-            for (Review review : paper.getReviews()) {
-                reviewDTO = new PCChairReviewDTO(
-                        review.getId(),
-                        review.getPaper().getId(),
-                        review.getCreatedDate(),
-                        review.getComment(),
-                        review.getScore(),
-                        review.getUser().getUsername()
-                );
-                reviews.add((PCChairReviewDTO) reviewDTO);
+        if (context.getAuthentication().getPrincipal() instanceof SecurityUser securityUser) {
+            if (paper.getConference() != null && this.conferenceRepository.isPcChairAtConference(
+                    paper.getConference().getId(), securityUser.user().getId())) {
+                return this.pcChairPaperDTOMapper.apply(paper);
             }
 
-            return new PCChairPaperDTO(
-                    paperId,
-                    paper.getCreatedDate(),
-                    paper.getTitle(),
-                    paper.getAbstractText(),
-                    paper.getAuthors().split(","),
-                    paper.getKeywords().split(","),
-                    paper.getState(),
-                    reviews
-            );
-        }
-
-        if (this.reviewRepository.isReviewerAtPaper(paperId, securityUser.user().getId())) {
-            Set<ReviewerReviewDTO> reviews = new HashSet<>();
-            for (Review review : paper.getReviews()) {
-                reviewDTO = new ReviewerReviewDTO(
-                        review.getId(),
-                        review.getPaper().getId(),
-                        review.getCreatedDate(),
-                        review.getComment(),
-                        review.getScore(),
-                        review.getUser().getUsername()
-                );
-                reviews.add((ReviewerReviewDTO) reviewDTO);
-            }
-            return new ReviewerPaperDTO(
-                    paperId,
-                    paper.getCreatedDate(),
-                    paper.getTitle(),
-                    paper.getAbstractText(),
-                    paper.getAuthors().split(","),
-                    paper.getKeywords().split(","),
-                    paper.getState(),
-                    reviews
-            );
-        }
-
-        if (this.paperRepository.isAuthorAtPaper(paperId, securityUser.user().getId())) {
-            Set<AuthorReviewDTO> reviews = new HashSet<>();
-            for (Review review : paper.getReviews()) {
-                reviewDTO = new AuthorReviewDTO(
-                        review.getId(),
-                        review.getPaper().getId(),
-                        review.getCreatedDate(),
-                        review.getComment(),
-                        review.getScore()
-                );
-                reviews.add((AuthorReviewDTO) reviewDTO);
+            if (this.reviewRepository.isReviewerAtPaper(paperId, securityUser.user().getId())) {
+                return this.reviewerPaperDTOMapper.apply(paper);
             }
 
-            return new AuthorPaperDTO(
-                    paperId,
-                    paper.getCreatedDate(),
-                    paper.getTitle(),
-                    paper.getAbstractText(),
-                    paper.getAuthors().split(","),
-                    paper.getKeywords().split(","),
-                    paper.getState(),
-                    reviews
-            );
-        }
-
-        if (!paper.getState().equals(PaperState.ACCEPTED)) {
-            throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
+            if (this.paperRepository.isAuthorAtPaper(paperId, securityUser.user().getId())) {
+                return this.authorPaperDTOMapper.apply(paper);
+            }
         }
 
         /*
             For any other case, visitor, reviewer but not in the requested paper, PC_CHAIR but the requested paper is
             not assigned to their conference we return the same properties.
          */
-        return new PaperDTO(
-                paperId,
-                paper.getCreatedDate(),
-                paper.getTitle(),
-                paper.getAbstractText(),
-                paper.getAuthors().split(","),
-                paper.getKeywords().split(",")
-        );
+        return this.paperDTOMapper.apply(paper);
     }
 
     PaperFile downloadPaperFile(Long id) {
@@ -377,7 +303,7 @@ public class PaperService {
 
         if (!this.paperRepository.isAuthorAtPaper(id, securityUser.user().getId())
                 && !this.reviewRepository.isReviewerAtPaper(paper.getId(), securityUser.user().getId())
-                && (paper.getConference() != null && !this.conferenceRepository.isPc_ChairAtConference(
+                && (paper.getConference() != null && !this.conferenceRepository.isPcChairAtConference(
                 paper.getConference().getId(),
                 securityUser.user().getId()))) {
             throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + id);

@@ -20,7 +20,8 @@ public class AuthorPaperDTO extends PaperDTO {
             LocalDate createdDate,
             String title,
             String abstractText,
-            String[] authors, String[] keywords,
+            String[] authors,
+            String[] keywords,
             PaperState state,
             Set<AuthorReviewDTO> reviews
     ) {

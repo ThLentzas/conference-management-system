@@ -3,6 +3,7 @@ package com.example.conference_management_system.conference;
 import com.example.conference_management_system.conference.dto.ConferenceCreateRequest;
 import com.example.conference_management_system.conference.dto.ConferenceDTO;
 import com.example.conference_management_system.conference.dto.PaperSubmissionRequest;
+import com.example.conference_management_system.conference.dto.ReviewerAssignmentRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -50,9 +51,39 @@ class ConferenceController {
         The state of conference changes to SUBMISSION, and we can submit papers to that conference
      */
     @PreAuthorize("hasRole('PC_CHAIR')")
-    @PutMapping("/{id}/start-submission")
+    @PutMapping("/{id}/submission")
     ResponseEntity<Void> startSubmission(@PathVariable("id") UUID id, Authentication authentication) {
         this.conferenceService.startSubmission(id, authentication);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @PreAuthorize("hasRole('AUTHOR')")
+    @PostMapping("/{id}/papers")
+    ResponseEntity<Void> submitPaper(@PathVariable("id") UUID id,
+                                     @RequestBody PaperSubmissionRequest paperSubmissionRequest,
+                                     Authentication authentication) {
+        this.conferenceService.submitPaper(id, paperSubmissionRequest, authentication);
+
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @PreAuthorize("hasRole('PC_CHAIR')")
+    @PutMapping("/{id}/assignment")
+    ResponseEntity<Void> startAssignment(@PathVariable("id") UUID id, Authentication authentication) {
+        this.conferenceService.startAssignment(id, authentication);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @PreAuthorize("hasRole('PC_CHAIR')")
+    @PostMapping("/{conferenceId}/papers/{paperId}/reviewer")
+    ResponseEntity<Void> assignReviewer(@PathVariable("conferenceId") UUID conferenceId,
+                                        @PathVariable("paperId") Long paperId,
+                                        @RequestBody ReviewerAssignmentRequest reviewerAssignmentRequest,
+                                        Authentication authentication) {
+        this.conferenceService.assignReviewer(conferenceId, paperId, reviewerAssignmentRequest, authentication);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -62,19 +93,9 @@ class ConferenceController {
      */
     @GetMapping("/{id}")
     ResponseEntity<ConferenceDTO> findConferenceById(@PathVariable("id") UUID id,
-                                                     @CurrentSecurityContext SecurityContext context) {
-        ConferenceDTO conferenceDTO = this.conferenceService.findConferenceById(id, context);
+                                                     @CurrentSecurityContext SecurityContext securityContext) {
+        ConferenceDTO conferenceDTO = this.conferenceService.findConferenceById(id, securityContext);
 
         return new ResponseEntity<>(conferenceDTO, HttpStatus.OK);
-    }
-
-    @PreAuthorize("hasRole('AUTHOR')")
-    @PostMapping("/{id}/submit")
-    ResponseEntity<Void> submitPaper(@PathVariable("id") UUID id,
-                                     @RequestBody PaperSubmissionRequest paperSubmissionRequest) {
-        this.conferenceService.submitPaper(id, paperSubmissionRequest);
-
-
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

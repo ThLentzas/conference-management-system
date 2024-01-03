@@ -40,36 +40,13 @@ class UserServiceTest {
     }
 
     @Test
-    void shouldRegisterUser() {
-        //Arrange
-        User expected = new User(
-                "user",
-                "password",
-                "test user",
-                Set.of(new Role(RoleType.ROLE_PC_MEMBER)));
-        when(this.userRepository.existsByUsernameIgnoreCase(any(String.class))).thenReturn(false);
-        when(this.userRepository.save(any(User.class))).thenReturn(expected);
-
-        //Act
-        User actual = this.underTest.registerUser(expected);
-
-        //Assert
-        assertThat(actual.getUsername()).isEqualTo(expected.getUsername());
-        assertThat(actual.getFullName()).isEqualTo("test user");
-        assertThat(actual.getRoles()).hasSize(1);
-        assertThat(actual.getRoles())
-                .extracting(Role::getType)
-                .containsExactlyInAnyOrder(RoleType.ROLE_PC_MEMBER);
-    }
-
-    @Test
     void shouldThrowDuplicateResourceExceptionWhenRegisteringUserWithExistingUsername() {
         //Arrange
         User actual = new User(
                 "user",
                 "password",
                 "test user",
-                Set.of(new Role(RoleType.ROLE_PC_MEMBER)));
+                Set.of(new Role(RoleType.ROLE_AUTHOR)));
         when(this.userRepository.existsByUsernameIgnoreCase(any(String.class))).thenReturn(true);
 
         // Act & Assert
@@ -85,7 +62,7 @@ class UserServiceTest {
                 RandomStringUtils.randomAlphanumeric(new Random().nextInt(21) + 21),
                 "password",
                 "test user",
-                Set.of(new Role(RoleType.ROLE_PC_MEMBER)));
+                Set.of(new Role(RoleType.ROLE_AUTHOR)));
 
         // Act & Assert
         assertThatThrownBy(() -> underTest.validateUser(actual))
@@ -100,7 +77,7 @@ class UserServiceTest {
                 "user",
                 "password",
                 RandomStringUtils.randomAlphanumeric(new Random().nextInt(51) + 51),
-                Set.of(new Role(RoleType.ROLE_PC_MEMBER)));
+                Set.of(new Role(RoleType.ROLE_AUTHOR)));
 
         // Act & Assert
         assertThatThrownBy(() -> underTest.validateUser(actual))
@@ -120,7 +97,7 @@ class UserServiceTest {
                 "user",
                 "password",
                 fullName,
-                Set.of(new Role(RoleType.ROLE_PC_MEMBER)));
+                Set.of(new Role(RoleType.ROLE_AUTHOR)));
 
         // Act & Assert
         assertThatThrownBy(() -> underTest.validateUser(actual))

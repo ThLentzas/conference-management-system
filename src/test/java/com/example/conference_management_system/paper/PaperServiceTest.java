@@ -10,6 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.parameters.P;
 import org.springframework.util.ResourceUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.testcontainers.shaded.org.apache.commons.lang3.RandomStringUtils;
@@ -318,8 +319,9 @@ class PaperServiceTest {
                 null,
                 null
         );
+        Authentication authentication = getAuthentication();
 
-        assertThatThrownBy(() -> this.underTest.updatePaper(1L, paperUpdateRequest))
+        assertThatThrownBy(() -> this.underTest.updatePaper(1L, paperUpdateRequest, authentication))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("You must provide at least one property to update the paper");
     }
@@ -338,10 +340,11 @@ class PaperServiceTest {
                 "keyword 1, keyword 2",
                 pdfFile
         );
+        Authentication authentication = getAuthentication();
 
         when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> this.underTest.updatePaper(1L, paperUpdateRequest))
+        assertThatThrownBy(() -> this.underTest.updatePaper(1L, paperUpdateRequest, authentication))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Paper not found with id: 1");
     }
@@ -362,9 +365,7 @@ class PaperServiceTest {
     void shouldThrowResourceNotFoundExceptionWhenRequestingUserIsNotPaperAuthorOnAuthorAddition() {
         AuthorAdditionRequest authorAdditionRequest = new AuthorAdditionRequest(1L);
         Authentication authentication = getAuthentication();
-        Paper paper = new Paper();
-        paper.setTitle("title");
-        paper.setId(1L);
+        Paper paper = getPaper();
         paper.setUsers(Collections.emptySet());
 
         when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.of(paper));
@@ -380,9 +381,7 @@ class PaperServiceTest {
         Authentication authentication = getAuthentication();
         SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
 
-        Paper paper = new Paper();
-        paper.setTitle("title");
-        paper.setId(1L);
+        Paper paper = getPaper();
         paper.setUsers(Set.of(securityUser.user()));
 
         when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.of(paper));
@@ -401,9 +400,7 @@ class PaperServiceTest {
 
         User coAuthor = new User("test", "test", "Test User", Set.of(new Role(RoleType.ROLE_AUTHOR)));
         coAuthor.setId(2L);
-        Paper paper = new Paper();
-        paper.setTitle("title");
-        paper.setId(1L);
+        Paper paper = getPaper();
         paper.setUsers(Set.of(securityUser.user(), coAuthor));
 
         when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.of(paper));
@@ -421,9 +418,7 @@ class PaperServiceTest {
         Authentication authentication = getAuthentication();
         SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
 
-        Paper paper = new Paper();
-        paper.setTitle("title");
-        paper.setId(1L);
+        Paper paper = getPaper();
         paper.setUsers(Set.of(securityUser.user()));
 
         when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.of(paper));
@@ -432,6 +427,14 @@ class PaperServiceTest {
         assertThatThrownBy(() -> this.underTest.addCoAuthor(1L, authentication, authorAdditionRequest))
                 .isInstanceOf(DuplicateResourceException.class)
                 .hasMessage("User with name: Full Name is already an author for the paper with id: 1");
+    }
+
+    private Paper getPaper() {
+        Paper paper = new Paper();
+        paper.setId(1L);
+        paper.setTitle("title");
+
+        return paper;
     }
 
     private Authentication getAuthentication() {

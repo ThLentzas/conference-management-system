@@ -52,7 +52,7 @@ public class AuthService {
         User user = new User(request.username(), request.password(), request.fullName(), roles);
         this.userService.validateUser(user);
         user.setPassword(this.passwordEncoder.encode(user.getPassword()));
-        user = this.userService.registerUser(user);
+        this.userService.registerUser(user);
         SecurityUser securityUser = new SecurityUser(user);
 
         return new UsernamePasswordAuthenticationToken(securityUser, null, securityUser.getAuthorities());

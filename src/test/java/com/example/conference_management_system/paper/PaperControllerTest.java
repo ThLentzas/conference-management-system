@@ -268,7 +268,10 @@ class PaperControllerTest {
                 getFileContent()
         );
 
-        doNothing().when(this.paperService).updatePaper(any(Long.class), any(PaperUpdateRequest.class));
+        doNothing().when(this.paperService).updatePaper(
+                any(Long.class),
+                any(PaperUpdateRequest.class),
+                any(Authentication.class));
 
         this.mockMvc.perform(multipart(PAPER_PATH + "/{id}", 1L).file(pdfFile).with(csrf())
                         .with(request -> {
@@ -282,7 +285,10 @@ class PaperControllerTest {
                         .contentType(MediaType.MULTIPART_FORM_DATA))
                 .andExpect(status().isNoContent());
 
-        verify(this.paperService, times(1)).updatePaper(any(Long.class), any(PaperUpdateRequest.class));
+        verify(this.paperService, times(1)).updatePaper(
+                any(Long.class),
+                any(PaperUpdateRequest.class),
+                any(Authentication.class));
     }
 
     /*
@@ -305,7 +311,7 @@ class PaperControllerTest {
                 """;
 
         doThrow(new IllegalArgumentException("You must provide at least one property to update the paper")).when(
-                this.paperService).updatePaper(any(Long.class), any(PaperUpdateRequest.class));
+                this.paperService).updatePaper(any(Long.class), any(PaperUpdateRequest.class), any(Authentication.class));
 
         this.mockMvc.perform(multipart(PAPER_PATH + "/{id}", 1L).file(pdfFile).with(csrf())
                         .with(request -> {
@@ -336,7 +342,8 @@ class PaperControllerTest {
 
         doThrow(new ResourceNotFoundException("Paper not found with id: 1")).when(this.paperService).updatePaper(
                 any(Long.class),
-                any(PaperUpdateRequest.class));
+                any(PaperUpdateRequest.class),
+                any(Authentication.class));
 
         this.mockMvc.perform(multipart(PAPER_PATH + "/{id}", 1L).file(pdfFile).with(csrf())
                         .with(request -> {

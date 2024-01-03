@@ -1,11 +1,12 @@
 /*
-    Initially the created date and comment can be null since we just assigned a reviewer to a paper
+    Initially the reviewed date, comment and score can be null since we just assigned a reviewer to a paper
  */
 CREATE TABLE IF NOT EXISTS reviews (
     id SERIAL,
     user_id INTEGER NOT NULL,
     paper_id INTEGER NOT NULL,
-    created_date DATE,
+    assigned_date DATE,
+    reviewed_date DATE DEFAULT CURRENT_DATE,
     comment TEXT,
     score DOUBLE PRECISION,
     CONSTRAINT pk_reviews PRIMARY KEY (id),

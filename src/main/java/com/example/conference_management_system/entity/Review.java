@@ -1,13 +1,6 @@
 package com.example.conference_management_system.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -19,9 +12,9 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "reviews")
-@EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
+@EntityListeners(AuditingEntityListener.class)
 public class Review {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,7 +25,17 @@ public class Review {
     private User user;
     @Column(nullable = false)
     @CreatedDate
-    private LocalDate createdDate;
+    private LocalDate assignedDate;
+    @Temporal(TemporalType.DATE)
+    private LocalDate reviewedDate;
     private String comment;
     private Double score;
+
+    public Review() {
+    }
+
+    public Review(Paper paper, User user) {
+        this.paper = paper;
+        this.user = user;
+    }
 }

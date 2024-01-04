@@ -2,7 +2,7 @@ package com.example.conference_management_system.conference.dto;
 
 import com.example.conference_management_system.conference.ConferenceState;
 import com.example.conference_management_system.paper.dto.PCChairPaperDTO;
-import com.example.conference_management_system.user.UserDTO;
+import com.example.conference_management_system.user.dto.UserDTO;
 import lombok.Getter;
 import lombok.Setter;
 

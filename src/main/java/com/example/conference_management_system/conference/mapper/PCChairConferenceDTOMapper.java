@@ -4,7 +4,7 @@ import com.example.conference_management_system.conference.dto.PCChairConference
 import com.example.conference_management_system.entity.Conference;
 import com.example.conference_management_system.paper.dto.PCChairPaperDTO;
 import com.example.conference_management_system.review.dto.PCChairReviewDTO;
-import com.example.conference_management_system.user.UserDTO;
+import com.example.conference_management_system.user.dto.UserDTO;
 import com.example.conference_management_system.user.UserDTOMapper;
 
 import java.util.Set;

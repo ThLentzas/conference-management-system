@@ -2,6 +2,7 @@ package com.example.conference_management_system.user;
 
 import com.example.conference_management_system.exception.ResourceNotFoundException;
 import com.example.conference_management_system.security.SecurityUser;
+import com.example.conference_management_system.user.dto.UserDTO;
 import org.passay.CharacterRule;
 import org.passay.EnglishCharacterData;
 import org.passay.LengthRule;

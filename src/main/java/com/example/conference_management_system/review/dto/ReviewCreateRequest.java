@@ -6,10 +6,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record ReviewCreateRequest(
+        @NotBlank String comment,
         @NotNull
         @DecimalMin(value = "0.0", message = "Score must be in the range of [0.0 - 10.0]")
         @DecimalMax(value = "10.0", message = "Score must be in the range of [0.0 - 10.0]")
-        Double score,
-        @NotBlank String comment
+        Double score
 ) {
 }

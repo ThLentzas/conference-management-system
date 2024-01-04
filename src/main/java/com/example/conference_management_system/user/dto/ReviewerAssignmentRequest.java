@@ -1,4 +1,4 @@
-package com.example.conference_management_system.conference.dto;
+package com.example.conference_management_system.user.dto;
 
 import jakarta.validation.constraints.NotNull;
 

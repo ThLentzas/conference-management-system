@@ -3,7 +3,7 @@ package com.example.conference_management_system.conference;
 import com.example.conference_management_system.auth.AuthService;
 import com.example.conference_management_system.conference.dto.ConferenceCreateRequest;
 import com.example.conference_management_system.conference.dto.PaperSubmissionRequest;
-import com.example.conference_management_system.conference.dto.ReviewerAssignmentRequest;
+import com.example.conference_management_system.user.dto.ReviewerAssignmentRequest;
 import com.example.conference_management_system.entity.*;
 import com.example.conference_management_system.exception.DuplicateResourceException;
 import com.example.conference_management_system.exception.ResourceNotFoundException;

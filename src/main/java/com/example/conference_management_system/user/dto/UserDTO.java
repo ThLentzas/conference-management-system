@@ -1,4 +1,4 @@
-package com.example.conference_management_system.user;
+package com.example.conference_management_system.user.dto;
 
 import com.example.conference_management_system.role.RoleType;
 

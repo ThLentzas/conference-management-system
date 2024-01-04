@@ -1,6 +1,5 @@
 package com.example.conference_management_system.conference;
 
-import com.example.conference_management_system.review.dto.ReviewCreateRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +19,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import com.example.conference_management_system.conference.dto.ConferenceCreateRequest;
 import com.example.conference_management_system.conference.dto.ConferenceDTO;
 import com.example.conference_management_system.conference.dto.PaperSubmissionRequest;
-import com.example.conference_management_system.conference.dto.ReviewerAssignmentRequest;
+import com.example.conference_management_system.user.dto.ReviewerAssignmentRequest;
 
 import java.net.URI;
 import java.util.UUID;
@@ -103,26 +102,6 @@ class ConferenceController {
         this.conferenceService.assignReviewer(conferenceId, paperId, reviewerAssignmentRequest, authentication);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-    }
-
-    @PreAuthorize("hasRole('REVIEWER')")
-    @PostMapping("/{conferenceId}/papers/{paperId}/reviews")
-    ResponseEntity<Void> reviewPaper(@PathVariable("conferenceId") UUID conferenceId,
-                                     @PathVariable("paperId") Long paperId,
-                                     ReviewCreateRequest reviewCreateRequest,
-                                     Authentication authentication,
-                                     UriComponentsBuilder uriBuilder) {
-
-        Long reviewId = this.conferenceService.reviewPaper(conferenceId, paperId, reviewCreateRequest, authentication);
-
-        URI location = uriBuilder
-                .path("/api/v1/papers/{paperId}/reviews/{reviewId}")
-                .buildAndExpand(paperId, reviewId)
-                .toUri();
-        HttpHeaders headers = new HttpHeaders();
-        headers.setLocation(location);
-
-        return new ResponseEntity<>(headers, HttpStatus.CREATED);
     }
 
     /*

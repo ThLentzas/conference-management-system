@@ -3,7 +3,6 @@ package com.example.conference_management_system.paper;
 import com.example.conference_management_system.auth.AuthService;
 import com.example.conference_management_system.conference.ConferenceRepository;
 import com.example.conference_management_system.conference.ConferenceState;
-import com.example.conference_management_system.conference.dto.ReviewerAssignmentRequest;
 import com.example.conference_management_system.content.ContentRepository;
 import com.example.conference_management_system.entity.*;
 import com.example.conference_management_system.exception.DuplicateResourceException;
@@ -20,6 +19,7 @@ import com.example.conference_management_system.paper.mapper.PCChairPaperDTOMapp
 import com.example.conference_management_system.paper.mapper.PaperDTOMapper;
 import com.example.conference_management_system.paper.mapper.ReviewerPaperDTOMapper;
 import com.example.conference_management_system.review.ReviewRepository;
+import com.example.conference_management_system.review.dto.ReviewCreateRequest;
 import com.example.conference_management_system.role.RoleService;
 import com.example.conference_management_system.role.RoleType;
 import com.example.conference_management_system.security.SecurityUser;
@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -130,7 +129,7 @@ public class PaperService {
 
         this.paperRepository.findById(id).ifPresentOrElse(paper -> {
             SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
-            if(!this.paperRepository.isAuthorAtPaper(id, securityUser.user().getId())) {
+            if (!this.paperRepository.isAuthorAtPaper(id, securityUser.user().getId())) {
                 logger.error("Paper update failed. User with id: {} is not author for paper with id: {}",
                         securityUser.user().getId(), id);
             }
@@ -262,14 +261,52 @@ public class PaperService {
         });
     }
 
+    Long reviewPaper(Long paperId, ReviewCreateRequest reviewCreateRequest, Authentication authentication) {
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+
+        if (!this.reviewRepository.isReviewerAtPaper(paperId, securityUser.user().getId())) {
+            logger.error("Review failed. Reviewer with id: {} is not assigned to paper with id: {}",
+                    securityUser.user().getId(), paperId);
+
+            throw new AccessDeniedException("Access denied");
+        }
+
+        Paper paper = this.paperRepository.findById(paperId).orElseThrow(() -> {
+            logger.error("Review failed. Paper not found with id: {}", paperId);
+
+            return new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
+        });
+
+        if (!paper.getConference().getState().equals(ConferenceState.REVIEW)) {
+            logger.error("Review failed. Conference with id: {} is in state: {} and can not review papers",
+                    paper.getConference().getId(), paper.getConference().getState());
+
+            throw new StateConflictException("Conference is in the state: " + paper.getConference().getState()
+                    + " and can not review papers");
+        }
+
+        if (!paper.getState().equals(PaperState.SUBMITTED)) {
+            logger.error("Review failed. Paper with id: {} is not in SUBMITTED state in order to be reviewed. " +
+                    "Paper state: {}", paperId, paper.getState());
+
+            throw new StateConflictException("Paper is in state: " + paper.getState() + " and can not assign reviewer");
+        }
+
+        Review review = new Review(
+                paper,
+                securityUser.user(),
+                reviewCreateRequest.comment(),
+                reviewCreateRequest.score());
+        this.reviewRepository.save(review);
+
+        return review.getId();
+    }
+
     /*
         Based on the role of the user that makes the GET request for a paper, we would have to return different
         properties of the PaperDTO.
      */
     PaperDTO findPaperById(Long paperId, SecurityContext context) {
-        /*
-            Since we want to have a return value if the paper is found we can't use ifPresentOrElse().
-         */
         Paper paper = this.paperRepository.findById(paperId).orElseThrow(() -> {
             logger.error("Paper not found with id: {}", paperId);
 

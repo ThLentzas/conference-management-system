@@ -34,7 +34,9 @@ public class Review {
     public Review() {
     }
 
-    public Review(String comment, Double score) {
+    public Review(Paper paper, User user, String comment, Double score) {
+        this.paper = paper;
+        this.user = user;
         this.comment = comment;
         this.score = score;
     }

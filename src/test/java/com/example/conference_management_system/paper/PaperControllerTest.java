@@ -1,9 +1,6 @@
 package com.example.conference_management_system.paper;
 
-import com.example.conference_management_system.conference.ConferenceState;
-import com.example.conference_management_system.conference.dto.ReviewerAssignmentRequest;
 import com.example.conference_management_system.exception.DuplicateResourceException;
-import com.example.conference_management_system.exception.StateConflictException;
 import com.example.conference_management_system.paper.dto.AuthorAdditionRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

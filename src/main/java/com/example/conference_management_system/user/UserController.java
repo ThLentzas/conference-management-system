@@ -1,5 +1,6 @@
 package com.example.conference_management_system.user;
 
+import com.example.conference_management_system.user.dto.UserDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

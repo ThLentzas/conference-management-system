@@ -1,6 +1,5 @@
 package com.example.conference_management_system.paper;
 
-import com.example.conference_management_system.conference.dto.ReviewerAssignmentRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
@@ -22,23 +21,21 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import com.example.conference_management_system.paper.dto.AuthorAdditionRequest;
 import com.example.conference_management_system.paper.dto.PaperCreateRequest;
 import com.example.conference_management_system.paper.dto.PaperDTO;
 import com.example.conference_management_system.paper.dto.PaperFile;
 import com.example.conference_management_system.paper.dto.PaperUpdateRequest;
-
+import com.example.conference_management_system.review.dto.ReviewCreateRequest;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.web.util.UriComponentsBuilder;
-
 import java.net.URI;
-import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -96,6 +93,25 @@ class PaperController {
         this.paperService.addCoAuthor(id, authentication, authorAdditionRequest);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @PreAuthorize("hasRole('REVIEWER')")
+    @PostMapping("/{id}/reviews")
+    ResponseEntity<Void> reviewPaper(@PathVariable("id") Long id,
+                                     @Valid @RequestBody ReviewCreateRequest reviewCreateRequest,
+                                     Authentication authentication,
+                                     UriComponentsBuilder uriBuilder) {
+
+        Long reviewId = this.paperService.reviewPaper(id, reviewCreateRequest, authentication);
+
+        URI location = uriBuilder
+                .path("/api/v1/papers/{paperId}/reviews/{reviewId}")
+                .buildAndExpand(id, reviewId)
+                .toUri();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(location);
+
+        return new ResponseEntity<>(headers, HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")

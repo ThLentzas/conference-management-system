@@ -34,6 +34,11 @@ public class Review {
     public Review() {
     }
 
+    public Review(String comment, Double score) {
+        this.comment = comment;
+        this.score = score;
+    }
+
     public Review(Paper paper, User user) {
         this.paper = paper;
         this.user = user;

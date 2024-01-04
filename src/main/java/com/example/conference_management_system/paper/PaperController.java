@@ -1,5 +1,6 @@
 package com.example.conference_management_system.paper;
 
+import com.example.conference_management_system.conference.dto.ReviewerAssignmentRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
@@ -37,6 +38,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor

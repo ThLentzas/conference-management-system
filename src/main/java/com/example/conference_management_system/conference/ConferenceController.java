@@ -1,11 +1,6 @@
 package com.example.conference_management_system.conference;
 
-import com.example.conference_management_system.conference.dto.ConferenceCreateRequest;
-import com.example.conference_management_system.conference.dto.ConferenceDTO;
-import com.example.conference_management_system.conference.dto.PaperSubmissionRequest;
-import com.example.conference_management_system.conference.dto.ReviewerAssignmentRequest;
-import lombok.RequiredArgsConstructor;
-import org.apache.coyote.Response;
+import com.example.conference_management_system.review.dto.ReviewCreateRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,14 +8,27 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.CurrentSecurityContext;
 import org.springframework.security.core.context.SecurityContext;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
+
+import com.example.conference_management_system.conference.dto.ConferenceCreateRequest;
+import com.example.conference_management_system.conference.dto.ConferenceDTO;
+import com.example.conference_management_system.conference.dto.PaperSubmissionRequest;
+import com.example.conference_management_system.conference.dto.ReviewerAssignmentRequest;
 
 import java.net.URI;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
@@ -59,6 +67,22 @@ class ConferenceController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
+    @PreAuthorize("hasRole('PC_CHAIR')")
+    @PutMapping("/{id}/assignment")
+    ResponseEntity<Void> startAssignment(@PathVariable("id") UUID id, Authentication authentication) {
+        this.conferenceService.startAssignment(id, authentication);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @PreAuthorize("hasRole('PC_CHAIR')")
+    @PutMapping("/{id}/review")
+    ResponseEntity<Void> startReview(@PathVariable("id") UUID id, Authentication authentication) {
+        this.conferenceService.startReview(id, authentication);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
     @PreAuthorize("hasRole('AUTHOR')")
     @PostMapping("/{id}/papers")
     ResponseEntity<Void> submitPaper(@PathVariable("id") UUID id,
@@ -66,14 +90,6 @@ class ConferenceController {
                                      Authentication authentication) {
         this.conferenceService.submitPaper(id, paperSubmissionRequest, authentication);
 
-
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-    }
-
-    @PreAuthorize("hasRole('PC_CHAIR')")
-    @PutMapping("/{id}/assignment")
-    ResponseEntity<Void> startAssignment(@PathVariable("id") UUID id, Authentication authentication) {
-        this.conferenceService.startAssignment(id, authentication);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -89,12 +105,24 @@ class ConferenceController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-    @PreAuthorize("hasRole('PC_CHAIR')")
-    @PutMapping("/{id}/review")
-    ResponseEntity<Void> startReview(@PathVariable("id") UUID id, Authentication authentication) {
-        this.conferenceService.startReview(id, authentication);
+    @PreAuthorize("hasRole('REVIEWER')")
+    @PostMapping("/{conferenceId}/papers/{paperId}/reviews")
+    ResponseEntity<Void> reviewPaper(@PathVariable("conferenceId") UUID conferenceId,
+                                     @PathVariable("paperId") Long paperId,
+                                     ReviewCreateRequest reviewCreateRequest,
+                                     Authentication authentication,
+                                     UriComponentsBuilder uriBuilder) {
 
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        Long reviewId = this.conferenceService.reviewPaper(conferenceId, paperId, reviewCreateRequest, authentication);
+
+        URI location = uriBuilder
+                .path("/api/v1/papers/{paperId}/reviews/{reviewId}")
+                .buildAndExpand(paperId, reviewId)
+                .toUri();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(location);
+
+        return new ResponseEntity<>(headers, HttpStatus.CREATED);
     }
 
     /*

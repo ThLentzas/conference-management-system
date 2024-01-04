@@ -3,6 +3,7 @@ package com.example.conference_management_system.exception;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -68,5 +69,26 @@ class ApiExceptionHandler {
         ApiError apiError = new ApiError(ufe.getMessage());
 
         return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    private ResponseEntity<ApiError> handleUnauthorizedException(UnauthorizedException ue) {
+        ApiError apiError = new ApiError(ue.getMessage());
+
+        return new ResponseEntity<>(apiError, HttpStatus.UNAUTHORIZED);
+    }
+
+    /*
+        The below exception is thrown when the user has the Role specified in the authorization rules at the
+        @PreAuthorize, but they are not the owner of the resource.
+
+        An example would be the user could PC_CHAIR as role, but they need to have that role for the requested
+        conference
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    private ResponseEntity<ApiError> handleAccessDeniedException(AccessDeniedException ad) {
+        ApiError apiError = new ApiError(ad.getMessage());
+
+        return new ResponseEntity<>(apiError, HttpStatus.FORBIDDEN);
     }
 }

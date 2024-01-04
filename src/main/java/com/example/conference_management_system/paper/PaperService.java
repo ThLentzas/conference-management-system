@@ -2,12 +2,13 @@ package com.example.conference_management_system.paper;
 
 import com.example.conference_management_system.auth.AuthService;
 import com.example.conference_management_system.conference.ConferenceRepository;
+import com.example.conference_management_system.conference.ConferenceState;
+import com.example.conference_management_system.conference.dto.ReviewerAssignmentRequest;
 import com.example.conference_management_system.content.ContentRepository;
-import com.example.conference_management_system.entity.Content;
-import com.example.conference_management_system.entity.Paper;
-import com.example.conference_management_system.entity.User;
+import com.example.conference_management_system.entity.*;
 import com.example.conference_management_system.exception.DuplicateResourceException;
 import com.example.conference_management_system.exception.ResourceNotFoundException;
+import com.example.conference_management_system.exception.StateConflictException;
 import com.example.conference_management_system.exception.UnsupportedFileException;
 import com.example.conference_management_system.paper.dto.AuthorAdditionRequest;
 import com.example.conference_management_system.paper.dto.PaperCreateRequest;
@@ -32,10 +33,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -63,6 +66,7 @@ public class PaperService {
     private final PaperDTOMapper paperDTOMapper = new PaperDTOMapper();
     private static final Logger logger = LoggerFactory.getLogger(PaperService.class);
     private static final String PAPER_NOT_FOUND_MSG = "Paper not found with id: ";
+    private static final String CONFERENCE_NOT_FOUND_MSG = "Conference not found with id: ";
 
     /*
         In order to create a paper a user has to be authenticated. The user that made the request to create the paper

@@ -14,14 +14,12 @@ public class PCChairReviewDTO extends ReviewDTO {
     public PCChairReviewDTO(
             Long id,
             Long paperId,
-            LocalDate assignedDate,
             LocalDate reviewedDate,
             String comment,
             Double score,
             String reviewer
     ) {
         super(id, paperId, reviewedDate, comment, score);
-        this.assignedDate = assignedDate;
         this.reviewer = reviewer;
     }
 }

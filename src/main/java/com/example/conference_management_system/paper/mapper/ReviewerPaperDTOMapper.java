@@ -1,6 +1,7 @@
 package com.example.conference_management_system.paper.mapper;
 
 import com.example.conference_management_system.entity.Paper;
+import com.example.conference_management_system.entity.PaperUser;
 import com.example.conference_management_system.entity.Review;
 import com.example.conference_management_system.paper.dto.ReviewerPaperDTO;
 import com.example.conference_management_system.review.dto.ReviewerReviewDTO;
@@ -20,7 +21,6 @@ public class ReviewerPaperDTOMapper implements Function<Paper, ReviewerPaperDTO>
             reviewDTO = new ReviewerReviewDTO(
                     review.getId(),
                     review.getPaper().getId(),
-                    review.getAssignedDate(),
                     review.getReviewedDate(),
                     review.getComment(),
                     review.getScore(),

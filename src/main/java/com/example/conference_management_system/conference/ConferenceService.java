@@ -167,46 +167,46 @@ public class ConferenceService {
         logger.info("Conference with id: {} transitioned to state: {}", id, conference.getState());
     }
 
-    void submitPaper(UUID id, PaperSubmissionRequest paperSubmissionRequest, Authentication authentication) {
-        Conference conference = this.conferenceRepository.findById(id).orElseThrow(() -> {
-            logger.error("Submit paper failed. Conference not found with id: {}", id);
-
-            return new ResourceNotFoundException(CONFERENCE_NOT_FOUND_MSG + id);
-        });
-
-        if (!conference.getState().equals(ConferenceState.SUBMISSION)) {
-            logger.error("Submit paper failed. Conference with id: {} is not in SUBMISSION state. " +
-                    "Conference state: {}", id, conference.getState());
-
-            throw new StateConflictException("Conference is in the state: " + conference.getState().name()
-                    + " and you can not submit papers");
-        }
-
-        Paper paper = this.paperRepository.findById(paperSubmissionRequest.paperId()).orElseThrow(() -> {
-            logger.error("Submit paper failed. Paper not found with id: {}", paperSubmissionRequest.paperId());
-
-            return new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperSubmissionRequest.paperId());
-        });
-
-        if (!paper.getState().equals(PaperState.CREATED)) {
-            logger.error("Submit paper failed. Paper with id: {} is in the: {} and can not be submitted",
-                    paperSubmissionRequest.paperId(), paper.getState());
-
-            throw new StateConflictException("Paper is in state: " + paper.getState() + " and can not be submitted");
-        }
-
-        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
-        if (!this.paperRepository.isAuthorAtPaper(paperSubmissionRequest.paperId(), securityUser.user().getId())) {
-            logger.error("Submit paper failed. User with id: {} is not author for paper with id: {}",
-                    securityUser.user().getId(), paperSubmissionRequest.paperId());
-
-            throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperSubmissionRequest.paperId());
-        }
-
-        paper.setState(PaperState.SUBMITTED);
-        paper.setConference(conference);
-        this.paperRepository.save(paper);
-    }
+//    void submitPaper(UUID id, PaperSubmissionRequest paperSubmissionRequest, Authentication authentication) {
+//        Conference conference = this.conferenceRepository.findById(id).orElseThrow(() -> {
+//            logger.error("Submit paper failed. Conference not found with id: {}", id);
+//
+//            return new ResourceNotFoundException(CONFERENCE_NOT_FOUND_MSG + id);
+//        });
+//
+//        if (!conference.getState().equals(ConferenceState.SUBMISSION)) {
+//            logger.error("Submit paper failed. Conference with id: {} is not in SUBMISSION state. " +
+//                    "Conference state: {}", id, conference.getState());
+//
+//            throw new StateConflictException("Conference is in the state: " + conference.getState().name()
+//                    + " and you can not submit papers");
+//        }
+//
+//        Paper paper = this.paperRepository.findById(paperSubmissionRequest.paperId()).orElseThrow(() -> {
+//            logger.error("Submit paper failed. Paper not found with id: {}", paperSubmissionRequest.paperId());
+//
+//            return new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperSubmissionRequest.paperId());
+//        });
+//
+//        if (!paper.getState().equals(PaperState.CREATED)) {
+//            logger.error("Submit paper failed. Paper with id: {} is in the: {} and can not be submitted",
+//                    paperSubmissionRequest.paperId(), paper.getState());
+//
+//            throw new StateConflictException("Paper is in state: " + paper.getState() + " and can not be submitted");
+//        }
+//
+//        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+//        if (!this.paperRepository.isAuthorAtPaper(paperSubmissionRequest.paperId(), securityUser.user().getId())) {
+//            logger.error("Submit paper failed. User with id: {} is not author for paper with id: {}",
+//                    securityUser.user().getId(), paperSubmissionRequest.paperId());
+//
+//            throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperSubmissionRequest.paperId());
+//        }
+//
+//        paper.setState(PaperState.SUBMITTED);
+//        paper.setConference(conference);
+//        this.paperRepository.save(paper);
+//    }
 
     /*
         In order to assign a reviewer to a paper the following need to be true:
@@ -221,104 +221,104 @@ public class ConferenceService {
         8) The same reviewer can not be assigned to a paper they are already assigned to
         9) The maximum number(2) of reviewers has already been reached
      */
-    void assignReviewer(UUID conferenceId,
-                        Long paperId,
-                        ReviewerAssignmentRequest reviewerAssignmentRequest,
-                        Authentication authentication) {
-        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
-        if (!this.conferenceRepository.isPcChairAtConference(conferenceId, securityUser.user().getId())) {
-            logger.error("Reviewer assignment failed. User with id: {} is not PC_CHAIR at conference with id: {}",
-                    securityUser.user().getId(), conferenceId);
-
-            throw new AccessDeniedException(ACCESS_DENIED_MSG);
-        }
-
-        Conference conference = this.conferenceRepository.findById(conferenceId).orElseThrow(() -> {
-            logger.error("Reviewer assignment failed. Conference not found with id: {}", conferenceId);
-
-            return new ResourceNotFoundException(CONFERENCE_NOT_FOUND_MSG + conferenceId);
-        });
-
-        if (!conference.getState().equals(ConferenceState.ASSIGNMENT)) {
-            logger.error("Reviewer assignment failed. Conference with id: {} is in state: {} and reviewers can not be " +
-                    "assigned", conferenceId, conference.getState());
-
-            throw new StateConflictException("Conference is in the state: " + conference.getState().name()
-                    + " and reviewers can not be assigned");
-        }
-
-        Paper paper = this.paperRepository.findById(paperId).orElseThrow(() -> {
-            logger.error("Reviewer assignment failed. Paper not found with id: {}", paperId);
-
-            return new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
-        });
-
-        /*
-            An alternative would be to call conference().getPapers().contains(paper) and see if the paper for the given
-            id belongs to the conference
-        */
-        if (paper.getConference() == null || !paper.getConference().getId().equals(conferenceId)) {
-            logger.error("Reviewer assignment failed. Paper with id: {} is not submitted to conference with id: {}",
-                    paper, conferenceId);
-
-            throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
-        }
-
-        if (!paper.getState().equals(PaperState.SUBMITTED)) {
-            logger.error("Reviewer assignment failed. Paper with id: {} is not in SUBMITTED state in order to assign a "
-                    + " reviewer. Paper state: {}", paperId, paper.getState());
-
-            throw new StateConflictException("Paper is in state: " + paper.getState() + " and can not assign reviewer");
-        }
-
-        this.userRepository.findById(reviewerAssignmentRequest.userId()).ifPresentOrElse(user -> {
-            Set<RoleType> roleTypes = user.getRoles().stream()
-                    .map(Role::getType)
-                    .collect(Collectors.toSet());
-
-            /*
-                The below exception most likely is wrong when the user to be assigned as a reviewer does not have that
-                role
-             */
-            if (!roleTypes.contains(RoleType.ROLE_REVIEWER)) {
-                logger.error("Reviewer assignment failed. User with id: {} does not have the role type: {}",
-                        reviewerAssignmentRequest.userId(), RoleType.ROLE_REVIEWER);
-
-                throw new IllegalArgumentException("User is not a reviewer with id: " + user.getId());
-            }
-
-            List<Review> reviews = this.reviewRepository.findByPaperId(paperId);
-            Set<User> reviewers = reviews.stream()
-                    .map(Review::getUser)
-                    .collect(Collectors.toSet());
-
-            /*
-                An alternative was to call this.reviewRepository.isReviewerAtPaper(paperId, user.getId()) or the
-                reviewerAssignmentRequest.userId(), same thing
-             */
-            if (reviewers.contains(user)) {
-                logger.error("Reviewer assignment failed: User with id: {} is already a reviewer in paper with id: {}",
-                        user.getId(), paperId);
-
-                throw new StateConflictException("User already assigned as reviewer");
-            }
-
-            if(reviewers.size() == 2) {
-                logger.error("Reviewer assignment failed. Paper with id: {} has the maximum numbers of reviewers",
-                        paperId);
-
-                throw new StateConflictException("Paper has the maximum number of reviewers");
-            }
-
-            Review review = new Review(paper, user);
-            this.reviewRepository.save(review);
-        }, () -> {
-            logger.error("User not found with id: {} to be assigned as reviewer", reviewerAssignmentRequest.userId());
-
-            throw new ResourceNotFoundException("User not found to be assigned as reviewer with id: " +
-                    reviewerAssignmentRequest.userId());
-        });
-    }
+//    void assignReviewer(UUID conferenceId,
+//                        Long paperId,
+//                        ReviewerAssignmentRequest reviewerAssignmentRequest,
+//                        Authentication authentication) {
+//        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+//        if (!this.conferenceRepository.isPcChairAtConference(conferenceId, securityUser.user().getId())) {
+//            logger.error("Reviewer assignment failed. User with id: {} is not PC_CHAIR at conference with id: {}",
+//                    securityUser.user().getId(), conferenceId);
+//
+//            throw new AccessDeniedException(ACCESS_DENIED_MSG);
+//        }
+//
+//        Conference conference = this.conferenceRepository.findById(conferenceId).orElseThrow(() -> {
+//            logger.error("Reviewer assignment failed. Conference not found with id: {}", conferenceId);
+//
+//            return new ResourceNotFoundException(CONFERENCE_NOT_FOUND_MSG + conferenceId);
+//        });
+//
+//        if (!conference.getState().equals(ConferenceState.ASSIGNMENT)) {
+//            logger.error("Reviewer assignment failed. Conference with id: {} is in state: {} and reviewers can not be " +
+//                    "assigned", conferenceId, conference.getState());
+//
+//            throw new StateConflictException("Conference is in the state: " + conference.getState().name()
+//                    + " and reviewers can not be assigned");
+//        }
+//
+//        Paper paper = this.paperRepository.findById(paperId).orElseThrow(() -> {
+//            logger.error("Reviewer assignment failed. Paper not found with id: {}", paperId);
+//
+//            return new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
+//        });
+//
+//        /*
+//            An alternative would be to call conference().getPapers().contains(paper) and see if the paper for the given
+//            id belongs to the conference
+//        */
+//        if (paper.getConference() == null || !paper.getConference().getId().equals(conferenceId)) {
+//            logger.error("Reviewer assignment failed. Paper with id: {} is not submitted to conference with id: {}",
+//                    paper, conferenceId);
+//
+//            throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
+//        }
+//
+//        if (!paper.getState().equals(PaperState.SUBMITTED)) {
+//            logger.error("Reviewer assignment failed. Paper with id: {} is not in SUBMITTED state in order to assign a "
+//                    + " reviewer. Paper state: {}", paperId, paper.getState());
+//
+//            throw new StateConflictException("Paper is in state: " + paper.getState() + " and can not assign reviewer");
+//        }
+//
+//        this.userRepository.findById(reviewerAssignmentRequest.userId()).ifPresentOrElse(user -> {
+//            Set<RoleType> roleTypes = user.getRoles().stream()
+//                    .map(Role::getType)
+//                    .collect(Collectors.toSet());
+//
+//            /*
+//                The below exception most likely is wrong when the user to be assigned as a reviewer does not have that
+//                role
+//             */
+//            if (!roleTypes.contains(RoleType.ROLE_REVIEWER)) {
+//                logger.error("Reviewer assignment failed. User with id: {} does not have the role type: {}",
+//                        reviewerAssignmentRequest.userId(), RoleType.ROLE_REVIEWER);
+//
+//                throw new IllegalArgumentException("User is not a reviewer with id: " + user.getId());
+//            }
+//
+//            List<Review> reviews = this.reviewRepository.findByPaperId(paperId);
+//            Set<User> reviewers = reviews.stream()
+//                    .map(Review::getUser)
+//                    .collect(Collectors.toSet());
+//
+//            /*
+//                An alternative was to call this.reviewRepository.isReviewerAtPaper(paperId, user.getId()) or the
+//                reviewerAssignmentRequest.userId(), same thing
+//             */
+//            if (reviewers.contains(user)) {
+//                logger.error("Reviewer assignment failed: User with id: {} is already a reviewer in paper with id: {}",
+//                        user.getId(), paperId);
+//
+//                throw new StateConflictException("User already assigned as reviewer");
+//            }
+//
+//            if(reviewers.size() == 2) {
+//                logger.error("Reviewer assignment failed. Paper with id: {} has the maximum numbers of reviewers",
+//                        paperId);
+//
+//                throw new StateConflictException("Paper has the maximum number of reviewers");
+//            }
+//
+//            Review review = new Review(paper, user);
+//            this.reviewRepository.save(review);
+//        }, () -> {
+//            logger.error("User not found with id: {} to be assigned as reviewer", reviewerAssignmentRequest.userId());
+//
+//            throw new ResourceNotFoundException("User not found to be assigned as reviewer with id: " +
+//                    reviewerAssignmentRequest.userId());
+//        });
+//    }
 
     ConferenceDTO findConferenceById(UUID id, SecurityContext securityContext) {
         Conference conference = this.conferenceRepository.findById(id).orElseThrow(() -> {

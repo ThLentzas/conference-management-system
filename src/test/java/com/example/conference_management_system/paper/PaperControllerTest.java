@@ -23,8 +23,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -51,10 +52,7 @@ class PaperControllerTest {
     private PaperService paperService;
     private static final String PAPER_PATH = "/api/v1/papers";
 
-    /*
-        For the same reason that I didn't write tests for the validation in both create paper and update paper in the
-        PaperService, same here as well.
-     */
+    //createPaper()
     @Test
     @WithMockUser(roles = "PC_MEMBER")
     void shouldReturnHTTP201WhenPaperIsCreatedSuccessfully() throws Exception {
@@ -258,6 +256,7 @@ class PaperControllerTest {
                 );
     }
 
+    //updatePaper()
     @Test
     @WithMockUser(roles = "AUTHOR")
     void shouldReturnHTTP204WhenPaperIsUpdatedSuccessfully() throws Exception {
@@ -457,6 +456,7 @@ class PaperControllerTest {
         verifyNoInteractions(paperService);
     }
 
+    //addCoAuthor()
     @Test
     @WithMockUser(roles = "AUTHOR")
     void shouldReturnHTTP204WhenCoAuthorIsAddedSuccessfully() throws Exception {
@@ -468,8 +468,8 @@ class PaperControllerTest {
 
         doNothing().when(this.paperService).addCoAuthor(
                 any(Long.class),
-                any(Authentication.class),
-                any(AuthorAdditionRequest.class));
+                any(AuthorAdditionRequest.class),
+                any(Authentication.class));
 
         this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -493,8 +493,9 @@ class PaperControllerTest {
 
         doThrow(new ResourceNotFoundException("Paper was not found with id: 1")).when(this.paperService).addCoAuthor(
                 any(Long.class),
-                any(Authentication.class),
-                any(AuthorAdditionRequest.class));
+                any(AuthorAdditionRequest.class),
+                any(Authentication.class)
+                );
 
         this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -521,7 +522,7 @@ class PaperControllerTest {
 
         doThrow(new DuplicateResourceException(
                 "User with name: Test User is already an author for the paper with id: 1")).when(this.paperService)
-                .addCoAuthor(any(Long.class), any(Authentication.class), any(AuthorAdditionRequest.class));
+                .addCoAuthor(any(Long.class), any(AuthorAdditionRequest.class), any(Authentication.class));
 
         this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)

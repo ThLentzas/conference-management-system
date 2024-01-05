@@ -87,7 +87,7 @@ class ConferenceController {
     ResponseEntity<Void> submitPaper(@PathVariable("id") UUID id,
                                      @RequestBody PaperSubmissionRequest paperSubmissionRequest,
                                      Authentication authentication) {
-        this.conferenceService.submitPaper(id, paperSubmissionRequest, authentication);
+     //   this.conferenceService.submitPaper(id, paperSubmissionRequest, authentication);
 
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -99,7 +99,7 @@ class ConferenceController {
                                         @PathVariable("paperId") Long paperId,
                                         @RequestBody ReviewerAssignmentRequest reviewerAssignmentRequest,
                                         Authentication authentication) {
-        this.conferenceService.assignReviewer(conferenceId, paperId, reviewerAssignmentRequest, authentication);
+        //this.conferenceService.assignReviewer(conferenceId, paperId, reviewerAssignmentRequest, authentication);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }

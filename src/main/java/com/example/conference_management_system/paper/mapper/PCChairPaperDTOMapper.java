@@ -20,7 +20,6 @@ public class PCChairPaperDTOMapper implements Function<Paper, PCChairPaperDTO> {
             reviewDTO = new PCChairReviewDTO(
                     review.getId(),
                     review.getPaper().getId(),
-                    review.getAssignedDate(),
                     review.getReviewedDate(),
                     review.getComment(),
                     review.getScore(),

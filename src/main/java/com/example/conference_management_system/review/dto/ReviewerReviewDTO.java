@@ -14,14 +14,12 @@ public class ReviewerReviewDTO extends ReviewDTO {
     public ReviewerReviewDTO(
             Long id,
             Long paperId,
-            LocalDate assignedDate,
             LocalDate reviewedDate,
             String comment,
             Double score,
             String reviewer
     ) {
         super(id, paperId, reviewedDate, comment, score);
-        this.assignedDate = assignedDate;
         this.reviewer = reviewer;
     }
 }

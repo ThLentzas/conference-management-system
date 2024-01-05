@@ -1,7 +1,17 @@
 package com.example.conference_management_system.entity;
 
-import jakarta.persistence.*;
-import lombok.EqualsAndHashCode;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 import org.springframework.data.annotation.CreatedDate;
@@ -9,6 +19,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.EqualsAndHashCode;
 
 import java.time.LocalDate;
 import java.util.Set;
@@ -21,11 +32,12 @@ import com.example.conference_management_system.paper.PaperState;
 })
 @Getter
 @Setter
-@EqualsAndHashCode
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @EntityListeners(AuditingEntityListener.class)
 public class Paper {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
     @Column(nullable = false)
     @CreatedDate
@@ -47,28 +59,18 @@ public class Paper {
         Will be stored as csv values.
      */
     private String keywords;
-    @ManyToMany
-    @JoinTable(
-            name = "papers_users",
-            joinColumns = @JoinColumn(name = "paper_id"),
-            inverseJoinColumns = @JoinColumn(name = "user_id")
-    )
-    private Set<User> users;
+    @OneToMany(mappedBy = "paper")
+    private Set<PaperUser> paperUsers;
     @ManyToOne
     private Conference conference;
-    /*
-        The relationship is bidirectional. I want to return all the reviews for a given a paper and the paper when I
-        query from the reviews side.
-     */
-    @OneToMany(mappedBy = "paper")
-    private Set<Review> reviews;
-
     /*
         When we query for a paper we also need to fetch the content for that paper(original file name, generated file
         name, extension)
      */
     @OneToOne(mappedBy = "paper")
     private Content content;
+    @OneToMany(mappedBy = "paper")
+    private Set<Review> reviews;
 
     public Paper() {
         this.state = PaperState.CREATED;
@@ -78,13 +80,11 @@ public class Paper {
             String title,
             String abstractText,
             String authors,
-            String keywords,
-            Set<User> users) {
+            String keywords) {
         this.title = title;
         this.abstractText = abstractText;
         this.state = PaperState.CREATED;
         this.authors = authors;
         this.keywords = keywords;
-        this.users = users;
     }
 }

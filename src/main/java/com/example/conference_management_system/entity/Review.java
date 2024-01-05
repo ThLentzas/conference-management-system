@@ -19,30 +19,20 @@ public class Review {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @CreatedDate
+    private LocalDate reviewedDate;
     @ManyToOne
     private Paper paper;
     @ManyToOne
     private User user;
-    @Column(nullable = false)
-    @CreatedDate
-    private LocalDate assignedDate;
-    @Temporal(TemporalType.DATE)
-    private LocalDate reviewedDate;
     private String comment;
     private Double score;
 
     public Review() {
     }
 
-    public Review(Paper paper, User user, String comment, Double score) {
-        this.paper = paper;
-        this.user = user;
+    public Review(String comment, Double score) {
         this.comment = comment;
         this.score = score;
-    }
-
-    public Review(Paper paper, User user) {
-        this.paper = paper;
-        this.user = user;
     }
 }

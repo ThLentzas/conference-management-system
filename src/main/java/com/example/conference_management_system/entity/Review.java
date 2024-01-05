@@ -1,6 +1,12 @@
 package com.example.conference_management_system.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -31,7 +37,9 @@ public class Review {
     public Review() {
     }
 
-    public Review(String comment, Double score) {
+    public Review(Paper paper, User user, String comment, Double score) {
+        this.paper = paper;
+        this.user = user;
         this.comment = comment;
         this.score = score;
     }

@@ -2,25 +2,15 @@ package com.example.conference_management_system.conference;
 
 import com.example.conference_management_system.AbstractUnitTest;
 import com.example.conference_management_system.entity.Conference;
-import com.example.conference_management_system.entity.Role;
-import com.example.conference_management_system.entity.User;
-import com.example.conference_management_system.role.RoleRepository;
-import com.example.conference_management_system.role.RoleType;
-import com.example.conference_management_system.user.UserRepository;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ConferenceRepositoryTest extends AbstractUnitTest {
     @Autowired
     private ConferenceRepository underTest;
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private RoleRepository roleRepository;
 
     @Test
     void shouldReturnTrueWhenSearchingForAConferenceThatExistsWithGivenNameIgnoringCase() {
@@ -38,50 +28,11 @@ class ConferenceRepositoryTest extends AbstractUnitTest {
         assertThat(this.underTest.existsByNameIgnoringCase("test")).isFalse();
     }
 
-    @Test
-    void shouldReturnTrueWhenUserIsPcChairAtConference() {
-        Conference conference = getConference();
-        User user = getUser();
-        Role role = new Role(RoleType.ROLE_PC_CHAIR);
-        user.setRoles(Set.of(role));
-        conference.setUsers(Set.of(user));
-
-        this.roleRepository.save(role);
-        this.userRepository.save(user);
-        this.underTest.save(conference);
-
-        assertThat(this.underTest.isPcChairAtConference(conference.getId(), user.getId())).isTrue();
-    }
-
-    @Test
-    void shouldReturnFalseWhenUserIsNotPcChairAtConference() {
-        Conference conference = getConference();
-        User user = getUser();
-        Role role = new Role(RoleType.ROLE_PC_CHAIR);
-        user.setRoles(Set.of(role));
-        conference.setUsers(Set.of(user));
-
-        this.roleRepository.save(role);
-        this.userRepository.save(user);
-        this.underTest.save(conference);
-
-        assertThat(this.underTest.isPcChairAtConference(conference.getId(), user.getId() + 1)).isFalse();
-    }
-
     private Conference getConference() {
         Conference conference = new Conference();
         conference.setName("conference");
         conference.setDescription("description");
 
         return conference;
-    }
-
-    private User getUser() {
-        User user = new User();
-        user.setUsername("username");
-        user.setPassword("password");
-        user.setFullName("full name");
-
-        return user;
     }
 }

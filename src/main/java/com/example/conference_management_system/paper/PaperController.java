@@ -101,19 +101,17 @@ class PaperController {
                                      @Valid @RequestBody ReviewCreateRequest reviewCreateRequest,
                                      Authentication authentication,
                                      UriComponentsBuilder uriBuilder) {
-//
-//        Long reviewId = this.paperService.reviewPaper(id, reviewCreateRequest, authentication);
-//
-//        URI location = uriBuilder
-//                .path("/api/v1/papers/{paperId}/reviews/{reviewId}")
-//                .buildAndExpand(id, reviewId)
-//                .toUri();
-//        HttpHeaders headers = new HttpHeaders();
-//        headers.setLocation(location);
-//
-//        return new ResponseEntity<>(headers, HttpStatus.CREATED);
 
-        return null;
+        Long reviewId = this.paperService.reviewPaper(id, reviewCreateRequest, authentication);
+
+        URI location = uriBuilder
+                .path("/api/v1/papers/{paperId}/reviews/{reviewId}")
+                .buildAndExpand(id, reviewId)
+                .toUri();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(location);
+
+        return new ResponseEntity<>(headers, HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
@@ -141,7 +139,5 @@ class PaperController {
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
 
         return new ResponseEntity<>(paperFile.file(), headers, HttpStatus.OK);
-
-
     }
 }

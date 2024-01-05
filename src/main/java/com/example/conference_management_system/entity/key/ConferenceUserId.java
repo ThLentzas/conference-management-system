@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.io.Serializable;
+import java.util.UUID;
 
 import jakarta.persistence.Embeddable;
 
@@ -12,15 +13,15 @@ import jakarta.persistence.Embeddable;
 @Getter
 @Setter
 @EqualsAndHashCode
-public class PaperUserId implements Serializable {
-    private Long paperId;
+public class ConferenceUserId implements Serializable {
+    private UUID conferenceId;
     private Long userId;
 
-    public PaperUserId() {
+    public ConferenceUserId() {
     }
 
-    public PaperUserId(Long paperId, Long userId) {
-        this.paperId = paperId;
+    public ConferenceUserId(UUID conferenceId, Long userId) {
+        this.conferenceId = conferenceId;
         this.userId = userId;
     }
 }

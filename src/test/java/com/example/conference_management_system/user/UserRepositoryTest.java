@@ -16,32 +16,7 @@ class UserRepositoryTest extends AbstractUnitTest {
     @Autowired
     private UserRepository underTest;
 
-    @Test
-    void shouldRegisterUser() {
-        //Arrange
-        User expected = new User("user", "password", "test user", Set.of(new Role(RoleType.ROLE_AUTHOR)));
-        expected = this.underTest.save(expected);
-
-        /*
-            Act & Assert
-
-            We can't call expected.getUsername() inside the lamda because variables  used in lambda expression should be
-            final or effectively final. When registering a user, they will have no roles by default, so we check against
-            an empty Set.
-         */
-        this.underTest.findById(expected.getId()).ifPresent(
-                actual -> {
-                    assertThat(actual.getId()).isPositive();
-                    assertThat(actual.getUsername()).isEqualTo("user");
-                    assertThat(actual.getPassword()).isEqualTo("password");
-                    assertThat(actual.getFullName()).isEqualTo("test user");
-                    assertThat(actual.getRoles())
-                            .extracting(Role::getType)
-                            .containsExactlyInAnyOrder(RoleType.ROLE_AUTHOR);
-                }
-        );
-    }
-
+    //existsByUsernameIgnoreCase()
     @Test
     void shouldReturnTrueWhenSearchingForAUserThatExistsWithGivenUsernameIgnoringCase() {
         //Arrange

@@ -1,15 +1,14 @@
 package com.example.conference_management_system.paper;
 
 import com.example.conference_management_system.auth.AuthService;
-import com.example.conference_management_system.conference.ConferenceRepository;
+import com.example.conference_management_system.conference.ConferenceState;
+import com.example.conference_management_system.conference.ConferenceUserRepository;
 import com.example.conference_management_system.content.ContentRepository;
-import com.example.conference_management_system.entity.Content;
-import com.example.conference_management_system.entity.Paper;
-import com.example.conference_management_system.entity.PaperUser;
-import com.example.conference_management_system.entity.User;
+import com.example.conference_management_system.entity.*;
 import com.example.conference_management_system.entity.key.PaperUserId;
 import com.example.conference_management_system.exception.DuplicateResourceException;
 import com.example.conference_management_system.exception.ResourceNotFoundException;
+import com.example.conference_management_system.exception.StateConflictException;
 import com.example.conference_management_system.exception.UnsupportedFileException;
 import com.example.conference_management_system.paper.dto.*;
 import com.example.conference_management_system.paper.mapper.AuthorPaperDTOMapper;
@@ -17,13 +16,19 @@ import com.example.conference_management_system.paper.mapper.PCChairPaperDTOMapp
 import com.example.conference_management_system.paper.mapper.PaperDTOMapper;
 import com.example.conference_management_system.paper.mapper.ReviewerPaperDTOMapper;
 import com.example.conference_management_system.review.ReviewRepository;
+import com.example.conference_management_system.review.dto.ReviewCreateRequest;
 import com.example.conference_management_system.role.RoleService;
 import com.example.conference_management_system.role.RoleType;
 import com.example.conference_management_system.security.SecurityUser;
 import com.example.conference_management_system.user.UserRepository;
 import com.example.conference_management_system.utility.FileService;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.function.Consumer;
 
 import org.slf4j.Logger;
@@ -44,10 +49,10 @@ import jakarta.servlet.http.HttpServletRequest;
 public class PaperService {
     private final PaperRepository paperRepository;
     private final PaperUserRepository paperUserRepository;
+    private final ConferenceUserRepository conferenceUserRepository;
     private final ContentRepository contentRepository;
     private final UserRepository userRepository;
     private final ReviewRepository reviewRepository;
-    private final ConferenceRepository conferenceRepository;
     private final RoleService roleService;
     private final FileService fileService;
     private final AuthService authService;
@@ -57,6 +62,7 @@ public class PaperService {
     private final PaperDTOMapper paperDTOMapper = new PaperDTOMapper();
     private static final Logger logger = LoggerFactory.getLogger(PaperService.class);
     private static final String PAPER_NOT_FOUND_MSG = "Paper not found with id: ";
+    private static final String ACCESS_DENIED_MSG = "Access denied";
 
     /*
         In order to create a paper a user has to be authenticated. The user that made the request to create the paper
@@ -70,6 +76,7 @@ public class PaperService {
 
         if (this.paperRepository.existsByTitleIgnoreCase(paperCreateRequest.title())) {
             logger.error("Paper creation failed. Duplicate title: {}", paperCreateRequest.title());
+
             throw new DuplicateResourceException("A paper with the provided title already exists");
         }
 
@@ -83,6 +90,7 @@ public class PaperService {
         */
         if (this.roleService.assignRole(securityUser.user(), RoleType.ROLE_AUTHOR)) {
             logger.warn("Current user was assigned a new role. Invalidating current session");
+
             this.authService.invalidateSession(servletRequest);
             this.userRepository.save(securityUser.user());
         }
@@ -116,18 +124,6 @@ public class PaperService {
         return paper.getId();
     }
 
-    /*
-        The PaperUser has two types of paper-user relationships.
-
-        A) Author - paper
-        B) Reviewer - paper
-
-        Since the endpoint is authorized to only authors then if the condition
-        this.paperUserRepository.findUsersByPaperId(id).contains(securityUser.user() => returns true, we know the user
-        that made the request is the author of the paper. If they were reviewer for the given paper they would not be
-        able to access the endpoint
-     */
-
     void updatePaper(Long id, PaperUpdateRequest paperUpdateRequest, Authentication authentication) {
         SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
         if (!this.paperUserRepository.existsByPaperIdUserIdAndRoleType(id, securityUser.user().getId(),
@@ -135,7 +131,7 @@ public class PaperService {
             logger.error("Paper update failed. User with id: {} is not author for paper with id: {}",
                     securityUser.user().getId(), id);
 
-            throw new AccessDeniedException("Access denied");
+            throw new AccessDeniedException(ACCESS_DENIED_MSG);
         }
 
         if (paperUpdateRequest.title() == null
@@ -215,7 +211,7 @@ public class PaperService {
             logger.error("Co-author addition failed. User with id: {} is not author for paper with id: {}",
                     securityUser.user().getId(), id);
 
-            throw new AccessDeniedException("Access denied");
+            throw new AccessDeniedException(ACCESS_DENIED_MSG);
         }
 
         this.paperRepository.findById(id).ifPresentOrElse(paper -> {
@@ -282,42 +278,47 @@ public class PaperService {
         });
     }
 
-//    Long reviewPaper(Long paperId, ReviewCreateRequest reviewCreateRequest, Authentication authentication) {
-//        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
-//
-//        if (!this.reviewRepository.isReviewerAtPaper(paperId, securityUser.user().getId())) {
-//            logger.error("Review failed. Reviewer with id: {} is not assigned to paper with id: {}",
-//                    securityUser.user().getId(), paperId);
-//
-//            throw new AccessDeniedException("Access denied");
-//        }
-//
-//        Paper paper = this.paperRepository.findById(paperId).orElseThrow(() -> {
-//            logger.error("Review failed. Paper not found with id: {}", paperId);
-//
-//            return new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
-//        });
-//
-//        if (!paper.getConference().getState().equals(ConferenceState.REVIEW)) {
-//            logger.error("Review failed. Conference with id: {} is in state: {} and can not review papers",
-//                    paper.getConference().getId(), paper.getConference().getState());
-//
-//            throw new StateConflictException("Conference is in the state: " + paper.getConference().getState()
-//                    + " and can not review papers");
-//        }
-//
-//        if (!paper.getState().equals(PaperState.SUBMITTED)) {
-//            logger.error("Review failed. Paper with id: {} is not in SUBMITTED state in order to be reviewed. " +
-//                    "Paper state: {}", paperId, paper.getState());
-//
-//            throw new StateConflictException("Paper is in state: " + paper.getState() + " and can not assign reviewer");
-//        }
-//
-//        Review review = new Review(reviewCreateRequest.comment(), reviewCreateRequest.score());
-//        this.reviewRepository.save(review);
-//
-//        return review.getId();
-//    }
+    Long reviewPaper(Long paperId, ReviewCreateRequest reviewCreateRequest, Authentication authentication) {
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+
+        if (!this.paperUserRepository.existsByPaperIdUserIdAndRoleType(paperId,
+                securityUser.user().getId(),
+                RoleType.ROLE_REVIEWER)) {
+            logger.error("Review failed. Reviewer with id: {} is not assigned to paper with id: {}",
+                    securityUser.user().getId(), paperId);
+
+            throw new AccessDeniedException(ACCESS_DENIED_MSG);
+        }
+
+        Paper paper = this.paperRepository.findById(paperId).orElseThrow(() -> {
+            logger.error("Review failed. Paper not found with id: {}", paperId);
+
+            return new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
+        });
+
+        if (!paper.getConference().getState().equals(ConferenceState.REVIEW)) {
+            logger.error("Review failed. Conference with id: {} is in state: {} and can not review papers",
+                    paper.getConference().getId(), paper.getConference().getState());
+
+            throw new StateConflictException("Conference is in the state: " + paper.getConference().getState()
+                    + " and can not review papers");
+        }
+
+        if (!paper.getState().equals(PaperState.SUBMITTED)) {
+            logger.error("Review failed. Paper with id: {} is not in SUBMITTED state in order to be reviewed. " +
+                    "Paper state: {}", paperId, paper.getState());
+
+            throw new StateConflictException("Paper is in state: " + paper.getState() + " and can not assign reviewer");
+        }
+
+        Review review = new Review(paper,
+                securityUser.user(),
+                reviewCreateRequest.comment(),
+                reviewCreateRequest.score());
+        this.reviewRepository.save(review);
+
+        return review.getId();
+    }
 
     /*
         Based on the role of the user that makes the GET request for a paper, we would have to return different
@@ -331,7 +332,7 @@ public class PaperService {
         });
 
         if (context.getAuthentication().getPrincipal() instanceof SecurityUser securityUser) {
-            if (paper.getConference() != null && this.conferenceRepository.isPcChairAtConference(
+            if (paper.getConference() != null && this.conferenceUserRepository.existsByConferenceIdAndUserId(
                     paper.getConference().getId(),
                     securityUser.user().getId())) {
                 return this.pcChairPaperDTOMapper.apply(paper);
@@ -357,6 +358,14 @@ public class PaperService {
         return this.paperDTOMapper.apply(paper);
     }
 
+    /*
+        The users that can download the paper file are:
+            1)Authors of the paper
+            2)Reviewers of the paper
+            3)Pc chairs that the requested paper is submitted to their conference.
+
+        Any other case would result in 404.
+     */
     PaperFile downloadPaperFile(Long id, Authentication authentication) {
         Paper paper = this.paperRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException(
                 PAPER_NOT_FOUND_MSG + id));
@@ -366,8 +375,8 @@ public class PaperService {
                 RoleType.ROLE_AUTHOR)
                 && !this.paperUserRepository.existsByPaperIdUserIdAndRoleType(id, securityUser.user().getId(),
                 RoleType.ROLE_REVIEWER)
-                && (paper.getConference() != null && !this.conferenceRepository.isPcChairAtConference(
-                paper.getConference().getId(), securityUser.user().getId()))) {
+                && (paper.getConference() == null || !this.conferenceUserRepository.existsByConferenceIdAndUserId(
+                        paper.getConference().getId(), securityUser.user().getId()))) {
             throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + id);
         }
 

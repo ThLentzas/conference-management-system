@@ -25,6 +25,8 @@ class FileServiceTest {
     }
 
     /*
+        isFileSupported()
+
         In order to create files with the correct content (pdf, tex) it's not enough to set the 3rd argument of the
         MockMultipartFile as application/pdf, application/x-tex. We need the actual content of the file to be pdf,latex,
         so we store in our test resources 3 files: 1 pdf, 1 tex and 1 png. We can then read the content of this file and
@@ -75,6 +77,7 @@ class FileServiceTest {
         assertThat(this.underTest.isFileSupported(imageFile)).isFalse();
     }
 
+    //saveFile()
     @Test
     void shouldSaveFile() throws IOException {
         //Arrange
@@ -95,6 +98,7 @@ class FileServiceTest {
         assertThat(Files.exists(storedFile)).isTrue();
     }
 
+    //deleteFile()
     @Test
     void shouldDeleteFile() throws IOException {
         //Arrange
@@ -117,6 +121,7 @@ class FileServiceTest {
         assertThat(Files.exists(storedFile)).isFalse();
     }
 
+    //findFileExtension()
     @Test
     void shouldFindFileExtension() throws IOException {
         //Arrange

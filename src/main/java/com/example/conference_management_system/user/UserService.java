@@ -24,7 +24,6 @@ import lombok.RequiredArgsConstructor;
 public class UserService {
     private final UserRepository userRepository;
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
-    private static final String USER_NOT_FOUND_MSG = "User not found with id: ";
     private static final UserDTOMapper dtoMapper = new UserDTOMapper();
 
     public void registerUser(User user) {
@@ -41,16 +40,6 @@ public class UserService {
 
             return new ResourceNotFoundException("User not found with username: " + username);
         });
-
-        return dtoMapper.apply(user);
-    }
-
-    UserDTO findUserById() {
-        SecurityUser securityUser = (SecurityUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        User user = this.userRepository.findById(securityUser.user().getId()).orElseThrow(() ->
-                new ResourceNotFoundException(USER_NOT_FOUND_MSG + securityUser.user().getId()));
-
-        logger.info("User retrieved with id: {}", user.getId());
 
         return dtoMapper.apply(user);
     }

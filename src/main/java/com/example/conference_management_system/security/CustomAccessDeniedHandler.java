@@ -13,10 +13,6 @@ import java.io.IOException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-/*
-    AccessDenied exception is thrown by the Authorization Filter and not the Controller so adding to the
-    ApiExceptionHandler would not work.
- */
 public class CustomAccessDeniedHandler implements AccessDeniedHandler {
     @Override
     public void handle(HttpServletRequest request,

@@ -1,8 +1,5 @@
 package com.example.conference_management_system.auth;
 
-import com.example.conference_management_system.entity.Role;
-import com.example.conference_management_system.role.RoleRepository;
-import com.example.conference_management_system.role.RoleType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,6 +23,9 @@ import com.example.conference_management_system.entity.User;
 import com.example.conference_management_system.exception.UnauthorizedException;
 import com.example.conference_management_system.security.SecurityUser;
 import com.example.conference_management_system.user.UserService;
+import com.example.conference_management_system.entity.Role;
+import com.example.conference_management_system.role.RoleRepository;
+import com.example.conference_management_system.role.RoleType;
 
 import java.util.Optional;
 import java.util.Set;

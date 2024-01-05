@@ -15,12 +15,4 @@ public interface ConferenceRepository extends JpaRepository<Conference, UUID> {
                 WHERE LOWER(c.name) = LOWER(:name)
             """)
     boolean existsByNameIgnoringCase(@Param("name") String name);
-
-    @Query("""
-                SELECT COUNT(c) > 0
-                FROM Conference c
-                JOIN c.users u
-                WHERE c.id = :conferenceId AND u.id = :userId
-            """)
-    boolean isPcChairAtConference(@Param("conferenceId") UUID conferenceId, @Param("userId") Long userId);
 }

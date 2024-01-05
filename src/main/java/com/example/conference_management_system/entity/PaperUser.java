@@ -1,7 +1,5 @@
 package com.example.conference_management_system.entity;
 
-import com.example.conference_management_system.entity.key.PaperUserId;
-import com.example.conference_management_system.role.RoleType;
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
@@ -10,13 +8,18 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.Table;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
+
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+
+import com.example.conference_management_system.entity.key.PaperUserId;
+import com.example.conference_management_system.role.RoleType;
 
 import java.time.LocalDate;
 

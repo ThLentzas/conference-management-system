@@ -14,9 +14,9 @@ public class ConferenceDTOMapper implements Function<Conference, ConferenceDTO> 
 
     @Override
     public ConferenceDTO apply(Conference conference) {
-        Set<UserDTO> users = conference.getUsers()
+        Set<UserDTO> users = conference.getConferenceUsers()
                 .stream()
-                .map(this.userDTOMapper)
+                .map(conferenceUser -> this.userDTOMapper.apply(conferenceUser.getUser()))
                 .collect(Collectors.toSet());
 
         return new ConferenceDTO(

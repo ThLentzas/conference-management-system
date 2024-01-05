@@ -56,9 +56,6 @@ class PaperIT extends AbstractIntegrationTest {
         System.setProperty("papers.directory", tempDirectory.toString());
     }
 
-    /*
-        We test the happy path with a pdf file.
-     */
     @Test
     void shouldCreatePaper() throws IOException {
         /*

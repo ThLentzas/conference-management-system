@@ -1,5 +1,6 @@
 package com.example.conference_management_system.paper;
 
+import com.example.conference_management_system.conference.ConferenceUserRepository;
 import com.example.conference_management_system.content.ContentRepository;
 import com.example.conference_management_system.utility.FileService;
 import com.example.conference_management_system.exception.UnsupportedFileException;
@@ -55,13 +56,14 @@ class PaperServiceTest {
     @Mock
     private PaperUserRepository paperUserRepository;
     @Mock
+    private ConferenceUserRepository conferenceUserRepository;
+    @Mock
     private ContentRepository contentRepository;
+
     @Mock
     private UserRepository userRepository;
     @Mock
     private ReviewRepository reviewRepository;
-    @Mock
-    private ConferenceRepository conferenceRepository;
     @Mock
     private RoleService roleService;
     @Mock
@@ -75,10 +77,10 @@ class PaperServiceTest {
         this.underTest = new PaperService(
                 paperRepository,
                 paperUserRepository,
+                conferenceUserRepository,
                 contentRepository,
                 userRepository,
                 reviewRepository,
-                conferenceRepository,
                 roleService,
                 fileService,
                 authService);

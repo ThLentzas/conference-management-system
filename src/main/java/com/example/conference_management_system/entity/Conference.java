@@ -1,8 +1,17 @@
 package com.example.conference_management_system.entity;
 
 import com.example.conference_management_system.conference.ConferenceState;
-import jakarta.persistence.*;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -22,9 +31,11 @@ import java.util.UUID;
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Conference {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @EqualsAndHashCode.Include
     private UUID id;
     @Column(nullable = false)
     @CreatedDate
@@ -36,13 +47,8 @@ public class Conference {
     @Column(nullable = false)
     @JdbcType(PostgreSQLEnumJdbcType.class)
     private ConferenceState state;
-    @ManyToMany
-    @JoinTable(
-            name = "conferences_users",
-            joinColumns = @JoinColumn(name = "conference_id"),
-            inverseJoinColumns = @JoinColumn(name = "user_id")
-    )
-    private Set<User> users;
+    @OneToMany(mappedBy = "conference")
+    private Set<ConferenceUser> conferenceUsers;
     @OneToMany(mappedBy = "conference")
     private Set<Paper> papers;
 
@@ -50,10 +56,9 @@ public class Conference {
         this.state = ConferenceState.CREATED;
     }
 
-    public Conference(String name, String description, Set<User> users) {
+    public Conference(String name, String description) {
         this.name = name;
         this.description = description;
-        this.users = users;
         this.state = ConferenceState.CREATED;
     }
 }

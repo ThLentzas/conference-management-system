@@ -39,6 +39,7 @@ class UserServiceTest {
         this.underTest = new UserService(userRepository);
     }
 
+    //registerUser()
     @Test
     void shouldThrowDuplicateResourceExceptionWhenRegisteringUserWithExistingUsername() {
         //Arrange
@@ -55,6 +56,7 @@ class UserServiceTest {
                 .hasMessage("The provided username already exists");
     }
 
+    //validateUser()
     @Test
     void shouldThrowIllegalArgumentExceptionWhenRegisteringUserWithUsernameThatExceedsMaxLength() {
         //Arrange
@@ -85,10 +87,7 @@ class UserServiceTest {
                 .hasMessage("Invalid full name. Full name must not exceed 50 characters");
     }
 
-    /*
-        We have to provide a password that follows the requirements otherwise the password validation would throw an
-        error since it happens before the full name one.
-     */
+
     @ParameterizedTest
     @ValueSource(strings = {"T3st", "T^st"})
     void shouldThrowIllegalArgumentExceptionForInvalidLastname(String fullName) {

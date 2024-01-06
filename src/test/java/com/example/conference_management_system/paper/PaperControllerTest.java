@@ -1,7 +1,10 @@
 package com.example.conference_management_system.paper;
 
 import com.example.conference_management_system.exception.DuplicateResourceException;
+import com.example.conference_management_system.exception.ServerErrorException;
+import com.example.conference_management_system.exception.StateConflictException;
 import com.example.conference_management_system.paper.dto.AuthorAdditionRequest;
+import com.example.conference_management_system.review.dto.ReviewCreateRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -596,6 +599,187 @@ class PaperControllerTest {
                 """;
 
         this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpectAll(
+                        status().isForbidden(),
+                        content().json(responseBody)
+                );
+
+        verifyNoInteractions(paperService);
+    }
+
+    //reviewPaper()
+    @Test
+    @WithMockUser(roles = "REVIEWER")
+    void shouldReturnHTTP201WhenPaperIsReviewedSuccessfully() throws Exception {
+        String requestBody = """
+                {
+                    "comment": "comment",
+                    "score": 5.9
+                }
+                """;
+
+        when(this.paperService.reviewPaper(any(Long.class), any(ReviewCreateRequest.class), any(Authentication.class)))
+                .thenReturn(1L);
+
+        this.mockMvc.perform(post(PAPER_PATH + "/{id}/reviews", 1L).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody))
+                .andExpectAll(
+                        status().isCreated(),
+                        header().string("Location", containsString(PAPER_PATH + "/" + 1L + "/reviews/" + 1L))
+                );
+    }
+
+    @Test
+    @WithMockUser(roles = "REVIEWER")
+    void shouldReturnHTTP404WhenPaperIsNotFoundOnReviewPaper() throws Exception {
+        String requestBody = """
+                {
+                    "comment": "comment",
+                    "score": 5.9
+                }
+                """;
+        String responseBody = """
+                {
+                    "message": "Paper was not found with id: 1"
+                }
+                """;
+
+        when(this.paperService.reviewPaper(any(Long.class), any(ReviewCreateRequest.class), any(Authentication.class)))
+                .thenThrow(new ResourceNotFoundException("Paper was not found with id: 1"));
+
+        this.mockMvc.perform(post(PAPER_PATH + "/{id}/reviews", 1L).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpectAll(
+                        status().isNotFound(),
+                        content().json(responseBody)
+                );
+    }
+
+    @Test
+    @WithMockUser(roles = "REVIEWER")
+    void shouldReturnHTTP500WhenPaperIsNotInSubmittedToAnyConferenceOnReviewPaper() throws Exception {
+        String requestBody = """
+                {
+                    "comment": "comment",
+                    "score": 5.9
+                }
+                """;
+        String responseBody = """
+                {
+                    "message": "The server encountered an internal error and was unable to complete your request. Please try again later"
+                }
+                """;
+
+        when(this.paperService.reviewPaper(any(Long.class), any(ReviewCreateRequest.class), any(Authentication.class)))
+                .thenThrow(new ServerErrorException("The server encountered an internal error and was unable to " +
+                        "complete your request. Please try again later"));
+
+        this.mockMvc.perform(post(PAPER_PATH + "/{id}/reviews", 1L).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpectAll(
+                        status().is5xxServerError(),
+                        content().json(responseBody)
+                );
+    }
+
+    @Test
+    @WithMockUser(roles = "REVIEWER")
+    void shouldReturnHTTP409WhenPaperIsNotInSubmittedStateOnReviewPaper() throws Exception {
+        String requestBody = """
+                {
+                    "comment": "comment",
+                    "score": 5.9
+                }
+                """;
+        String responseBody = """
+                {
+                    "message": "Paper is in state: CREATED and can not be reviewed"
+                }
+                """;
+
+        when(this.paperService.reviewPaper(any(Long.class), any(ReviewCreateRequest.class), any(Authentication.class)))
+                .thenThrow(new StateConflictException("Paper is in state: " + PaperState.CREATED + " and can not be " +
+                        "reviewed"));
+
+        this.mockMvc.perform(post(PAPER_PATH + "/{id}/reviews", 1L).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpectAll(
+                        status().isConflict(),
+                        content().json(responseBody)
+                );
+    }
+
+    @Test
+    void shouldReturnHTTP401WhenReviewPaperIsCalledByUnauthenticatedUser() throws Exception {
+        String requestBody = """
+                {
+                    "comment": "comment",
+                    "score": 5.9
+                }
+                """;
+        String responseBody = """
+                {
+                    "message": "Unauthorized"
+                }
+                """;
+
+        this.mockMvc.perform(post(PAPER_PATH + "/{id}/reviews", 1L).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpectAll(
+                        status().isUnauthorized(),
+                        content().json(responseBody)
+                );
+
+        verifyNoInteractions(paperService);
+    }
+
+    @Test
+    void shouldReturnHTTP403WhenReviewPaperIsCalledWithInvalidCsrf() throws Exception {
+        String requestBody = """
+                {
+                    "comment": "comment",
+                    "score": 5.9
+                }
+                """;
+        String responseBody = """
+                {
+                    "message": "Access denied"
+                }
+                """;
+
+        this.mockMvc.perform(post(PAPER_PATH + "/{id}/reviews", 1L).with(csrf().useInvalidToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpectAll(
+                        status().isForbidden(),
+                        content().json(responseBody)
+                );
+
+        verifyNoInteractions(paperService);
+    }
+
+    @Test
+    void shouldReturnHTTP403WhenReviewPaperIsCalledWithNoCsrf() throws Exception {
+        String requestBody = """
+                {
+                    "comment": "comment",
+                    "score": 5.9
+                }
+                """;
+        String responseBody = """
+                {
+                    "message": "Access denied"
+                }
+                """;
+
+        this.mockMvc.perform(post(PAPER_PATH + "/{id}/reviews", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(

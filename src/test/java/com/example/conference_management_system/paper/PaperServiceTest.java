@@ -1,17 +1,17 @@
 package com.example.conference_management_system.paper;
 
+import com.example.conference_management_system.conference.ConferenceState;
 import com.example.conference_management_system.conference.ConferenceUserRepository;
 import com.example.conference_management_system.content.ContentRepository;
+import com.example.conference_management_system.entity.Conference;
+import com.example.conference_management_system.exception.*;
+import com.example.conference_management_system.review.dto.ReviewCreateRequest;
 import com.example.conference_management_system.utility.FileService;
-import com.example.conference_management_system.exception.UnsupportedFileException;
-import com.example.conference_management_system.conference.ConferenceRepository;
 import com.example.conference_management_system.paper.dto.PaperCreateRequest;
 import com.example.conference_management_system.review.ReviewRepository;
 import com.example.conference_management_system.role.RoleService;
 import com.example.conference_management_system.user.UserRepository;
 import com.example.conference_management_system.auth.AuthService;
-import com.example.conference_management_system.exception.DuplicateResourceException;
-import com.example.conference_management_system.exception.ResourceNotFoundException;
 import com.example.conference_management_system.paper.dto.AuthorAdditionRequest;
 import com.example.conference_management_system.paper.dto.PaperUpdateRequest;
 import com.example.conference_management_system.role.RoleType;
@@ -48,6 +48,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.testcontainers.shaded.org.checkerframework.checker.units.qual.C;
 
 @ExtendWith(MockitoExtension.class)
 class PaperServiceTest {
@@ -83,7 +84,8 @@ class PaperServiceTest {
                 reviewRepository,
                 roleService,
                 fileService,
-                authService);
+                authService
+        );
     }
 
     //createPaper()
@@ -487,6 +489,99 @@ class PaperServiceTest {
         assertThatThrownBy(() -> this.underTest.addCoAuthor(1L, authorAdditionRequest, authentication))
                 .isInstanceOf(DuplicateResourceException.class)
                 .hasMessage("User with name: Full Name is already an author for the paper with id: 1");
+    }
+
+    //reviewPaper()
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenRequestingUserIsNotPaperReviewerOnReviewPaper() {
+        //Arrange
+        ReviewCreateRequest reviewCreateRequest = new ReviewCreateRequest("comment", 6.1);
+        Authentication authentication = getAuthentication();
+
+        when(this.paperUserRepository.existsByPaperIdUserIdAndRoleType(any(Long.class),
+                any(Long.class),
+                any(RoleType.class))).thenReturn(false);
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.reviewPaper(1L, reviewCreateRequest, authentication))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessage("Access denied");
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenPaperIsNotFoundOnReviewPaper() {
+        //Arrange
+        ReviewCreateRequest reviewCreateRequest = new ReviewCreateRequest("comment", 6.1);
+        Authentication authentication = getAuthentication();
+
+        when(this.paperUserRepository.existsByPaperIdUserIdAndRoleType(any(Long.class),
+                any(Long.class),
+                any(RoleType.class))).thenReturn(true);
+        when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.empty());
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.reviewPaper(1L, reviewCreateRequest, authentication))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Paper not found with id: 1");
+    }
+
+    @Test
+    void shouldThrowServerErrorExceptionWhenToBeReviewedPaperIsNotSubmittedToAnyConference() {
+        //Arrange
+        ReviewCreateRequest reviewCreateRequest = new ReviewCreateRequest("comment", 6.1);
+        Authentication authentication = getAuthentication();
+        Paper paper = getPaper();
+
+        when(this.paperUserRepository.existsByPaperIdUserIdAndRoleType(any(Long.class),
+                any(Long.class),
+                any(RoleType.class))).thenReturn(true);
+        when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.of(paper));
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.reviewPaper(1L, reviewCreateRequest, authentication))
+                .isInstanceOf(ServerErrorException.class)
+                .hasMessage("The server encountered an internal error and was unable to complete your request. " +
+                        "Please try again later");
+    }
+
+    @Test
+    void shouldThrowStateConflictExceptionWhenPaperConferenceIsNotInReviewState() {
+        //Arrange
+        ReviewCreateRequest reviewCreateRequest = new ReviewCreateRequest("comment", 6.1);
+        Authentication authentication = getAuthentication();
+        Paper paper = getPaper();
+        paper.setConference(new Conference());
+
+        when(this.paperUserRepository.existsByPaperIdUserIdAndRoleType(any(Long.class),
+                any(Long.class),
+                any(RoleType.class))).thenReturn(true);
+        when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.of(paper));
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.reviewPaper(1L, reviewCreateRequest, authentication))
+                .isInstanceOf(StateConflictException.class)
+                .hasMessage("Conference is in the state: " + ConferenceState.CREATED + " and papers can not be " +
+                        "reviewed");
+    }
+    @Test
+    void shouldThrowStateConflictExceptionWhenPaperIsNotInSubmittedStateOnReviewPaper() {
+        //Arrange
+        ReviewCreateRequest reviewCreateRequest = new ReviewCreateRequest("comment", 6.1);
+        Authentication authentication = getAuthentication();
+        Paper paper = getPaper();
+        Conference conference = new Conference();
+        conference.setState(ConferenceState.REVIEW);
+        paper.setConference(conference);
+
+        when(this.paperUserRepository.existsByPaperIdUserIdAndRoleType(any(Long.class),
+                any(Long.class),
+                any(RoleType.class))).thenReturn(true);
+        when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.of(paper));
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.reviewPaper(1L, reviewCreateRequest, authentication))
+                .isInstanceOf(StateConflictException.class)
+                .hasMessage("Paper is in state: " + PaperState.CREATED + " and can not be reviewed");
     }
 
     private Paper getPaper() {

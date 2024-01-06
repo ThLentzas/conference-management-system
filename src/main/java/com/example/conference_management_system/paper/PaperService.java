@@ -6,10 +6,7 @@ import com.example.conference_management_system.conference.ConferenceUserReposit
 import com.example.conference_management_system.content.ContentRepository;
 import com.example.conference_management_system.entity.*;
 import com.example.conference_management_system.entity.key.PaperUserId;
-import com.example.conference_management_system.exception.DuplicateResourceException;
-import com.example.conference_management_system.exception.ResourceNotFoundException;
-import com.example.conference_management_system.exception.StateConflictException;
-import com.example.conference_management_system.exception.UnsupportedFileException;
+import com.example.conference_management_system.exception.*;
 import com.example.conference_management_system.paper.dto.*;
 import com.example.conference_management_system.paper.mapper.AuthorPaperDTOMapper;
 import com.example.conference_management_system.paper.mapper.PCChairPaperDTOMapper;
@@ -296,19 +293,27 @@ public class PaperService {
             return new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
         });
 
+        if(paper.getConference() == null) {
+            logger.error("Review failed. Paper with id: {} is not submitted to any conference but was assigned a " +
+                    "reviewer", paperId);
+
+            throw new ServerErrorException("The server encountered an internal error and was unable to " +
+                    "complete your request. Please try again later");
+        }
+
         if (!paper.getConference().getState().equals(ConferenceState.REVIEW)) {
             logger.error("Review failed. Conference with id: {} is in state: {} and can not review papers",
                     paper.getConference().getId(), paper.getConference().getState());
 
             throw new StateConflictException("Conference is in the state: " + paper.getConference().getState()
-                    + " and can not review papers");
+                    + " and papers can not be reviewed");
         }
 
         if (!paper.getState().equals(PaperState.SUBMITTED)) {
             logger.error("Review failed. Paper with id: {} is not in SUBMITTED state in order to be reviewed. " +
                     "Paper state: {}", paperId, paper.getState());
 
-            throw new StateConflictException("Paper is in state: " + paper.getState() + " and can not assign reviewer");
+            throw new StateConflictException("Paper is in state: " + paper.getState() + " and can not be reviewed");
         }
 
         Review review = new Review(paper,
@@ -316,6 +321,8 @@ public class PaperService {
                 reviewCreateRequest.comment(),
                 reviewCreateRequest.score());
         this.reviewRepository.save(review);
+        paper.setState(PaperState.REVIEWED);
+        this.paperRepository.save(paper);
 
         return review.getId();
     }
@@ -362,9 +369,9 @@ public class PaperService {
         The users that can download the paper file are:
             1)Authors of the paper
             2)Reviewers of the paper
-            3)Pc chairs that the requested paper is submitted to their conference.
+            3)Pc chairs that the requested paper is submitted to their conference
 
-        Any other case would result in 404.
+        Any other case would result in 404
      */
     PaperFile downloadPaperFile(Long id, Authentication authentication) {
         Paper paper = this.paperRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException(

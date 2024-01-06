@@ -2,6 +2,7 @@ package com.example.conference_management_system.conference;
 
 import com.example.conference_management_system.auth.AuthService;
 import com.example.conference_management_system.conference.dto.ConferenceCreateRequest;
+import com.example.conference_management_system.conference.dto.ConferenceUpdateRequest;
 import com.example.conference_management_system.conference.dto.PaperSubmissionRequest;
 import com.example.conference_management_system.paper.PaperState;
 import com.example.conference_management_system.paper.PaperUserRepository;
@@ -10,6 +11,7 @@ import com.example.conference_management_system.exception.DuplicateResourceExcep
 import com.example.conference_management_system.exception.ResourceNotFoundException;
 import com.example.conference_management_system.exception.StateConflictException;
 import com.example.conference_management_system.paper.PaperRepository;
+import com.example.conference_management_system.review.ReviewDecision;
 import com.example.conference_management_system.review.ReviewRepository;
 import com.example.conference_management_system.role.RoleService;
 import com.example.conference_management_system.role.RoleType;
@@ -20,6 +22,8 @@ import com.example.conference_management_system.user.dto.ReviewerAssignmentReque
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
@@ -106,18 +110,129 @@ class ConferenceServiceTest {
                 .hasMessage("A conference with the provided name already exists");
     }
 
-    //startSubmission()
+    //updateConference()
     @Test
-    void shouldAccessDeniedExceptionWhenRequestingUserIsNotConferencePcChairOnStartSubmission() {
+    void shouldThrowAccessDeniedExceptionWhenRequestingUserIsNotConferencePcChairOnUpdateConference() {
         //Arrange
-        Conference conference = getConference();
+        ConferenceUpdateRequest conferenceUpdateRequest = new ConferenceUpdateRequest("name", "description");
         Authentication authentication = getAuthentication();
 
         when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
                 .thenReturn(false);
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.startSubmission(conference.getId(), authentication))
+        assertThatThrownBy(() -> this.underTest.updateConference(
+                UUID.randomUUID(),
+                conferenceUpdateRequest,
+                authentication)).isInstanceOf(AccessDeniedException.class)
+                .hasMessage("Access denied");
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenConferenceIsNotFoundOnUpdateConference() {
+        //Arrange
+        UUID id = UUID.randomUUID();
+        ConferenceUpdateRequest conferenceUpdateRequest = new ConferenceUpdateRequest("name", "description");
+        Authentication authentication = getAuthentication();
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
+                .thenReturn(true);
+        when(this.conferenceRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.updateConference(id, conferenceUpdateRequest, authentication))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Conference not found with id: " + id);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    void shouldThrowIllegalArgumentExceptionWhenNameIsNullOrEmptyAndDescriptionIsNull(String name) {
+        //Arrange
+        Conference conference = getConference();
+        ConferenceUpdateRequest conferenceUpdateRequest = new ConferenceUpdateRequest(name, null);
+        Authentication authentication = getAuthentication();
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
+                .thenReturn(true);
+        when(this.conferenceRepository.findById(any(UUID.class))).thenReturn(Optional.of(conference));
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.updateConference(conference.getId(),
+                conferenceUpdateRequest,
+                authentication)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("At least one valid property must be provided to update conference");
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    void shouldThrowIllegalArgumentExceptionWhenNameIsNullOrEmptyAndDescriptionIsBlank(String name) {
+        //Arrange
+        Conference conference = getConference();
+        ConferenceUpdateRequest conferenceUpdateRequest = new ConferenceUpdateRequest(name, "");
+        Authentication authentication = getAuthentication();
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
+                .thenReturn(true);
+        when(this.conferenceRepository.findById(any(UUID.class))).thenReturn(Optional.of(conference));
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.updateConference(conference.getId(),
+                conferenceUpdateRequest,
+                authentication)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("At least one valid property must be provided to update conference");
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    void shouldThrowIllegalArgumentExceptionWhenDescriptionIsNullOrEmptyAndNameIsNull(String description) {
+        //Arrange
+        Conference conference = getConference();
+        ConferenceUpdateRequest conferenceUpdateRequest = new ConferenceUpdateRequest(null, description);
+        Authentication authentication = getAuthentication();
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
+                .thenReturn(true);
+        when(this.conferenceRepository.findById(any(UUID.class))).thenReturn(Optional.of(conference));
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.updateConference(conference.getId(),
+                conferenceUpdateRequest,
+                authentication)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("At least one valid property must be provided to update conference");
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    void shouldThrowIllegalArgumentExceptionWhenDescriptionIsNullOrEmptyAndNameIsEmpty(String description) {
+        //Arrange
+        Conference conference = getConference();
+        ConferenceUpdateRequest conferenceUpdateRequest = new ConferenceUpdateRequest("", description);
+        Authentication authentication = getAuthentication();
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
+                .thenReturn(true);
+        when(this.conferenceRepository.findById(any(UUID.class))).thenReturn(Optional.of(conference));
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.updateConference(conference.getId(),
+                conferenceUpdateRequest,
+                authentication)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("At least one valid property must be provided to update conference");
+    }
+
+    //startSubmission()
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenRequestingUserIsNotConferencePcChairOnStartSubmission() {
+        //Arrange
+
+        Authentication authentication = getAuthentication();
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
+                .thenReturn(false);
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.startSubmission(UUID.randomUUID(), authentication))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessage("Access denied");
     }
@@ -160,14 +275,13 @@ class ConferenceServiceTest {
     @Test
     void shouldThrowAccessDeniedExceptionWhenRequestingUserIsNotConferencePcChairOnStartAssignment() {
         //Arrange
-        Conference conference = getConference();
         Authentication authentication = getAuthentication();
 
         when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
                 .thenReturn(false);
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.startAssignment(conference.getId(), authentication))
+        assertThatThrownBy(() -> this.underTest.startAssignment(UUID.randomUUID(), authentication))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessage("Access denied");
     }
@@ -210,14 +324,13 @@ class ConferenceServiceTest {
     @Test
     void shouldThrowAccessDeniedExceptionWhenRequestingUserIsNotConferencePcChairOnStartReview() {
         //Arrange
-        Conference conference = getConference();
         Authentication authentication = getAuthentication();
 
         when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
                 .thenReturn(false);
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.startReview(conference.getId(), authentication))
+        assertThatThrownBy(() -> this.underTest.startReview(UUID.randomUUID(), authentication))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessage("Access denied");
     }
@@ -256,11 +369,59 @@ class ConferenceServiceTest {
                         "reviews");
     }
 
+    //startDecision()
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenRequestingUserIsNotConferencePcChairOnStartDecision() {
+        //Arrange
+        Authentication authentication = getAuthentication();
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
+                .thenReturn(false);
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.startDecision(UUID.randomUUID(), authentication))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessage("Access denied");
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenConferenceIsNotFoundOnStartDecision() {
+        //Arrange
+        UUID id = UUID.randomUUID();
+        Authentication authentication = getAuthentication();
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
+                .thenReturn(true);
+        when(this.conferenceRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.startDecision(id, authentication))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Conference not found with id: " + id);
+    }
+
+    @Test
+    void shouldThrowStateConflictExceptionWhenConferenceIsNotInReviewStateOnStartDecision() {
+        //Arrange
+        Conference conference = getConference();
+        conference.setState(ConferenceState.ASSIGNMENT);
+        Authentication authentication = getAuthentication();
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
+                .thenReturn(true);
+        when(this.conferenceRepository.findById(any(UUID.class))).thenReturn(Optional.of(conference));
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.startDecision(conference.getId(), authentication))
+                .isInstanceOf(StateConflictException.class)
+                .hasMessage("Conference is in the state: " + conference.getState().name() + " and is not allowed to " +
+                        "start the approval or rejection of the submitted papers");
+    }
+
     //submitPaper()
     @Test
     void shouldThrowAccessDeniedExceptionWhenRequestingUserIsNotPaperAuthorOnSubmitPaper() {
         //Arrange
-        Conference conference = getConference();
         Authentication authentication = getAuthentication();
         PaperSubmissionRequest paperSubmissionRequest = new PaperSubmissionRequest(1L);
 
@@ -269,7 +430,7 @@ class ConferenceServiceTest {
                 any(RoleType.class))).thenReturn(false);
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.submitPaper(conference.getId(), paperSubmissionRequest, authentication))
+        assertThatThrownBy(() -> this.underTest.submitPaper(UUID.randomUUID(), paperSubmissionRequest, authentication))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessage("Access denied");
     }
@@ -357,7 +518,6 @@ class ConferenceServiceTest {
     @Test
     void shouldThrowAccessDeniedExceptionWhenRequestingUserIsNotConferencePcChairOnReviewerAssignment() {
         //Arrange
-        Conference conference = getConference();
         Authentication authentication = getAuthentication();
         ReviewerAssignmentRequest reviewerAssignmentRequest = new ReviewerAssignmentRequest(1L);
 
@@ -366,7 +526,7 @@ class ConferenceServiceTest {
 
         //Act & Assert
         assertThatThrownBy(() -> this.underTest.assignReviewer(
-                conference.getId(),
+                UUID.randomUUID(),
                 1L,
                 reviewerAssignmentRequest,
                 authentication)).isInstanceOf(AccessDeniedException.class)
@@ -627,6 +787,107 @@ class ConferenceServiceTest {
                 reviewerAssignmentRequest,
                 authentication)).isInstanceOf(StateConflictException.class)
                 .hasMessageContaining("Paper has the maximum number of reviewers");
+    }
+
+    //updatePaperApprovalStatus()
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenRequestingUserIsNotConferencePcChairOnUpdatePaperApprovalStatus() {
+        //Arrange
+        Authentication authentication = getAuthentication();
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
+                .thenReturn(false);
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.updatePaperApprovalStatus(
+                UUID.randomUUID(),
+                1L,
+                ReviewDecision.APPROVED,
+                authentication)).isInstanceOf(AccessDeniedException.class)
+                .hasMessage("Access denied");
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenConferenceIsNotFoundOnUpdatePaperApprovalStatus() {
+        Conference conference = getConference();
+        Authentication authentication = getAuthentication();
+
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
+                .thenReturn(true);
+        when(this.conferenceRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.updatePaperApprovalStatus(
+                conference.getId(),
+                1L,
+                ReviewDecision.APPROVED,
+                authentication)).isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Conference not found with id: " + conference.getId());
+    }
+
+    @Test
+    void shouldThrowStateConflictExceptionWhenConferenceIsNotInDecisionStateOnUpdatePaperApprovalStatus() {
+        //Arrange
+        Conference conference = getConference();
+        Authentication authentication = getAuthentication();
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
+                .thenReturn(true);
+        when(this.conferenceRepository.findById(any(UUID.class))).thenReturn(Optional.of(conference));
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.updatePaperApprovalStatus(
+                conference.getId(),
+                1L,
+                ReviewDecision.APPROVED,
+                authentication)).isInstanceOf(StateConflictException.class)
+                .hasMessage("Conference is in the state: " + conference.getState().name() + " and the decision to " +
+                        "either approve or reject the paper can not be made");
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenPaperIsNotFoundOnUpdatePaperApprovalStatus() {
+        //Arrange
+        Conference conference = getConference();
+        conference.setState(ConferenceState.DECISION);
+        Authentication authentication = getAuthentication();
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
+                .thenReturn(true);
+        when(this.conferenceRepository.findById(any(UUID.class))).thenReturn(Optional.of(conference));
+        when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.empty());
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.updatePaperApprovalStatus(
+                conference.getId(),
+                1L,
+                ReviewDecision.APPROVED,
+                authentication)).isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Paper not found with id: 1");
+    }
+
+    @Test
+    void shouldThrowStateConflictExceptionWhenPaperIsNotInReviewedStateOnUpdatePaperApprovalStatus() {
+        //Arrange
+        Conference conference = getConference();
+        conference.setState(ConferenceState.DECISION);
+        Paper paper = getPaper();
+        paper.setConference(conference);
+        Authentication authentication = getAuthentication();
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
+                .thenReturn(true);
+        when(this.conferenceRepository.findById(any(UUID.class))).thenReturn(Optional.of(conference));
+        when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.of(paper));
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.updatePaperApprovalStatus(
+                conference.getId(),
+                1L,
+                ReviewDecision.APPROVED,
+                authentication)).isInstanceOf(StateConflictException.class)
+                .hasMessage("Paper is in state: " + paper.getState() + " and can not get either approved or rejected");
     }
 
     private Authentication getAuthentication() {

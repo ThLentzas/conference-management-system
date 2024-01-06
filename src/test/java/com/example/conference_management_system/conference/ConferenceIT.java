@@ -168,4 +168,110 @@ class ConferenceIT extends AbstractIntegrationTest {
                         assertThat((List<String>) roles).contains(RoleType.ROLE_PC_CHAIR.name()));
 
     }
+
+    @Test
+    void shouldUpdateConference() {
+        /*
+            Getting the csrf token and the cookie of the current session for subsequent requests.
+
+            The CsrfToken is an interface, and we can not specify it as EntityExchangeResult<CsrfToken>. It would result
+            in a deserialization error. The default implementation of that interface is the DefaultCsrfToken, so we
+            specify that instead.
+         */
+        EntityExchangeResult<DefaultCsrfToken> result = this.webTestClient.get()
+                .uri(AUTH_PATH + "/csrf")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectHeader().exists(HttpHeaders.SET_COOKIE)
+                .expectBody(DefaultCsrfToken.class)
+                .returnResult();
+
+        String csrfToken = result.getResponseBody().getToken();
+        /*
+            The cookie in the response Header(SET_COOKIE) is in the form of
+            SESSION=OTU2ODllODktYjZhMS00YmUxLTk1NGEtMDk0ZTBmODg0Mzhm; Path=/; HttpOnly; SameSite=Lax
+
+            By splitting with ";" we get the first value which then we set it in the Cookie request header. The expected
+            value is SESSION= plus some value.
+         */
+        String cookieHeader = result.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        String sessionId = cookieHeader.split(";")[0];
+        String requestBody = """
+                {
+                    "username": "username",
+                    "password": "CyN549!@o2Cr",
+                    "fullName": "Full Name",
+                    "roleTypes": [
+                        "ROLE_PC_CHAIR"
+                    ]
+                }
+                """;
+
+        this.webTestClient.post()
+                .uri(AUTH_PATH + "/signup?_csrf={csrf}", csrfToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Cookie", sessionId)
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus().isCreated();
+
+        requestBody = """
+                {
+                    "name": "name",
+                    "description": "description"
+                }
+                """;
+
+        EntityExchangeResult<byte[]> response = this.webTestClient.post()
+                .uri(CONFERENCE_PATH + "?_csrf={csrf}", csrfToken)
+                .header("Cookie", sessionId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus().isCreated()
+                .expectHeader().exists("Location")
+                .expectBody()
+                .returnResult();
+
+        String location = response.getResponseHeaders().getFirst(HttpHeaders.LOCATION);
+        UUID conferenceId = UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
+
+        requestBody = """
+                {
+                    "name": "test name",
+                    "description": "test description"
+                }
+                """;
+
+        this.webTestClient.put()
+                .uri(CONFERENCE_PATH + "/{id}?_csrf={csrf}", conferenceId, csrfToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Cookie", sessionId)
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus().isNoContent();
+
+        /*
+            GET: /api/v1/conferences/{id}
+
+            Since the user that made the request has the role PC_CHAIR for the requested conference, they also have
+            access to the conference's state and papers
+         */
+        this.webTestClient.get()
+                .uri(CONFERENCE_PATH + "/{id}", conferenceId)
+                .accept(MediaType.APPLICATION_JSON)
+                .header("Cookie", sessionId)
+                .exchange()
+                .expectBody()
+                .jsonPath("$.id").isEqualTo(conferenceId.toString())
+                .jsonPath("$.name").isEqualTo("test name")
+                .jsonPath("$.description").isEqualTo("test description")
+                .jsonPath("$.conferenceState").isEqualTo("CREATED")
+                .jsonPath("$.users[0].username").isEqualTo("username")
+                .jsonPath("$.users[0].fullName").isEqualTo("Full Name")
+                .jsonPath("$.users[0].roles").value(roles ->
+                        assertThat((List<String>) roles).contains(
+                                RoleType.ROLE_PC_CHAIR.name()))
+                .jsonPath("$.papers").isEmpty();
+    }
 }

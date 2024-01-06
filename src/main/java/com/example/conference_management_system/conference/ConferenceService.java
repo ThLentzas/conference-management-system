@@ -3,6 +3,7 @@ package com.example.conference_management_system.conference;
 import com.example.conference_management_system.auth.AuthService;
 import com.example.conference_management_system.conference.dto.ConferenceCreateRequest;
 import com.example.conference_management_system.conference.dto.ConferenceDTO;
+import com.example.conference_management_system.conference.dto.ConferenceUpdateRequest;
 import com.example.conference_management_system.conference.dto.PaperSubmissionRequest;
 import com.example.conference_management_system.entity.*;
 import com.example.conference_management_system.entity.key.ConferenceUserId;
@@ -15,6 +16,7 @@ import com.example.conference_management_system.exception.StateConflictException
 import com.example.conference_management_system.paper.PaperRepository;
 import com.example.conference_management_system.paper.PaperState;
 import com.example.conference_management_system.paper.PaperUserRepository;
+import com.example.conference_management_system.review.ReviewDecision;
 import com.example.conference_management_system.review.ReviewRepository;
 import com.example.conference_management_system.role.RoleService;
 import com.example.conference_management_system.role.RoleType;
@@ -95,6 +97,45 @@ public class ConferenceService {
         this.conferenceUserRepository.save(conferenceUser);
 
         return conference.getId();
+    }
+
+    void updateConference(UUID conferenceId,
+                          ConferenceUpdateRequest conferenceUpdateRequest,
+                          Authentication authentication) {
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+        if (!this.conferenceUserRepository.existsByConferenceIdAndUserId(conferenceId, securityUser.user().getId())) {
+            logger.error("Conference update failed. User with id: {} is not PC_CHAIR at conference with id: {}",
+                    securityUser.user().getId(), conferenceId);
+
+            throw new AccessDeniedException(ACCESS_DENIED_MSG);
+        }
+
+        this.conferenceRepository.findById(conferenceId).ifPresentOrElse(conference -> {
+            boolean updated = false;
+
+            if (conferenceUpdateRequest.name() != null && !conferenceUpdateRequest.name().isBlank()) {
+                validateName(conferenceUpdateRequest.name());
+                conference.setName(conferenceUpdateRequest.name());
+                updated = true;
+            }
+
+            if (conferenceUpdateRequest.description() != null && !conferenceUpdateRequest.description().isBlank()) {
+                conference.setDescription(conferenceUpdateRequest.description());
+                updated = true;
+            }
+
+            if (!updated) {
+                logger.error("Conference update failed. Invalid values");
+
+                throw new IllegalArgumentException("At least one valid property must be provided to update conference");
+            }
+
+            this.conferenceRepository.save(conference);
+        }, () -> {
+            logger.error("Conference update failed. Conference not found with id: {}", conferenceId);
+
+            throw new ResourceNotFoundException(CONFERENCE_NOT_FOUND_MSG + conferenceId);
+        });
     }
 
     void startSubmission(UUID conferenceId, Authentication authentication) {
@@ -178,6 +219,35 @@ public class ConferenceService {
         }
 
         conference.setState(ConferenceState.REVIEW);
+        this.conferenceRepository.save(conference);
+        logger.info("Conference with id: {} transitioned to state: {}", conferenceId, conference.getState());
+    }
+
+    void startDecision(UUID conferenceId, Authentication authentication) {
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+
+        if (!this.conferenceUserRepository.existsByConferenceIdAndUserId(conferenceId, securityUser.user().getId())) {
+            logger.error("Start decision failed. User with id: {} is not PC_CHAIR at conference with id: {}",
+                    securityUser.user().getId(), conferenceId);
+
+            throw new AccessDeniedException(ACCESS_DENIED_MSG);
+        }
+
+        Conference conference = this.conferenceRepository.findById(conferenceId).orElseThrow(() -> {
+            logger.error("Start decision failed. Conference not found with id: {}", conferenceId);
+
+            return new ResourceNotFoundException(CONFERENCE_NOT_FOUND_MSG + conferenceId);
+        });
+
+        if (!conference.getState().equals(ConferenceState.REVIEW)) {
+            logger.error("Start decision failed. Conference with id: {} is in state: {} and can not transition to: "
+                    + "{}", conferenceId, conference.getState(), ConferenceState.DECISION);
+
+            throw new StateConflictException("Conference is in the state: " + conference.getState().name()
+                    + " and is not allowed to start the approval or rejection of the submitted papers");
+        }
+
+        conference.setState(ConferenceState.DECISION);
         this.conferenceRepository.save(conference);
         logger.info("Conference with id: {} transitioned to state: {}", conferenceId, conference.getState());
     }
@@ -322,7 +392,7 @@ public class ConferenceService {
                 throw new StateConflictException("User already assigned as reviewer");
             }
 
-            if(reviewers.size() == 2) {
+            if (reviewers.size() == 2) {
                 logger.error("Reviewer assignment failed. Paper with id: {} has the maximum numbers of reviewers",
                         paperId);
 
@@ -341,6 +411,68 @@ public class ConferenceService {
 
             throw new ResourceNotFoundException("User not found to be assigned as reviewer with id: " +
                     reviewerAssignmentRequest.userId());
+        });
+    }
+
+    void updatePaperApprovalStatus(UUID conferenceId,
+                                   Long paperId,
+                                   ReviewDecision decision,
+                                   Authentication authentication) {
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+
+        if (!this.conferenceUserRepository.existsByConferenceIdAndUserId(conferenceId, securityUser.user().getId())) {
+            logger.error("Paper approval status failed. User with id: {} is not PC_CHAIR at conference with id: {}",
+                    securityUser.user().getId(), conferenceId);
+
+            throw new AccessDeniedException(ACCESS_DENIED_MSG);
+        }
+
+        Conference conference = this.conferenceRepository.findById(conferenceId).orElseThrow(() -> {
+            logger.error("Paper approval status failed. Conference not found with id: {}", conferenceId);
+
+            return new ResourceNotFoundException(CONFERENCE_NOT_FOUND_MSG + conferenceId);
+        });
+
+        if (!conference.getState().equals(ConferenceState.DECISION)) {
+            logger.error("Paper approval status failed. Conference with id: {} is in state: {} and the a decision to " +
+                            "either approve or reject the paper with id: {} can not be made", conferenceId,
+                    conference.getState(), paperId);
+
+            throw new StateConflictException("Conference is in the state: " + conference.getState().name()
+                    + " and the decision to either approve or reject the paper can not be made");
+        }
+
+        this.paperRepository.findById(paperId).ifPresentOrElse(paper -> {
+            if (paper.getConference() == null || !paper.getConference().getId().equals(conferenceId)) {
+                logger.error("Paper approval status failed. Paper with id: {} is not submitted to conference " +
+                        "with id: {}", paper, conferenceId);
+
+                throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
+            }
+
+            if (!paper.getState().equals(PaperState.REVIEWED)) {
+                logger.error("Paper approval status failed. Paper with id: {} is not in REVIEWED state in order to " +
+                        "either get approved or rejected. Paper state: {}", paperId, paper.getState());
+
+                throw new StateConflictException("Paper is in state: " + paper.getState() + " and can not get " +
+                        "either approved or rejected");
+            }
+
+            if (decision.equals(ReviewDecision.APPROVED)) {
+                paper.setState(PaperState.APPROVED);
+                logger.info("Paper approval status successful. Paper with id: {} change state to: {}",
+                        paperId, PaperState.APPROVED);
+            } else {
+                paper.setState(PaperState.REJECTED);
+                logger.info("Paper approval status failed. Paper with id: {} change state to: {}",
+                        paperId, PaperState.REJECTED);
+            }
+
+            this.paperRepository.save(paper);
+        }, () -> {
+            logger.error("Paper approval status failed. Paper not found with id: {}", paperId);
+
+            throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
         });
     }
 

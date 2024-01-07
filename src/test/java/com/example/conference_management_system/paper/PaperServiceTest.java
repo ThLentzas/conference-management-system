@@ -584,6 +584,56 @@ class PaperServiceTest {
                 .hasMessage("Paper is in state: " + PaperState.CREATED + " and can not be reviewed");
     }
 
+    //withdrawPaper()
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenRequestingUserIsNotPaperAuthorOnWithdrawPaper() {
+        //Arrange
+        Authentication authentication = getAuthentication();
+
+        when(this.paperUserRepository.existsByPaperIdUserIdAndRoleType(any(Long.class),
+                any(Long.class),
+                any(RoleType.class))).thenReturn(false);
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.withdrawPaper(1L, authentication))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessage("Access denied");
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenPaperIsNotFoundOnWithdrawPaper() {
+        //Arrange
+        Authentication authentication = getAuthentication();
+
+        when(this.paperUserRepository.existsByPaperIdUserIdAndRoleType(any(Long.class),
+                any(Long.class),
+                any(RoleType.class))).thenReturn(true);
+        when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.empty());
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.withdrawPaper(1L, authentication))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Paper not found with id: 1");
+    }
+
+    @Test
+    void shouldThrowStateConflictExceptionWhenToBeWithdrawnPaperIsNotSubmittedToAnyConference() {
+        //Arrange
+        Authentication authentication = getAuthentication();
+        Paper paper = getPaper();
+
+        when(this.paperUserRepository.existsByPaperIdUserIdAndRoleType(any(Long.class),
+                any(Long.class),
+                any(RoleType.class))).thenReturn(true);
+        when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.of(paper));
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.withdrawPaper(1L, authentication))
+                .isInstanceOf(StateConflictException.class)
+                .hasMessage("You can not withdraw a paper that has not been submitted to any conference");
+    }
+
+
     private Paper getPaper() {
         Paper paper = new Paper();
         paper.setId(1L);

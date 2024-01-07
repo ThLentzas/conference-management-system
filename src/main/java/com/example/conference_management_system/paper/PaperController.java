@@ -114,6 +114,14 @@ class PaperController {
         return new ResponseEntity<>(headers, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasRole('AUTHOR')")
+    @PutMapping("/{id}/withdraw")
+    ResponseEntity<Void> withdrawPaper(@PathVariable("id") Long id, Authentication authentication) {
+        this.paperService.withdrawPaper(id, authentication);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
     @GetMapping("/{id}")
     ResponseEntity<PaperDTO> findPaperById(@PathVariable("id") Long id,
                                            @CurrentSecurityContext SecurityContext securityContext) {

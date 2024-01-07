@@ -24,7 +24,7 @@ public class ReviewerPaperDTOMapper implements Function<Paper, ReviewerPaperDTO>
                     review.getReviewedDate(),
                     review.getComment(),
                     review.getScore(),
-                    review.getUser().getUsername()
+                    review.getUser().getFullName()
             );
             reviews.add(reviewDTO);
         }

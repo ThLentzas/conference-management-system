@@ -23,7 +23,7 @@ public class PCChairPaperDTOMapper implements Function<Paper, PCChairPaperDTO> {
                     review.getReviewedDate(),
                     review.getComment(),
                     review.getScore(),
-                    review.getUser().getUsername()
+                    review.getUser().getFullName()
             );
             reviews.add(reviewDTO);
         }

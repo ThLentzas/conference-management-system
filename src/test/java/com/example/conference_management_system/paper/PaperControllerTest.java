@@ -790,6 +790,107 @@ class PaperControllerTest {
         verifyNoInteractions(paperService);
     }
 
+    @Test
+    @WithMockUser(roles = "AUTHOR")
+    void shouldReturnHTTP204WhenPaperIsWithdrawnSuccessfully() throws Exception {
+        doNothing().when(this.paperService).withdrawPaper(any(Long.class), any(Authentication.class));
+
+        this.mockMvc.perform(put(PAPER_PATH + "/{id}/withdraw", 1L).with(csrf()))
+                .andExpect(status().isNoContent());
+
+        verify(this.paperService, times(1)).withdrawPaper(any(Long.class), any(Authentication.class));
+    }
+
+    @Test
+    @WithMockUser(roles = "AUTHOR")
+    void shouldReturnHTTP404WhenPaperIsNotFoundOnWithdrawPaper() throws Exception {
+        String responseBody = """
+                {
+                    "message": "Paper not found with id: 1"
+                }
+                """;
+
+        doThrow(new ResourceNotFoundException("Paper not found with id: 1")).when(this.paperService).withdrawPaper(
+                any(Long.class), any(Authentication.class));
+
+        this.mockMvc.perform(put(PAPER_PATH + "/{id}/withdraw", 1L).with(csrf()))
+                .andExpectAll(
+                        status().isNotFound(),
+                        content().json(responseBody)
+                );
+    }
+
+    @Test
+    @WithMockUser(roles = "AUTHOR")
+    void shouldReturnHTTP409WhenPaperIsNotSubmittedToAnyConferenceOnWithdrawPaper() throws Exception {
+        String responseBody = """
+                {
+                    "message": "You can not withdraw a paper that has not been submitted to any conference"
+                }
+                """;
+
+        doThrow(new StateConflictException("You can not withdraw a paper that has not been submitted to any " +
+                "conference")).when(this.paperService).withdrawPaper(any(Long.class), any(Authentication.class));
+
+        this.mockMvc.perform(put(PAPER_PATH + "/{id}/withdraw", 1L).with(csrf()))
+                .andExpectAll(
+                        status().isConflict(),
+                        content().json(responseBody)
+                );
+    }
+
+    @Test
+    void shouldReturnHTTP401WhenWithdrawPaperIsCalledByUnauthenticatedUser() throws Exception {
+        String responseBody = """
+                {
+                    "message": "Unauthorized"
+                }
+                """;
+
+        this.mockMvc.perform(put(PAPER_PATH + "/{id}/withdraw", 1L).with(csrf()))
+                .andExpectAll(
+                        status().isUnauthorized(),
+                        content().json(responseBody)
+                );
+
+        verifyNoInteractions(paperService);
+    }
+
+    @Test
+    void shouldReturnHTTP403WhenWithdrawPaperIsCalledWithInvalidCsrf() throws Exception {
+        String responseBody = """
+                {
+                    "message": "Access denied"
+                }
+                """;
+
+        this.mockMvc.perform(put(PAPER_PATH + "/{id}/withdraw", 1L).with(csrf().useInvalidToken()))
+                .andExpectAll(
+                        status().isForbidden(),
+                        content().json(responseBody)
+                );
+
+        verifyNoInteractions(paperService);
+    }
+
+    @Test
+    void shouldReturnHTTP403WhenWithdrawPaperIsCalledWithNoCsrf() throws Exception {
+        String responseBody = """
+                {
+                    "message": "Access denied"
+                }
+                """;
+
+        this.mockMvc.perform(put(PAPER_PATH + "/{id}/withdraw", 1L))
+                .andExpectAll(
+                        status().isForbidden(),
+                        content().json(responseBody)
+                );
+
+        verifyNoInteractions(paperService);
+    }
+
+
     private byte[] getFileContent() throws IOException {
         Path pdfPath = ResourceUtils.getFile("classpath:files/test.pdf").toPath();
 

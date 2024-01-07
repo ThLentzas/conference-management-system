@@ -5,7 +5,13 @@ import com.example.conference_management_system.conference.dto.ConferenceCreateR
 import com.example.conference_management_system.conference.dto.ConferenceDTO;
 import com.example.conference_management_system.conference.dto.ConferenceUpdateRequest;
 import com.example.conference_management_system.conference.dto.PaperSubmissionRequest;
-import com.example.conference_management_system.entity.*;
+import com.example.conference_management_system.entity.Conference;
+import com.example.conference_management_system.entity.ConferenceUser;
+import com.example.conference_management_system.entity.Paper;
+import com.example.conference_management_system.entity.PaperUser;
+import com.example.conference_management_system.entity.Review;
+import com.example.conference_management_system.entity.Role;
+import com.example.conference_management_system.entity.User;
 import com.example.conference_management_system.entity.key.ConferenceUserId;
 import com.example.conference_management_system.conference.mapper.ConferenceDTOMapper;
 import com.example.conference_management_system.conference.mapper.PCChairConferenceDTOMapper;
@@ -31,9 +37,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
@@ -250,6 +254,55 @@ public class ConferenceService {
         conference.setState(ConferenceState.DECISION);
         this.conferenceRepository.save(conference);
         logger.info("Conference with id: {} transitioned to state: {}", conferenceId, conference.getState());
+    }
+
+    /*
+        When the conference reaches its FINAL state the papers that were APPROVED get ACCEPTED and the ones that got
+        REJECTEd they return to CREATED state and no longer tied to the conference, so they can be submitted to a
+        different conference
+     */
+    void startFinal(UUID conferenceId, Authentication authentication) {
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+
+        if (!this.conferenceUserRepository.existsByConferenceIdAndUserId(conferenceId, securityUser.user().getId())) {
+            logger.error("Start final submission failed. User with id: {} is not PC_CHAIR at conference with id: {}",
+                    securityUser.user().getId(), conferenceId);
+
+            throw new AccessDeniedException(ACCESS_DENIED_MSG);
+        }
+
+        Conference conference = this.conferenceRepository.findById(conferenceId).orElseThrow(() -> {
+            logger.error("Start final submission failed. Conference not found with id: {}", conferenceId);
+
+            return new ResourceNotFoundException(CONFERENCE_NOT_FOUND_MSG + conferenceId);
+        });
+
+        if (!conference.getState().equals(ConferenceState.DECISION)) {
+            logger.error("Start final submission failed. Conference with id: {} is in state: {} and can not " +
+                    "transition to: {}", conferenceId, conference.getState(), ConferenceState.FINAL);
+
+            throw new StateConflictException("Conference is in the state: " + conference.getState().name()
+                    + " and the approved papers final submission is not allowed");
+        }
+
+        conference.setState(ConferenceState.FINAL);
+        this.conferenceRepository.save(conference);
+        logger.info("Conference with id: {} transitioned to state: {}", conferenceId, conference.getState());
+
+        conference.getPapers().stream()
+                .filter(paper -> paper.getState().equals(PaperState.APPROVED))
+                .forEach(paper -> {
+                    paper.setState(PaperState.ACCEPTED);
+                    this.paperRepository.save(paper);
+                });
+
+        conference.getPapers().stream()
+                .filter(paper -> paper.getState().equals(PaperState.REJECTED))
+                .forEach(paper -> {
+                    paper.setState(PaperState.CREATED);
+                    paper.setConference(null);
+                    this.paperRepository.save(paper);
+                });
     }
 
     void submitPaper(UUID id, PaperSubmissionRequest paperSubmissionRequest, Authentication authentication) {
@@ -499,6 +552,39 @@ public class ConferenceService {
         }
 
         return this.conferenceDTOMapper.apply(conference);
+    }
+
+    List<ConferenceDTO> findConferences(String name, String description, SecurityContext securityContext) {
+        List<Conference> conferences;
+        List<ConferenceDTO> conferencesDTO = new ArrayList<>();
+
+        if (name.isBlank() && description.isBlank()) {
+            conferences = this.conferenceRepository.findAll();
+        } else if (description.isBlank()) {
+            conferences = this.conferenceRepository.findConferencesByNameContainingIgnoringCase(name);
+        } else if (name.isBlank()) {
+            conferences = this.conferenceRepository.findConferencesByDescriptionContainingIgnoringCase(description);
+        } else {
+            //Hibernate returns an immutable list, and we would get UnsupportedOperationException when calling addAll()
+            conferences = new ArrayList<>(this.conferenceRepository.findConferencesByNameContainingIgnoringCase(name));
+            conferences.addAll(this.conferenceRepository.findConferencesByDescriptionContainingIgnoringCase(
+                    description));
+
+            Set<Conference> conferenceSet = new HashSet<>(conferences);
+            conferences = new ArrayList<>(conferenceSet);
+        }
+
+        for (Conference conference : conferences) {
+            if (securityContext.getAuthentication().getPrincipal() instanceof SecurityUser securityUser
+                    && this.conferenceUserRepository.existsByConferenceIdAndUserId(conference.getId(),
+                    securityUser.user().getId())) {
+                conferencesDTO.add(this.pcChairConferenceDTOMapper.apply(conference));
+            } else {
+                conferencesDTO.add(this.conferenceDTOMapper.apply(conference));
+            }
+        }
+
+        return conferencesDTO;
     }
 
     private void validateName(String name) {

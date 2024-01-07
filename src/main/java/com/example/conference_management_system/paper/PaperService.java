@@ -79,11 +79,11 @@ public class PaperService {
 
         SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
         /*
-            If the current user is assigned a new role, for example ROLE_AUTHOR it means that now they have access
+            If the current user is assigned a new role, in our case ROLE_AUTHOR it means that now they have access
             to AUTHOR endpoints in subsequent requests but making one request to an AUTHOR access endpoint would
             result in 403 despite them having the role. The reason is the token/cookie was generated upon the user
             logging in/signing up and had the roles at that time. In order to give the user access to new endpoints
-            either we invalidate the session or we revoke the jwt and we force to log in again.
+            either we invalidate the session or we revoke the jwt and we force them to log in again.
         */
         if (this.roleService.assignRole(securityUser.user(), RoleType.ROLE_AUTHOR)) {
             logger.warn("Current user was assigned a new role. Invalidating current session");
@@ -327,6 +327,35 @@ public class PaperService {
         return review.getId();
     }
 
+    void withdrawPaper(Long paperId, Authentication authentication) {
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+        if (!this.paperUserRepository.existsByPaperIdUserIdAndRoleType(paperId, securityUser.user().getId(),
+                RoleType.ROLE_AUTHOR)) {
+            logger.error("Paper withdrawal failed. User with id: {} is not author for paper with id: {}",
+                    securityUser.user().getId(), paperId);
+
+            throw new AccessDeniedException(ACCESS_DENIED_MSG);
+        }
+
+        this.paperRepository.findById(paperId).ifPresentOrElse(paper ->  {
+            if(paper.getConference() == null) {
+                logger.error("Review failed. Paper with id: {} is not submitted to any conference but was assigned a " +
+                        "reviewer", paperId);
+
+                throw new StateConflictException("You can not withdraw a paper that has not been submitted to any " +
+                        "conference");
+            }
+
+            paper.setState(PaperState.CREATED);
+            paper.setConference(null);
+            this.paperRepository.save(paper);
+        }, () -> {
+            logger.error("Paper withdrawal failed. Paper not found with id: {}", paperId);
+
+            throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
+        });
+    }
+
     /*
         Based on the role of the user that makes the GET request for a paper, we would have to return different
         properties of the PaperDTO.
@@ -340,19 +369,16 @@ public class PaperService {
 
         if (context.getAuthentication().getPrincipal() instanceof SecurityUser securityUser) {
             if (paper.getConference() != null && this.conferenceUserRepository.existsByConferenceIdAndUserId(
-                    paper.getConference().getId(),
-                    securityUser.user().getId())) {
+                    paper.getConference().getId(), securityUser.user().getId())) {
                 return this.pcChairPaperDTOMapper.apply(paper);
             }
 
-            if (this.paperUserRepository.existsByPaperIdUserIdAndRoleType(paperId,
-                    securityUser.user().getId(),
+            if (this.paperUserRepository.existsByPaperIdUserIdAndRoleType(paperId, securityUser.user().getId(),
                     RoleType.ROLE_AUTHOR)) {
                 return this.authorPaperDTOMapper.apply(paper);
             }
 
-            if (this.paperUserRepository.existsByPaperIdUserIdAndRoleType(paperId,
-                    securityUser.user().getId(),
+            if (this.paperUserRepository.existsByPaperIdUserIdAndRoleType(paperId, securityUser.user().getId(),
                     RoleType.ROLE_REVIEWER)) {
                 return this.reviewerPaperDTOMapper.apply(paper);
             }

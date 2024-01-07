@@ -658,9 +658,9 @@ class ConferenceControllerTest {
     @Test
     @WithMockUser(roles = "PC_CHAIR")
     void shouldReturnHTTP409WhenConferenceIsNotInReviewStateOnStartDecision() throws Exception {
-        doThrow(new StateConflictException("Conference is in the state: " + ConferenceState.CREATED.name() + " and is " +
-                "not allowed to start the approval or rejection of the submitted papers")).when(this.conferenceService)
-                .startDecision(any(UUID.class), any(Authentication.class));
+        doThrow(new StateConflictException("Conference is in the state: " + ConferenceState.CREATED.name() + " and" +
+                " is not allowed to start the approval or rejection of the submitted papers")).when(
+                this.conferenceService).startDecision(any(UUID.class), any(Authentication.class));
 
         String responseBody = String.format("""
                 {
@@ -719,6 +719,108 @@ class ConferenceControllerTest {
                 """;
 
         this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/decision", UUID.randomUUID()))
+                .andExpectAll(
+                        status().isForbidden(),
+                        content().json(responseBody)
+                );
+
+        verifyNoInteractions(this.conferenceService);
+    }
+
+    @Test
+    @WithMockUser(roles = "PC_CHAIR")
+    void shouldReturnHTTP204WhenConferenceStartFinalSubmissionIsSuccessful() throws Exception {
+        doNothing().when(this.conferenceService).startFinal(any(UUID.class), any(Authentication.class));
+
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/final-submission", UUID.randomUUID()).with(csrf()))
+                .andExpect(status().isNoContent());
+
+        verify(this.conferenceService, times(1)).startFinal(any(UUID.class), any(Authentication.class));
+    }
+
+    @Test
+    @WithMockUser(roles = "PC_CHAIR")
+    void shouldReturnHTTP404WhenConferenceIsNotFoundOnStartFinalSubmission() throws Exception {
+        UUID id = UUID.randomUUID();
+        String responseBody = String.format("""
+                {
+                    "message": "Conference not found with id: %s"
+                }
+                """, id);
+        doThrow(new ResourceNotFoundException("Conference not found with id: " + id)).when(this.conferenceService)
+                .startFinal(any(UUID.class), any(Authentication.class));
+
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/final-submission", id).with(csrf()))
+                .andExpectAll(
+                        status().isNotFound(),
+                        content().json(responseBody)
+                );
+    }
+
+    @Test
+    @WithMockUser(roles = "PC_CHAIR")
+    void shouldReturnHTTP409WhenConferenceIsNotInReviewStateOnStartFinalSubmission() throws Exception {
+        doThrow(new StateConflictException("Conference is in the state: " + ConferenceState.CREATED.name() + " and" +
+                " the approved papers final submission is not allowed")).when(this.conferenceService)
+                .startFinal(any(UUID.class), any(Authentication.class));
+
+        String responseBody = String.format("""
+                {
+                    "message": "Conference is in the state: %s and the approved papers final submission is not allowed"
+                }
+                """, ConferenceState.CREATED.name());
+
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/final-submission", UUID.randomUUID()).with(csrf()))
+                .andExpectAll(
+                        status().isConflict(),
+                        content().json(responseBody)
+                );
+    }
+
+    @Test
+    void shouldReturnHTTP401WhenStartFinalSubmissionIsCalledByUnauthenticatedUser() throws Exception {
+        String responseBody = """
+                {
+                    "message": "Unauthorized"
+                }
+                """;
+
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/final-submission", UUID.randomUUID()).with(csrf()))
+                .andExpectAll(
+                        status().isUnauthorized(),
+                        content().json(responseBody)
+                );
+
+        verifyNoInteractions(this.conferenceService);
+    }
+
+    @Test
+    void shouldReturnHTTP403WhenStartFinalSubmissionIsCalledWithInvalidCsrfToken() throws Exception {
+        String responseBody = """
+                {
+                    "message": "Access denied"
+                }
+                """;
+
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/final-submission", UUID.randomUUID())
+                        .with(csrf().useInvalidToken()))
+                .andExpectAll(
+                        status().isForbidden(),
+                        content().json(responseBody)
+                );
+
+        verifyNoInteractions(this.conferenceService);
+    }
+
+    @Test
+    void shouldReturnHTTP403WhenStartFinalSubmissionIsCalledWithNoCsrfToken() throws Exception {
+        String responseBody = """
+                {
+                    "message": "Access denied"
+                }
+                """;
+
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/final-submission", UUID.randomUUID()))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody)
@@ -1059,6 +1161,7 @@ class ConferenceControllerTest {
                 );
     }
 
+    //updatePaperApprovalStatus()
     @Test
     @WithMockUser(roles = "PC_CHAIR")
     void shouldReturnHTTP204WhenPaperApprovalStatusIsUpdatedSuccessfully() throws Exception {

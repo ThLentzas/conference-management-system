@@ -10,13 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.CurrentSecurityContext;
 import org.springframework.security.core.context.SecurityContext;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.example.conference_management_system.conference.dto.ConferenceDTO;
@@ -26,6 +20,7 @@ import com.example.conference_management_system.conference.dto.PaperSubmissionRe
 import com.example.conference_management_system.user.dto.ReviewerAssignmentRequest;
 
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -109,6 +104,14 @@ class ConferenceController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
+    @PreAuthorize("hasRole('PC_CHAIR')")
+    @PutMapping("/{id}/final")
+    ResponseEntity<Void> startFinalSubmission(@PathVariable("id") UUID id, Authentication authentication) {
+        this.conferenceService.startFinal(id, authentication);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
     /*
         It's a POST request with the id of the paper in the request body since it creates the relationship between
         paper and conference and POST should always have body
@@ -158,5 +161,19 @@ class ConferenceController {
         ConferenceDTO conferenceDTO = this.conferenceService.findConferenceById(id, securityContext);
 
         return new ResponseEntity<>(conferenceDTO, HttpStatus.OK);
+    }
+
+    /*
+        Similar logic with findConferenceById() to return conferences based on the user that made the request
+     */
+    @GetMapping
+    ResponseEntity<List<ConferenceDTO>> findConferences(
+            @RequestParam(value = "name", defaultValue = "", required = false) String name,
+            @RequestParam(value = "description", defaultValue = "", required = false) String description,
+            @CurrentSecurityContext SecurityContext securityContext) {
+        logger.info("Find conferences request. name: {} description: {}", name, description);
+        List<ConferenceDTO> conferences = this.conferenceService.findConferences(name, description, securityContext);
+
+        return new ResponseEntity<>(conferences, HttpStatus.OK);
     }
 }

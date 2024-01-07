@@ -2,6 +2,7 @@ package com.example.conference_management_system.conference;
 
 import com.example.conference_management_system.auth.AuthService;
 import com.example.conference_management_system.conference.dto.ConferenceCreateRequest;
+import com.example.conference_management_system.conference.dto.ConferenceDTO;
 import com.example.conference_management_system.conference.dto.ConferenceUpdateRequest;
 import com.example.conference_management_system.conference.dto.PaperSubmissionRequest;
 import com.example.conference_management_system.paper.PaperState;
@@ -29,14 +30,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.testcontainers.shaded.org.apache.commons.lang3.RandomStringUtils;
 
 import java.util.*;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -416,6 +419,55 @@ class ConferenceServiceTest {
                 .isInstanceOf(StateConflictException.class)
                 .hasMessage("Conference is in the state: " + conference.getState().name() + " and is not allowed to " +
                         "start the approval or rejection of the submitted papers");
+    }
+
+    //startFinal()
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenRequestingUserIsNotConferencePcChairOnFinal() {
+        //Arrange
+        Authentication authentication = getAuthentication();
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
+                .thenReturn(false);
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.startFinal(UUID.randomUUID(), authentication))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessage("Access denied");
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenConferenceIsNotFoundOnStartFinal() {
+        //Arrange
+        UUID id = UUID.randomUUID();
+        Authentication authentication = getAuthentication();
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
+                .thenReturn(true);
+        when(this.conferenceRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.startFinal(id, authentication))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Conference not found with id: " + id);
+    }
+
+    @Test
+    void shouldThrowStateConflictExceptionWhenConferenceIsNotInDecisionStateOnStartFinal() {
+        //Arrange
+        Conference conference = getConference();
+        conference.setState(ConferenceState.ASSIGNMENT);
+        Authentication authentication = getAuthentication();
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
+                .thenReturn(true);
+        when(this.conferenceRepository.findById(any(UUID.class))).thenReturn(Optional.of(conference));
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.startFinal(conference.getId(), authentication))
+                .isInstanceOf(StateConflictException.class)
+                .hasMessage("Conference is in the state: " + conference.getState().name() + " and the approved " +
+                        "papers final submission is not allowed");
     }
 
     //submitPaper()
@@ -890,6 +942,119 @@ class ConferenceServiceTest {
                 .hasMessage("Paper is in state: " + paper.getState() + " and can not get either approved or rejected");
     }
 
+    //findConferenceById()
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenConferenceIsNotFoundOnFindConferenceById() {
+        //Arrange
+        UUID id = UUID.randomUUID();
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(getAuthentication());
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.findConferenceById(id, context))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Conference not found with id: " + id);
+    }
+
+    //findConferences()
+    @Test
+    void shouldFindAllConferencesWhenBothNameAndDescriptionAreBlank() {
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(getAuthentication());
+        Conference conference = getConference();
+        ConferenceDTO expected = new ConferenceDTO(
+                conference.getId(),
+                conference.getName(),
+                conference.getDescription(),
+                new HashSet<>()
+        );
+
+        when(this.conferenceRepository.findAll()).thenReturn(List.of(conference));
+
+        List<ConferenceDTO> actual = this.underTest.findConferences("", "  ", context);
+
+        assertThat(actual).hasSize(1);
+        assertThat(actual.get(0)).isEqualTo(expected);
+
+        verify(this.conferenceRepository, never()).findConferencesByNameContainingIgnoringCase(any(String.class));
+        verify(this.conferenceRepository, never()).findConferencesByDescriptionContainingIgnoringCase(
+                any(String.class));
+    }
+
+    @Test
+    void shouldFindConferencesByNameWhenDescriptionIsBlank() {
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(getAuthentication());
+        Conference conference = getConference();
+        ConferenceDTO expected = new ConferenceDTO(
+                conference.getId(),
+                conference.getName(),
+                conference.getDescription(),
+                new HashSet<>()
+        );
+
+        when(this.conferenceRepository.findConferencesByNameContainingIgnoringCase(any(String.class)))
+                .thenReturn(List.of(conference));
+
+        List<ConferenceDTO> actual = this.underTest.findConferences("conference", "  ", context);
+
+        assertThat(actual).hasSize(1);
+        assertThat(actual.get(0)).isEqualTo(expected);
+
+        verify(this.conferenceRepository, never()).findAll();
+        verify(this.conferenceRepository, never()).findConferencesByDescriptionContainingIgnoringCase(
+                any(String.class));
+    }
+
+    @Test
+    void shouldFindConferencesByDescriptionWhenNameIsBlank() {
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(getAuthentication());
+        Conference conference = getConference();
+        ConferenceDTO expected = new ConferenceDTO(
+                conference.getId(),
+                conference.getName(),
+                conference.getDescription(),
+                new HashSet<>()
+        );
+
+        when(this.conferenceRepository.findConferencesByDescriptionContainingIgnoringCase(any(String.class)))
+                .thenReturn(List.of(conference));
+
+        List<ConferenceDTO> actual = this.underTest.findConferences("", "description", context);
+
+        assertThat(actual).hasSize(1);
+        assertThat(actual.get(0)).isEqualTo(expected);
+
+        verify(this.conferenceRepository, never()).findAll();
+        verify(this.conferenceRepository, never()).findConferencesByNameContainingIgnoringCase(any(String.class));
+    }
+
+    @Test
+    void shouldFindConferencesByNameAndDescriptionWhenBothNameAndDescriptionAreNotBlank() {
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(getAuthentication());
+        Conference conference = getConference();
+        ConferenceDTO expected = new ConferenceDTO(
+                conference.getId(),
+                conference.getName(),
+                conference.getDescription(),
+                new HashSet<>()
+        );
+
+        when(this.conferenceRepository.findConferencesByNameContainingIgnoringCase(any(String.class)))
+                .thenReturn(List.of(conference));
+        when(this.conferenceRepository.findConferencesByDescriptionContainingIgnoringCase(any(String.class)))
+                .thenReturn(List.of(conference));
+
+        List<ConferenceDTO> actual = this.underTest.findConferences("conference", "description", context);
+
+        assertThat(actual).hasSize(1);
+        assertThat(actual.get(0)).isEqualTo(expected);
+
+        verify(this.conferenceRepository, never()).findAll();
+    }
+
     private Authentication getAuthentication() {
         User user = new User("username", "password", "Full Name", Set.of(new Role(RoleType.ROLE_AUTHOR)));
         user.setId(1L);
@@ -903,6 +1068,7 @@ class ConferenceServiceTest {
         conference.setId(UUID.randomUUID());
         conference.setName("conference");
         conference.setDescription("description");
+        conference.setConferenceUsers(new HashSet<>());
 
         return conference;
     }

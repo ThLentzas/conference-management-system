@@ -10,14 +10,23 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.CurrentSecurityContext;
 import org.springframework.security.core.context.SecurityContext;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import com.example.conference_management_system.conference.dto.ConferenceDTO;
-import com.example.conference_management_system.conference.dto.ConferenceCreateRequest;
-import com.example.conference_management_system.conference.dto.ConferenceUpdateRequest;
-import com.example.conference_management_system.conference.dto.PaperSubmissionRequest;
 import com.example.conference_management_system.user.dto.ReviewerAssignmentRequest;
+import com.example.conference_management_system.conference.dto.ConferenceCreateRequest;
+import com.example.conference_management_system.conference.dto.ConferenceDTO;
+import com.example.conference_management_system.conference.dto.ConferenceUpdateRequest;
+import com.example.conference_management_system.conference.dto.PCChairAdditionRequest;
+import com.example.conference_management_system.conference.dto.PaperSubmissionRequest;
 
 import java.net.URI;
 import java.util.List;
@@ -106,8 +115,18 @@ class ConferenceController {
 
     @PreAuthorize("hasRole('PC_CHAIR')")
     @PutMapping("/{id}/final")
-    ResponseEntity<Void> startFinalSubmission(@PathVariable("id") UUID id, Authentication authentication) {
+    ResponseEntity<Void> startFinal(@PathVariable("id") UUID id, Authentication authentication) {
         this.conferenceService.startFinal(id, authentication);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @PreAuthorize("hasRole('PC_CHAIR')")
+    @PutMapping("/{id}/pc-chair")
+    ResponseEntity<Void> addPCChair(@PathVariable("id") UUID id,
+                                    @Valid @RequestBody PCChairAdditionRequest pcChairAdditionRequest,
+                                    Authentication authentication) {
+        this.conferenceService.addPCChair(id, pcChairAdditionRequest, authentication);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -176,4 +195,18 @@ class ConferenceController {
 
         return new ResponseEntity<>(conferences, HttpStatus.OK);
     }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('PC_CHAIR')")
+    ResponseEntity<Void> deleteConferenceById(@PathVariable("id") UUID id, Authentication authentication) {
+        this.conferenceService.deleteConferenceById(id, authentication);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    /*
+        There is no GET endpoint to find the papers of a given conference because only the PC_CHAIR of the given
+        conference have access to them and can see them when they request to see the conference, they part of the
+        response
+    */
 }

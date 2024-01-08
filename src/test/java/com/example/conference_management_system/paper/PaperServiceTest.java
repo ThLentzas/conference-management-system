@@ -4,7 +4,11 @@ import com.example.conference_management_system.conference.ConferenceState;
 import com.example.conference_management_system.conference.ConferenceUserRepository;
 import com.example.conference_management_system.content.ContentRepository;
 import com.example.conference_management_system.entity.Conference;
-import com.example.conference_management_system.exception.*;
+import com.example.conference_management_system.exception.DuplicateResourceException;
+import com.example.conference_management_system.exception.ResourceNotFoundException;
+import com.example.conference_management_system.exception.ServerErrorException;
+import com.example.conference_management_system.exception.StateConflictException;
+import com.example.conference_management_system.exception.UnsupportedFileException;
 import com.example.conference_management_system.review.dto.ReviewCreateRequest;
 import com.example.conference_management_system.utility.FileService;
 import com.example.conference_management_system.paper.dto.PaperCreateRequest;
@@ -44,8 +48,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.testcontainers.shaded.org.checkerframework.checker.units.qual.C;
@@ -448,19 +451,24 @@ class PaperServiceTest {
                 .hasMessage("User not found with id: 1 to be added as co-author");
     }
 
+    /*
+        this.paperUserRepository.existsByPaperIdUserIdAndRoleType() gets invoked twice. First to see if the user that
+        made the request is AUTHOR of the paper and second to see if the to be added as co-author is already AUTHOR
+        of the paper, so we have to stab twice
+     */
     @Test
     void shouldThrowDuplicateResourceExceptionWhenCoAuthorIsAlreadyAdded() {
         //Arrange
         AuthorAdditionRequest authorAdditionRequest = new AuthorAdditionRequest(2L);
         Authentication authentication = getAuthentication();
-
         User coAuthor = new User("test", "test", "Test User", Set.of(new Role(RoleType.ROLE_AUTHOR)));
         coAuthor.setId(2L);
         Paper paper = getPaper();
 
         when(this.paperUserRepository.existsByPaperIdUserIdAndRoleType(any(Long.class),
-                any(Long.class),
-                any(RoleType.class))).thenReturn(true);
+                any(Long.class), any(RoleType.class)))
+                .thenReturn(true)
+                .thenReturn(true);
         when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.of(paper));
         when(this.userRepository.findById(any(Long.class))).thenReturn(Optional.of(coAuthor));
 
@@ -469,8 +477,16 @@ class PaperServiceTest {
                 .isInstanceOf(DuplicateResourceException.class)
                 .hasMessage("User with name: Test User is already an author for the paper with id: 1");
 
+        verify(this.paperUserRepository, times(2)).existsByPaperIdUserIdAndRoleType(any(Long.class),
+                any(Long.class), any(RoleType.class));
     }
 
+
+    /*
+        this.paperUserRepository.existsByPaperIdUserIdAndRoleType() gets invoked twice. First to see if the user that
+        made the request is AUTHOR of the paper and second to see if the to be added as co-author is already AUTHOR
+        of the paper, so we have to stab twice
+     */
     @Test
     void shouldThrowDuplicateResourceExceptionWhenRequestingUserAddsSelfAsCoAuthor() {
         //Arrange
@@ -481,7 +497,9 @@ class PaperServiceTest {
 
         when(this.paperUserRepository.existsByPaperIdUserIdAndRoleType(any(Long.class),
                 any(Long.class),
-                any(RoleType.class))).thenReturn(true);
+                any(RoleType.class)))
+                .thenReturn(true)
+                .thenReturn(false);
         when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.of(paper));
         when(this.userRepository.findById(any(Long.class))).thenReturn(Optional.of(securityUser.user()));
 
@@ -489,6 +507,9 @@ class PaperServiceTest {
         assertThatThrownBy(() -> this.underTest.addCoAuthor(1L, authorAdditionRequest, authentication))
                 .isInstanceOf(DuplicateResourceException.class)
                 .hasMessage("User with name: Full Name is already an author for the paper with id: 1");
+
+        verify(this.paperUserRepository, times(2)).existsByPaperIdUserIdAndRoleType(any(Long.class),
+                any(Long.class), any(RoleType.class));
     }
 
     //reviewPaper()

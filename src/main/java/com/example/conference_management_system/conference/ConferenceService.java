@@ -1,10 +1,7 @@
 package com.example.conference_management_system.conference;
 
 import com.example.conference_management_system.auth.AuthService;
-import com.example.conference_management_system.conference.dto.ConferenceCreateRequest;
-import com.example.conference_management_system.conference.dto.ConferenceDTO;
-import com.example.conference_management_system.conference.dto.ConferenceUpdateRequest;
-import com.example.conference_management_system.conference.dto.PaperSubmissionRequest;
+import com.example.conference_management_system.conference.dto.*;
 import com.example.conference_management_system.entity.Conference;
 import com.example.conference_management_system.entity.ConferenceUser;
 import com.example.conference_management_system.entity.Paper;
@@ -305,6 +302,59 @@ public class ConferenceService {
                 });
     }
 
+    void addPCChair(UUID conferenceId, PCChairAdditionRequest pcChairAdditionRequest, Authentication authentication) {
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+        if (!this.conferenceUserRepository.existsByConferenceIdAndUserId(conferenceId, securityUser.user().getId())) {
+            logger.error("PCChair addition failed. User with id: {} is not PC_CHAIR at conference with id: {}",
+                    securityUser.user().getId(), conferenceId);
+
+            throw new AccessDeniedException(ACCESS_DENIED_MSG);
+        }
+
+
+        Conference conference = this.conferenceRepository.findById(conferenceId).orElseThrow(() -> {
+            logger.error("Submit paper failed. Conference not found with id: {}", conferenceId);
+
+            return new ResourceNotFoundException(CONFERENCE_NOT_FOUND_MSG + conferenceId);
+        });
+
+
+        this.userRepository.findById(pcChairAdditionRequest.userId()).ifPresentOrElse(user -> {
+            /*
+                If the user to be added as a PcChair already is or the user who made the request, requested themselves
+                to be added as PcChair.
+            */
+            if (this.conferenceUserRepository.existsByConferenceIdAndUserId(conferenceId, user.getId())
+                    || user.getId().equals(securityUser.user().getId())) {
+                logger.error("PCChair addition failed. User with id: {} is already PCChair for conference with id: {}",
+                        user.getId(), conferenceId);
+
+                throw new DuplicateResourceException("User with id: " + user.getId() + " is already PCChair for " +
+                        "conference with id: " + conferenceId);
+            }
+
+            if (this.roleService.assignRole(user, RoleType.ROLE_PC_CHAIR)) {
+                logger.info("PCChair addition request: User with id: {} was assigned a new role type: {}",
+                        user.getId(), RoleType.ROLE_PC_CHAIR);
+                this.userRepository.save(user);
+            }
+
+            ConferenceUser conferenceUser = new ConferenceUser(
+                    new ConferenceUserId(conference.getId(), user.getId()),
+                    conference,
+                    user
+            );
+            conference.getConferenceUsers().add(conferenceUser);
+            this.conferenceUserRepository.save(conferenceUser);
+            this.conferenceRepository.save(conference);
+        }, () -> {
+            logger.error("PCChair addition failed. User with id: {} was not found to be added as PCChair",
+                    pcChairAdditionRequest.userId());
+            throw new ResourceNotFoundException("User not found with id: " + pcChairAdditionRequest.userId() +
+                    " to be added as PCChair");
+        });
+    }
+
     void submitPaper(UUID id, PaperSubmissionRequest paperSubmissionRequest, Authentication authentication) {
         SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
 
@@ -367,7 +417,6 @@ public class ConferenceService {
                         ReviewerAssignmentRequest reviewerAssignmentRequest,
                         Authentication authentication) {
         SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
-
         if (!this.conferenceUserRepository.existsByConferenceIdAndUserId(conferenceId, securityUser.user().getId())) {
             logger.error("Reviewer assignment failed. User with id: {} is not PC_CHAIR at conference with id: {}",
                     securityUser.user().getId(), conferenceId);
@@ -472,7 +521,6 @@ public class ConferenceService {
                                    ReviewDecision decision,
                                    Authentication authentication) {
         SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
-
         if (!this.conferenceUserRepository.existsByConferenceIdAndUserId(conferenceId, securityUser.user().getId())) {
             logger.error("Paper approval status failed. User with id: {} is not PC_CHAIR at conference with id: {}",
                     securityUser.user().getId(), conferenceId);
@@ -546,17 +594,12 @@ public class ConferenceService {
             papers and their reviews. Any other case, unauthenticated user, REVIEWER, AUTHOR, PC_CHAIR but not in the
             requested conference all see the same info
          */
-        if (securityContext.getAuthentication().getPrincipal() instanceof SecurityUser securityUser
-                && this.conferenceUserRepository.existsByConferenceIdAndUserId(id, securityUser.user().getId())) {
-            return this.pcChairConferenceDTOMapper.apply(conference);
-        }
 
-        return this.conferenceDTOMapper.apply(conference);
+        return getConferenceDTOByRole(conference, securityContext);
     }
 
     List<ConferenceDTO> findConferences(String name, String description, SecurityContext securityContext) {
         List<Conference> conferences;
-        List<ConferenceDTO> conferencesDTO = new ArrayList<>();
 
         if (name.isBlank() && description.isBlank()) {
             conferences = this.conferenceRepository.findAll();
@@ -574,17 +617,52 @@ public class ConferenceService {
             conferences = new ArrayList<>(conferenceSet);
         }
 
-        for (Conference conference : conferences) {
-            if (securityContext.getAuthentication().getPrincipal() instanceof SecurityUser securityUser
-                    && this.conferenceUserRepository.existsByConferenceIdAndUserId(conference.getId(),
-                    securityUser.user().getId())) {
-                conferencesDTO.add(this.pcChairConferenceDTOMapper.apply(conference));
-            } else {
-                conferencesDTO.add(this.conferenceDTOMapper.apply(conference));
-            }
+        return conferences.stream()
+                .map(conference -> getConferenceDTOByRole(conference, securityContext))
+                .toList();
+    }
+
+    void deleteConferenceById(UUID conferenceId, Authentication authentication) {
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+        if (!this.conferenceUserRepository.existsByConferenceIdAndUserId(conferenceId, securityUser.user().getId())) {
+            logger.error("Delete conference failed. User with id: {} is not PC_CHAIR at conference with id: {}",
+                    securityUser.user().getId(), conferenceId);
+
+            throw new AccessDeniedException(ACCESS_DENIED_MSG);
         }
 
-        return conferencesDTO;
+        this.conferenceRepository.findById(conferenceId).ifPresentOrElse(conference -> {
+            if(!conference.getState().equals(ConferenceState.CREATED)) {
+                logger.error("Delete conference failed. Conference with id: {} is not in {} state. " +
+                        "Conference state: {}", conferenceId, ConferenceState.CREATED, conference.getState());
+
+                throw new StateConflictException("Conference is in the state: " + conference.getState()
+                        + " and can not be deleted");
+            }
+
+            /*
+                For a paper to be submitted to a conference the conference has to be in SUBMISSION state and since a
+                conference can be deleted only in CREATED state we do not have to update the conferenceId in the paper
+                table to null
+             */
+            this.conferenceRepository.deleteById(conferenceId);
+            logger.info("Conference was delete with id: {}", conferenceId);
+        }, () -> {
+            logger.error("Delete conference failed. Conference not found with id: {}", conferenceId);
+
+            throw  new ResourceNotFoundException(CONFERENCE_NOT_FOUND_MSG + conferenceId);
+        });
+
+    }
+
+    private ConferenceDTO getConferenceDTOByRole(Conference conference, SecurityContext securityContext) {
+        if (securityContext.getAuthentication().getPrincipal() instanceof SecurityUser securityUser
+                && this.conferenceUserRepository.existsByConferenceIdAndUserId(conference.getId(),
+                securityUser.user().getId())) {
+            return this.pcChairConferenceDTOMapper.apply(conference);
+        }
+
+        return this.conferenceDTOMapper.apply(conference);
     }
 
     private void validateName(String name) {

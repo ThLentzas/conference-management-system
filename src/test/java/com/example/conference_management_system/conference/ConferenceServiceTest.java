@@ -1,10 +1,7 @@
 package com.example.conference_management_system.conference;
 
 import com.example.conference_management_system.auth.AuthService;
-import com.example.conference_management_system.conference.dto.ConferenceCreateRequest;
-import com.example.conference_management_system.conference.dto.ConferenceDTO;
-import com.example.conference_management_system.conference.dto.ConferenceUpdateRequest;
-import com.example.conference_management_system.conference.dto.PaperSubmissionRequest;
+import com.example.conference_management_system.conference.dto.*;
 import com.example.conference_management_system.paper.PaperState;
 import com.example.conference_management_system.paper.PaperUserRepository;
 import com.example.conference_management_system.entity.*;
@@ -18,8 +15,8 @@ import com.example.conference_management_system.role.RoleService;
 import com.example.conference_management_system.role.RoleType;
 import com.example.conference_management_system.security.SecurityUser;
 import com.example.conference_management_system.user.UserRepository;
-
 import com.example.conference_management_system.user.dto.ReviewerAssignmentRequest;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,12 +31,23 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.testcontainers.shaded.org.apache.commons.lang3.RandomStringUtils;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -423,7 +431,7 @@ class ConferenceServiceTest {
 
     //startFinal()
     @Test
-    void shouldThrowAccessDeniedExceptionWhenRequestingUserIsNotConferencePcChairOnFinal() {
+    void shouldThrowAccessDeniedExceptionWhenRequestingUserIsNotConferencePcChairOnStartFinal() {
         //Arrange
         Authentication authentication = getAuthentication();
 
@@ -468,6 +476,113 @@ class ConferenceServiceTest {
                 .isInstanceOf(StateConflictException.class)
                 .hasMessage("Conference is in the state: " + conference.getState().name() + " and the approved " +
                         "papers final submission is not allowed");
+    }
+
+    //addPCChair()
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenRequestingUserIsNotConferencePCChairOnAddPCChair() {
+        //Arrange
+        Authentication authentication = getAuthentication();
+        PCChairAdditionRequest pcChairAdditionRequest = new PCChairAdditionRequest(1L);
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
+                .thenReturn(false);
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.addPCChair(UUID.randomUUID(), pcChairAdditionRequest, authentication))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessage("Access denied");
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenConferenceIsNotFoundOnAddPCChair() {
+        //Arrange
+        UUID id = UUID.randomUUID();
+        Authentication authentication = getAuthentication();
+        PCChairAdditionRequest pcChairAdditionRequest = new PCChairAdditionRequest(1L);
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
+                .thenReturn(true);
+        when(this.conferenceRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.addPCChair(id, pcChairAdditionRequest, authentication))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Conference not found with id: " + id);
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenPCChairToAddIsNotFound() {
+        //Arrange
+        Authentication authentication = getAuthentication();
+        Conference conference = getConference();
+        PCChairAdditionRequest pcChairAdditionRequest = new PCChairAdditionRequest(1L);
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
+                .thenReturn(true);
+        when(this.conferenceRepository.findById(any(UUID.class))).thenReturn(Optional.of(conference));
+        when(this.userRepository.findById(any(Long.class))).thenReturn(Optional.empty());
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.addPCChair(conference.getId(), pcChairAdditionRequest, authentication))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("User not found with id: " + 1L + " to be added as PCChair");
+    }
+
+    /*
+        this.conferenceUserRepository.existsByConferenceIdAndUserId() gets invoked twice. First to see if the user that
+        made the request is PCChair of the conference and second to see if the to be added as PCChair is already PCChair
+        of the conference, so we have to stab twice
+    */
+    @Test
+    void shouldThrowDuplicateResourceExceptionWhenPCChairIsAlreadyAdded() {
+        //Arrange
+        Authentication authentication = getAuthentication();
+        Conference conference = getConference();
+        PCChairAdditionRequest pcChairAdditionRequest = new PCChairAdditionRequest(1L);
+        User user = getUser(2L, Set.of(new Role(RoleType.ROLE_PC_CHAIR)));
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
+                .thenReturn(true)
+                .thenReturn(true);
+        when(this.conferenceRepository.findById(any(UUID.class))).thenReturn(Optional.of(conference));
+        when(this.userRepository.findById(any(Long.class))).thenReturn(Optional.of(user));
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.addPCChair(conference.getId(), pcChairAdditionRequest, authentication))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessage("User with id: " + user.getId() + " is already PCChair for conference with id: " +
+                        conference.getId());
+
+        verify(this.conferenceUserRepository, times(2)).existsByConferenceIdAndUserId(any(UUID.class), any(Long.class));
+    }
+
+    /*
+        this.conferenceUserRepository.existsByConferenceIdAndUserId() gets invoked twice. First to see if the user that
+        made the request is PCChair of the conference and second to see if the to be added as PCChair is already PCChair
+        of the conference, so we have to stab twice
+     */
+    @Test
+    void shouldThrowDuplicateResourceExceptionWhenRequestingUserAddsSelfAsPCChair() {
+        //Arrange
+        Authentication authentication = getAuthentication();
+        Conference conference = getConference();
+        PCChairAdditionRequest pcChairAdditionRequest = new PCChairAdditionRequest(1L);
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(any(UUID.class), any(Long.class)))
+                .thenReturn(true)
+                .thenReturn(false);
+        when(this.conferenceRepository.findById(any(UUID.class))).thenReturn(Optional.of(conference));
+        when(this.userRepository.findById(any(Long.class))).thenReturn(Optional.of(securityUser.user()));
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.addPCChair(conference.getId(), pcChairAdditionRequest, authentication))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessage("User with id: " + securityUser.user().getId() + " is already PCChair for conference " +
+                        "with id: " + conference.getId());
+
+        verify(this.conferenceUserRepository, times(2)).existsByConferenceIdAndUserId(any(UUID.class), any(Long.class));
     }
 
     //submitPaper()
@@ -1053,6 +1168,70 @@ class ConferenceServiceTest {
         assertThat(actual.get(0)).isEqualTo(expected);
 
         verify(this.conferenceRepository, never()).findAll();
+    }
+
+    @Test
+    void shouldReturnAnEmptyListWhenNoConferencesAreFoundOnFindConferences() {
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(getAuthentication());
+
+        when(this.conferenceRepository.findAll()).thenReturn(Collections.emptyList());
+
+        List<ConferenceDTO> actual = this.underTest.findConferences("", "", context);
+
+        assertThat(actual).isEmpty();
+
+        verify(this.conferenceRepository, never()).findConferencesByNameContainingIgnoringCase(any(String.class));
+        verify(this.conferenceRepository, never()).findConferencesByDescriptionContainingIgnoringCase(
+                any(String.class));
+    }
+
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenRequestingUserIsNotConferencePCChairOnDeleteConference() {
+        //Arrange
+        UUID id = UUID.randomUUID();
+        Authentication authentication = getAuthentication();
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(eq(id), any(Long.class)))
+                .thenReturn(false);
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.deleteConferenceById(id, authentication))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessage("Access denied");
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenConferenceIsNotFoundOnDeleteConference() {
+        //Arrange
+        Conference conference = getConference();
+        Authentication authentication = getAuthentication();
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId((eq(conference.getId())), any(Long.class)))
+                .thenReturn(true);
+        when(this.conferenceRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.deleteConferenceById(conference.getId(), authentication))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Conference not found with id: " + conference.getId());
+    }
+
+    @Test
+    void shouldThrowStateConflictExceptionWhenConferenceIsNotInCreatedStateOnDeleteConference() {
+        //Arrange
+        Conference conference = getConference();
+        conference.setState(ConferenceState.DECISION);
+        Authentication authentication = getAuthentication();
+
+        when(this.conferenceUserRepository.existsByConferenceIdAndUserId(eq(conference.getId()), any(Long.class)))
+                .thenReturn(true);
+        when(this.conferenceRepository.findById(any(UUID.class))).thenReturn(Optional.of(conference));
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.deleteConferenceById(conference.getId(), authentication))
+                .isInstanceOf(StateConflictException.class)
+                .hasMessage("Conference is in the state: " + conference.getState() + " and can not be deleted");
     }
 
     private Authentication getAuthentication() {

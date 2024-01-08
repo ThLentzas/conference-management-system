@@ -221,8 +221,8 @@ class PaperIT extends AbstractIntegrationTest {
                 /*
                     Since the object is serialized we check for String values and not RoleType that's the user property.
                  */
-                .jsonPath("$.roles").value(roles ->
-                        assertThat((List<String>) roles).contains(RoleType.ROLE_AUTHOR.name()));
+                .jsonPath("$.roleTypes").value(roleTypes -> assertThat((List<String>) roleTypes).contains(
+                        RoleType.ROLE_AUTHOR.name()));
     }
 
     @Test
@@ -479,9 +479,9 @@ class PaperIT extends AbstractIntegrationTest {
 
         requestBody = String.format("""
                 {
-                    "id": %d
+                    "userId": %d
                 }
-                """, Long.valueOf(user.id()));
+                """, user.id());
 
         this.webTestClient.put()
                 .uri(PAPER_PATH + "/{id}/author?_csrf={csrf}", paperId, csrfToken)
@@ -501,8 +501,8 @@ class PaperIT extends AbstractIntegrationTest {
                 /*
                     Since the object is serialized we check for String values and not RoleType that's the user property.
                  */
-                .jsonPath("$.roles").value(roles ->
-                        assertThat((List<String>) roles).contains(RoleType.ROLE_AUTHOR.name()));
+                .jsonPath("$.roleTypes").value(roleTypes -> assertThat((List<String>) roleTypes).contains(
+                        RoleType.ROLE_AUTHOR.name()));
     }
 
     private byte[] getFileContent(String fileName) throws IOException {

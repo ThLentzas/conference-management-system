@@ -11,6 +11,9 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 
 import com.example.conference_management_system.AbstractIntegrationTest;
 import com.example.conference_management_system.role.RoleType;
+import com.example.conference_management_system.conference.dto.ConferenceDTO;
+import com.example.conference_management_system.conference.dto.PCChairConferenceDTO;
+import com.example.conference_management_system.user.dto.UserDTO;
 
 import java.util.List;
 import java.util.UUID;
@@ -144,10 +147,8 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .jsonPath("$.conferenceState").isEqualTo("CREATED")
                 .jsonPath("$.users[0].username").isEqualTo("username")
                 .jsonPath("$.users[0].fullName").isEqualTo("Full Name")
-                .jsonPath("$.users[0].roles").value(roles ->
-                        assertThat((List<String>) roles).contains(
-                                RoleType.ROLE_PC_CHAIR.name(),
-                                RoleType.ROLE_AUTHOR.name()))
+                .jsonPath("$.users[0].roleTypes").value(roleTypes -> assertThat((List<String>) roleTypes).contains(
+                        RoleType.ROLE_PC_CHAIR.name(), RoleType.ROLE_AUTHOR.name()))
                 .jsonPath("$.papers").isEmpty();
 
         /*
@@ -164,8 +165,8 @@ class ConferenceIT extends AbstractIntegrationTest {
                 /*
                     Since the object is serialized we check for String values and not RoleType that's the user property.
                  */
-                .jsonPath("$.roles").value(roles ->
-                        assertThat((List<String>) roles).contains(RoleType.ROLE_PC_CHAIR.name()));
+                .jsonPath("$.roleTypes").value(roleTypes -> assertThat((List<String>) roleTypes).contains(
+                        RoleType.ROLE_PC_CHAIR.name()));
 
     }
 
@@ -245,8 +246,8 @@ class ConferenceIT extends AbstractIntegrationTest {
 
         this.webTestClient.put()
                 .uri(CONFERENCE_PATH + "/{id}?_csrf={csrf}", conferenceId, csrfToken)
-                .contentType(MediaType.APPLICATION_JSON)
                 .header("Cookie", sessionId)
+                .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(requestBody)
                 .exchange()
                 .expectStatus().isNoContent();
@@ -269,9 +270,362 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .jsonPath("$.conferenceState").isEqualTo("CREATED")
                 .jsonPath("$.users[0].username").isEqualTo("username")
                 .jsonPath("$.users[0].fullName").isEqualTo("Full Name")
-                .jsonPath("$.users[0].roles").value(roles ->
-                        assertThat((List<String>) roles).contains(
-                                RoleType.ROLE_PC_CHAIR.name()))
+                .jsonPath("$.users[0].roleTypes").value(roleTypes -> assertThat((List<String>) roleTypes).contains(
+                        RoleType.ROLE_PC_CHAIR.name()))
                 .jsonPath("$.papers").isEmpty();
+    }
+
+    @Test
+    void shouldAddPCChair() {
+                /*
+            Getting the csrf token and the cookie of the current session for subsequent requests.
+
+            The CsrfToken is an interface, and we can not specify it as EntityExchangeResult<CsrfToken>. It would result
+            in a deserialization error. The default implementation of that interface is the DefaultCsrfToken, so we
+            specify that instead.
+         */
+        EntityExchangeResult<DefaultCsrfToken> result = this.webTestClient.get()
+                .uri(AUTH_PATH + "/csrf")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectHeader().exists(HttpHeaders.SET_COOKIE)
+                .expectBody(DefaultCsrfToken.class)
+                .returnResult();
+
+        String csrfToken = result.getResponseBody().getToken();
+        /*
+            The cookie in the response Header(SET_COOKIE) is in the form of
+            SESSION=OTU2ODllODktYjZhMS00YmUxLTk1NGEtMDk0ZTBmODg0Mzhm; Path=/; HttpOnly; SameSite=Lax
+
+            By splitting with ";" we get the first value which then we set it in the Cookie request header. The expected
+            value is SESSION= plus some value.
+         */
+        String cookieHeader = result.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        String sessionId = cookieHeader.split(";")[0];
+        String requestBody = """
+                {
+                    "username": "username",
+                    "password": "CyN549!@o2Cr",
+                    "fullName": "Full Name"
+                }
+                """;
+
+        this.webTestClient.post()
+                .uri(AUTH_PATH + "/signup?_csrf={csrf}", csrfToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Cookie", sessionId)
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus().isCreated();
+
+        csrfToken = result.getResponseBody().getToken();
+        cookieHeader = result.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        sessionId = cookieHeader.split(";")[0];
+
+        requestBody = """
+                {
+                    "username": "new username",
+                    "password": "CyN549!@o2Cr",
+                    "fullName": "Test",
+                    "roleTypes": [
+                        "ROLE_PC_CHAIR"
+                    ]
+                }
+                """;
+
+        this.webTestClient.post()
+                .uri(AUTH_PATH + "/signup?_csrf={csrf}", csrfToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Cookie", sessionId)
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus().isCreated();
+
+        requestBody = """
+                {
+                    "name": "name",
+                    "description": "description"
+                }
+                """;
+
+        EntityExchangeResult<byte[]> response = this.webTestClient.post()
+                .uri(CONFERENCE_PATH + "?_csrf={csrf}", csrfToken)
+                .header("Cookie", sessionId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus().isCreated()
+                .expectHeader().exists("Location")
+                .expectBody()
+                .returnResult();
+
+        String location = response.getResponseHeaders().getFirst(HttpHeaders.LOCATION);
+        UUID conferenceId = UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
+
+        UserDTO user = this.webTestClient.get()
+                .uri(USER_PATH + "?username={username}", "username")
+                .header("Cookie", sessionId)
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(UserDTO.class)
+                .returnResult()
+                .getResponseBody();
+
+        requestBody = String.format("""
+                {
+                    "userId": %d
+                }
+                """, user.id());
+
+        this.webTestClient.put()
+                .uri(CONFERENCE_PATH + "/{id}/pc-chair?_csrf={csrf}", conferenceId, csrfToken)
+                .header("Cookie", sessionId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus().isNoContent();
+
+        ConferenceDTO conference = this.webTestClient.get()
+                .uri(CONFERENCE_PATH + "/{id}", conferenceId)
+                .accept(MediaType.APPLICATION_JSON)
+                .header("Cookie", sessionId)
+                .exchange()
+                .expectBody(ConferenceDTO.class)
+                .returnResult()
+                .getResponseBody();
+
+        /*
+            The order that the users were inserted in the db is not guaranteed to be the same when fetching them
+            from the db. The following piece of code will not work 100% of the time. The user with username "username"
+            will not always be the 1st element on the list.
+
+                .jsonPath("$.users[0].username").isEqualTo("username")
+                .jsonPath("$.users[0].fullName").isEqualTo("Full Name")
+                .jsonPath("$.users[1].username").isEqualTo("test")
+                .jsonPath("$.users[1].fullName").isEqualTo("test")
+         */
+
+        assertThat(conference.getUsers()).anyMatch(pcChair -> pcChair.username().equals("username")
+                && pcChair.fullName().equals("Full Name")
+                && pcChair.roleTypes().stream().anyMatch(roleType -> roleType.equals(RoleType.ROLE_PC_CHAIR)));
+        assertThat(conference.getUsers()).anyMatch(pcChair -> pcChair.username().equals("new username")
+                && pcChair.fullName().equals("Test")
+                && pcChair.roleTypes().stream().anyMatch(roleType -> roleType.equals(RoleType.ROLE_PC_CHAIR)));
+    }
+
+    @Test
+    void shouldFindConferences() {
+        /*
+            Getting the csrf token and the cookie of the current session for subsequent requests.
+
+            The CsrfToken is an interface, and we can not specify it as EntityExchangeResult<CsrfToken>. It would result
+            in a deserialization error. The default implementation of that interface is the DefaultCsrfToken, so we
+            specify that instead.
+         */
+        EntityExchangeResult<DefaultCsrfToken> result = this.webTestClient.get()
+                .uri(AUTH_PATH + "/csrf")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectHeader().exists(HttpHeaders.SET_COOKIE)
+                .expectBody(DefaultCsrfToken.class)
+                .returnResult();
+
+        String csrfToken = result.getResponseBody().getToken();
+        /*
+            The cookie in the response Header(SET_COOKIE) is in the form of
+            SESSION=OTU2ODllODktYjZhMS00YmUxLTk1NGEtMDk0ZTBmODg0Mzhm; Path=/; HttpOnly; SameSite=Lax
+
+            By splitting with ";" we get the first value which then we set it in the Cookie request header. The expected
+            value is SESSION= plus some value.
+         */
+        String cookieHeader = result.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        String sessionId = cookieHeader.split(";")[0];
+        String requestBody = """
+                {
+                    "username": "username",
+                    "password": "CyN549!@o2Cr",
+                    "fullName": "Full Name",
+                    "roleTypes": [
+                        "ROLE_PC_CHAIR"
+                    ]
+                }
+                """;
+
+        this.webTestClient.post()
+                .uri(AUTH_PATH + "/signup?_csrf={csrf}", csrfToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Cookie", sessionId)
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus().isCreated();
+
+        requestBody = """
+                {
+                    "name": "name",
+                    "description": "description"
+                }
+                """;
+
+        EntityExchangeResult<byte[]> response = this.webTestClient.post()
+                .uri(CONFERENCE_PATH + "?_csrf={csrf}", csrfToken)
+                .header("Cookie", sessionId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus().isCreated()
+                .expectHeader().exists("Location")
+                .expectBody()
+                .returnResult();
+
+        String location = response.getResponseHeaders().getFirst(HttpHeaders.LOCATION);
+        UUID conferenceId1 = UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
+
+        requestBody = """
+                {
+                    "name": "new name",
+                    "description": "new description"
+                }
+                """;
+
+        response = this.webTestClient.post()
+                .uri(CONFERENCE_PATH + "?_csrf={csrf}", csrfToken)
+                .header("Cookie", sessionId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus().isCreated()
+                .expectHeader().exists("Location")
+                .expectBody()
+                .returnResult();
+
+        location = response.getResponseHeaders().getFirst(HttpHeaders.LOCATION);
+        UUID conferenceId2 = UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
+
+        /*
+            GET: /api/v1/conferences
+
+            Since the user that made the request has the role PC_CHAIR for the requested conference, they also have
+            access to the conference's state and papers
+         */
+        List<PCChairConferenceDTO> conferences = this.webTestClient.get()
+                .uri(CONFERENCE_PATH)
+                .accept(MediaType.APPLICATION_JSON)
+                .header("Cookie", sessionId)
+                .exchange()
+                .expectBodyList(PCChairConferenceDTO.class)
+                .returnResult()
+                .getResponseBody();
+
+        /*
+            The order that the conferences were inserted in the db is not guaranteed to be the same when fetching them
+            from the db. The following piece of code will not work 100% of the time. The conference with name "name"
+            will not always be the 1st element on the list.
+
+                    .jsonPath("$.[0].name").isEqualTo("name")
+                    .jsonPath("$.[0].description").isEqualTo("description")
+                    .jsonPath("$.[1].name").isEqualTo("new name")
+                    .jsonPath("$.[1].description").isEqualTo("new description")
+         */
+        assertThat(conferences).hasSize(2)
+                .anyMatch(conferenceDTO -> conferenceDTO.getId().equals(conferenceId1)
+                        && conferenceDTO.getName().equals("name")
+                        && conferenceDTO.getDescription().equals("description")
+                        && conferenceDTO.getConferenceState().equals(ConferenceState.CREATED)
+                        && conferenceDTO.getUsers().stream().anyMatch(userDTO ->
+                        userDTO.username().equals("username")
+                                && userDTO.fullName().equals("Full Name")
+                                && userDTO.roleTypes().contains(RoleType.ROLE_PC_CHAIR))
+                        && conferenceDTO.getPapers().isEmpty())
+                .anyMatch(conferenceDTO -> conferenceDTO.getId().equals(conferenceId2)
+                        && conferenceDTO.getName().equals("new name")
+                        && conferenceDTO.getDescription().equals("new description")
+                        && conferenceDTO.getConferenceState().equals(ConferenceState.CREATED)
+                        && conferenceDTO.getUsers().stream().anyMatch(userDTO ->
+                        userDTO.username().equals("username")
+                                && userDTO.fullName().equals("Full Name")
+                                && userDTO.roleTypes().contains(RoleType.ROLE_PC_CHAIR))
+                        && conferenceDTO.getPapers().isEmpty());
+    }
+
+    @Test
+    void shouldDeleteConference() {
+        /*
+            Getting the csrf token and the cookie of the current session for subsequent requests.
+
+            The CsrfToken is an interface, and we can not specify it as EntityExchangeResult<CsrfToken>. It would result
+            in a deserialization error. The default implementation of that interface is the DefaultCsrfToken, so we
+            specify that instead.
+         */
+        EntityExchangeResult<DefaultCsrfToken> result = this.webTestClient.get()
+                .uri(AUTH_PATH + "/csrf")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectHeader().exists(HttpHeaders.SET_COOKIE)
+                .expectBody(DefaultCsrfToken.class)
+                .returnResult();
+
+        String csrfToken = result.getResponseBody().getToken();
+        /*
+            The cookie in the response Header(SET_COOKIE) is in the form of
+            SESSION=OTU2ODllODktYjZhMS00YmUxLTk1NGEtMDk0ZTBmODg0Mzhm; Path=/; HttpOnly; SameSite=Lax
+
+            By splitting with ";" we get the first value which then we set it in the Cookie request header. The expected
+            value is SESSION= plus some value.
+         */
+        String cookieHeader = result.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        String sessionId = cookieHeader.split(";")[0];
+        String requestBody = """
+                {
+                    "username": "username",
+                    "password": "CyN549!@o2Cr",
+                    "fullName": "Full Name",
+                    "roleTypes": [
+                        "ROLE_PC_CHAIR"
+                    ]
+                }
+                """;
+
+        this.webTestClient.post()
+                .uri(AUTH_PATH + "/signup?_csrf={csrf}", csrfToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Cookie", sessionId)
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus().isCreated();
+
+        requestBody = """
+                {
+                    "name": "name",
+                    "description": "description"
+                }
+                """;
+
+        EntityExchangeResult<byte[]> response = this.webTestClient.post()
+                .uri(CONFERENCE_PATH + "?_csrf={csrf}", csrfToken)
+                .header("Cookie", sessionId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus().isCreated()
+                .expectHeader().exists("Location")
+                .expectBody()
+                .returnResult();
+
+        String location = response.getResponseHeaders().getFirst(HttpHeaders.LOCATION);
+        UUID conferenceId = UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
+
+        this.webTestClient.delete()
+                .uri(CONFERENCE_PATH + "/{id}?_csrf={csrf}", conferenceId, csrfToken)
+                .header("Cookie", sessionId)
+                .exchange()
+                .expectStatus().isNoContent();
+
+        this.webTestClient.get()
+                .uri(CONFERENCE_PATH + "/{id}", conferenceId)
+                .accept(MediaType.APPLICATION_JSON)
+                .header("Cookie", sessionId)
+                .exchange()
+                .expectStatus().isNotFound();
     }
 }

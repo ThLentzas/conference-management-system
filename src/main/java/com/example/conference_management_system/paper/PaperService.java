@@ -216,10 +216,10 @@ public class PaperService {
                 Case: The user who is to be added as a co-author is not found, meaning it's not a registered user in
                 our system
              */
-            User coAuthor = this.userRepository.findById(authorAdditionRequest.id()).orElseThrow(() -> {
+            User coAuthor = this.userRepository.findById(authorAdditionRequest.userId()).orElseThrow(() -> {
                 logger.error("Co-author addition failed. User with id: {} was not found to be added as co-author",
-                        authorAdditionRequest.id());
-                return new ResourceNotFoundException("User not found with id: " + authorAdditionRequest.id() +
+                        authorAdditionRequest.userId());
+                return new ResourceNotFoundException("User not found with id: " + authorAdditionRequest.userId() +
                         " to be added as co-author");
             });
 

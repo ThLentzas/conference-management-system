@@ -465,7 +465,7 @@ class PaperControllerTest {
     void shouldReturnHTTP204WhenCoAuthorIsAddedSuccessfully() throws Exception {
         String requestBody = """
                 {
-                    "id": 2
+                    "userId": 2
                 }
                 """;
 
@@ -485,7 +485,7 @@ class PaperControllerTest {
     void shouldReturnHTTP404WhenPaperIsNotFoundOnAuthorAddition() throws Exception {
         String requestBody = """
                 {
-                    "id": 2
+                    "userId": 2
                 }
                 """;
         String responseBody = """
@@ -514,7 +514,7 @@ class PaperControllerTest {
     void shouldReturnHTTP409WhenCoAuthorIsAlreadyAddedOnAuthorAddition() throws Exception {
         String requestBody = """
                 {
-                    "id": 2
+                    "userId": 2
                 }
                 """;
         String responseBody = """
@@ -534,14 +534,13 @@ class PaperControllerTest {
                         status().isConflict(),
                         content().json(responseBody)
                 );
-
     }
 
     @Test
     void shouldReturnHTTP401WhenAddCoAuthorIsCalledByUnauthenticatedUser() throws Exception {
         String requestBody = """
                 {
-                    "id": 2
+                    "userId": 2
                 }
                 """;
         String responseBody = """
@@ -565,7 +564,7 @@ class PaperControllerTest {
     void shouldReturnHTTP403WhenAddCoAuthorIsCalledWithInvalidCsrf() throws Exception {
         String requestBody = """
                 {
-                    "id": 2
+                    "userId": 2
                 }
                 """;
         String responseBody = """
@@ -589,7 +588,7 @@ class PaperControllerTest {
     void shouldReturnHTTP403WhenAddCoAuthorIsCalledWithNoCsrf() throws Exception {
         String requestBody = """
                 {
-                    "id": 2
+                    "userId": 2
                 }
                 """;
         String responseBody = """

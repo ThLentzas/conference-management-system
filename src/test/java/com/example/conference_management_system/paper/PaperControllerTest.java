@@ -19,6 +19,7 @@ import org.springframework.util.ResourceUtils;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
@@ -270,8 +271,7 @@ class PaperControllerTest {
                 getFileContent()
         );
 
-        doNothing().when(this.paperService).updatePaper(
-                any(Long.class),
+        doNothing().when(this.paperService).updatePaper(eq(1L),
                 any(PaperUpdateRequest.class),
                 any(Authentication.class));
 
@@ -313,7 +313,7 @@ class PaperControllerTest {
                 """;
 
         doThrow(new IllegalArgumentException("You must provide at least one property to update the paper")).when(
-                this.paperService).updatePaper(any(Long.class), any(PaperUpdateRequest.class), any(Authentication.class));
+                this.paperService).updatePaper(eq(1L), any(PaperUpdateRequest.class), any(Authentication.class));
 
         this.mockMvc.perform(multipart(PAPER_PATH + "/{id}", 1L).file(pdfFile).with(csrf())
                         .with(request -> {
@@ -336,14 +336,14 @@ class PaperControllerTest {
                 "application/pdf",
                 getFileContent()
         );
-        String responseBody = """
+        String responseBody = String.format("""
                 {
-                    "message": "Paper not found with id: 1"
+                    "message": "Paper not found with id: %d"
                 }
-                """;
+                """, 1L);
 
-        doThrow(new ResourceNotFoundException("Paper not found with id: 1")).when(this.paperService).updatePaper(
-                any(Long.class),
+        doThrow(new ResourceNotFoundException("Paper not found with id: " + 1L)).when(this.paperService).updatePaper(
+                eq(1L),
                 any(PaperUpdateRequest.class),
                 any(Authentication.class));
 
@@ -470,7 +470,7 @@ class PaperControllerTest {
                 """;
 
         doNothing().when(this.paperService).addCoAuthor(
-                any(Long.class),
+                eq(1L),
                 any(AuthorAdditionRequest.class),
                 any(Authentication.class));
 
@@ -488,17 +488,14 @@ class PaperControllerTest {
                     "userId": 2
                 }
                 """;
-        String responseBody = """
+        String responseBody = String.format("""
                 {
-                    "message": "Paper was not found with id: 1"
+                    "message": "Paper was not found with id: %d"
                 }
-                """;
+                """, 1L);
 
-        doThrow(new ResourceNotFoundException("Paper was not found with id: 1")).when(this.paperService).addCoAuthor(
-                any(Long.class),
-                any(AuthorAdditionRequest.class),
-                any(Authentication.class)
-                );
+        doThrow(new ResourceNotFoundException("Paper was not found with id: " + 1L)).when(this.paperService)
+                .addCoAuthor(eq(1L), any(AuthorAdditionRequest.class), any(Authentication.class));
 
         this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -512,20 +509,23 @@ class PaperControllerTest {
     @Test
     @WithMockUser(roles = "AUTHOR")
     void shouldReturnHTTP409WhenCoAuthorIsAlreadyAddedOnAuthorAddition() throws Exception {
+        String authorsName = "author";
         String requestBody = """
                 {
                     "userId": 2
                 }
                 """;
-        String responseBody = """
+        String responseBody = String.format("""
                 {
-                    "message": "User with name: Test User is already an author for the paper with id: 1"
+                    "message": "User with name: %s is already an author for the paper with id: %d"
                 }
-                """;
+                """, authorsName, 1L);
 
         doThrow(new DuplicateResourceException(
-                "User with name: Test User is already an author for the paper with id: 1")).when(this.paperService)
-                .addCoAuthor(any(Long.class), any(AuthorAdditionRequest.class), any(Authentication.class));
+                "User with name: " + authorsName + " is already an author for the paper with id: " + 1L))
+                .when(this.paperService).addCoAuthor(eq(1L),
+                        any(AuthorAdditionRequest.class),
+                        any(Authentication.class));
 
         this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)

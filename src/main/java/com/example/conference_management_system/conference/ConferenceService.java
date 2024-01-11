@@ -417,6 +417,7 @@ public class ConferenceService {
                         ReviewerAssignmentRequest reviewerAssignmentRequest,
                         Authentication authentication) {
         SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+        //toDO: check if requested user is already assigned as Author
         if (!this.conferenceUserRepository.existsByConferenceIdAndUserId(conferenceId, securityUser.user().getId())) {
             logger.error("Reviewer assignment failed. User with id: {} is not PC_CHAIR at conference with id: {}",
                     securityUser.user().getId(), conferenceId);
@@ -594,31 +595,40 @@ public class ConferenceService {
             papers and their reviews. Any other case, unauthenticated user, REVIEWER, AUTHOR, PC_CHAIR but not in the
             requested conference all see the same info
          */
+        if (securityContext.getAuthentication().getPrincipal() instanceof SecurityUser securityUser
+                && this.conferenceUserRepository.existsByConferenceIdAndUserId(conference.getId(),
+                securityUser.user().getId())) {
+            return this.pcChairConferenceDTOMapper.apply(conference);
+        }
 
-        return getConferenceDTOByRole(conference, securityContext);
+        return this.conferenceDTOMapper.apply(conference);
     }
 
+    /*
+        For every conference that is returned if the user is PCChair at that conference we need to return more
+        properties like the papers and their reviews.
+     */
     List<ConferenceDTO> findConferences(String name, String description, SecurityContext securityContext) {
-        List<Conference> conferences;
+        ConferenceSpecs conferenceSpecs = new ConferenceSpecs(name, description);
+        List<Conference> conferences = this.conferenceRepository.findAll(conferenceSpecs);
+        Set<ConferenceDTO> conferenceDTOs = new HashSet<>();
 
-        if (name.isBlank() && description.isBlank()) {
-            conferences = this.conferenceRepository.findAll();
-        } else if (description.isBlank()) {
-            conferences = this.conferenceRepository.findConferencesByNameContainingIgnoringCase(name);
-        } else if (name.isBlank()) {
-            conferences = this.conferenceRepository.findConferencesByDescriptionContainingIgnoringCase(description);
-        } else {
-            //Hibernate returns an immutable list, and we would get UnsupportedOperationException when calling addAll()
-            conferences = new ArrayList<>(this.conferenceRepository.findConferencesByNameContainingIgnoringCase(name));
-            conferences.addAll(this.conferenceRepository.findConferencesByDescriptionContainingIgnoringCase(
-                    description));
+        if (securityContext.getAuthentication().getPrincipal() instanceof SecurityUser securityUser) {
+            List<Conference> pcChairConferences = conferences.stream()
+                    .filter(conference -> conference.getConferenceUsers().stream()
+                            .anyMatch(conferenceUser -> conferenceUser.getUser().equals(securityUser.user())))
+                    .toList();
 
-            Set<Conference> conferenceSet = new HashSet<>(conferences);
-            conferences = new ArrayList<>(conferenceSet);
+            pcChairConferences = this.conferenceRepository.fetchPapersForConferences(pcChairConferences);
+            pcChairConferences.forEach(conference ->
+                    conferenceDTOs.add(this.pcChairConferenceDTOMapper.apply(conference)));
+            conferences.forEach(conference -> conferenceDTOs.add(this.conferenceDTOMapper.apply(conference)));
+
+            return new ArrayList<>(conferenceDTOs);
         }
 
         return conferences.stream()
-                .map(conference -> getConferenceDTOByRole(conference, securityContext))
+                .map(this.conferenceDTOMapper)
                 .toList();
     }
 
@@ -632,7 +642,7 @@ public class ConferenceService {
         }
 
         this.conferenceRepository.findById(conferenceId).ifPresentOrElse(conference -> {
-            if(!conference.getState().equals(ConferenceState.CREATED)) {
+            if (!conference.getState().equals(ConferenceState.CREATED)) {
                 logger.error("Delete conference failed. Conference with id: {} is not in {} state. " +
                         "Conference state: {}", conferenceId, ConferenceState.CREATED, conference.getState());
 
@@ -650,19 +660,9 @@ public class ConferenceService {
         }, () -> {
             logger.error("Delete conference failed. Conference not found with id: {}", conferenceId);
 
-            throw  new ResourceNotFoundException(CONFERENCE_NOT_FOUND_MSG + conferenceId);
+            throw new ResourceNotFoundException(CONFERENCE_NOT_FOUND_MSG + conferenceId);
         });
 
-    }
-
-    private ConferenceDTO getConferenceDTOByRole(Conference conference, SecurityContext securityContext) {
-        if (securityContext.getAuthentication().getPrincipal() instanceof SecurityUser securityUser
-                && this.conferenceUserRepository.existsByConferenceIdAndUserId(conference.getId(),
-                securityUser.user().getId())) {
-            return this.pcChairConferenceDTOMapper.apply(conference);
-        }
-
-        return this.conferenceDTOMapper.apply(conference);
     }
 
     private void validateName(String name) {

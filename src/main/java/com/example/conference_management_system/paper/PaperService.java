@@ -4,10 +4,22 @@ import com.example.conference_management_system.auth.AuthService;
 import com.example.conference_management_system.conference.ConferenceState;
 import com.example.conference_management_system.conference.ConferenceUserRepository;
 import com.example.conference_management_system.content.ContentRepository;
-import com.example.conference_management_system.entity.*;
+import com.example.conference_management_system.entity.Content;
+import com.example.conference_management_system.entity.Paper;
+import com.example.conference_management_system.entity.PaperUser;
+import com.example.conference_management_system.entity.Review;
+import com.example.conference_management_system.entity.User;
 import com.example.conference_management_system.entity.key.PaperUserId;
-import com.example.conference_management_system.exception.*;
-import com.example.conference_management_system.paper.dto.*;
+import com.example.conference_management_system.exception.DuplicateResourceException;
+import com.example.conference_management_system.exception.ResourceNotFoundException;
+import com.example.conference_management_system.exception.ServerErrorException;
+import com.example.conference_management_system.exception.StateConflictException;
+import com.example.conference_management_system.exception.UnsupportedFileException;
+import com.example.conference_management_system.paper.dto.AuthorAdditionRequest;
+import com.example.conference_management_system.paper.dto.PaperCreateRequest;
+import com.example.conference_management_system.paper.dto.PaperDTO;
+import com.example.conference_management_system.paper.dto.PaperFile;
+import com.example.conference_management_system.paper.dto.PaperUpdateRequest;
 import com.example.conference_management_system.paper.mapper.AuthorPaperDTOMapper;
 import com.example.conference_management_system.paper.mapper.PCChairPaperDTOMapper;
 import com.example.conference_management_system.paper.mapper.PaperDTOMapper;
@@ -28,6 +40,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 
+import org.apache.tika.sax.StoppingEarlyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
@@ -121,16 +134,15 @@ public class PaperService {
         return paper.getId();
     }
 
-    void updatePaper(Long id, PaperUpdateRequest paperUpdateRequest, Authentication authentication) {
-        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
-        if (!this.paperUserRepository.existsByPaperIdUserIdAndRoleType(id, securityUser.user().getId(),
-                RoleType.ROLE_AUTHOR)) {
-            logger.error("Paper update failed. User with id: {} is not author for paper with id: {}",
-                    securityUser.user().getId(), id);
+    /*
+        When we iterate through the users associated with the paper if there is a match then the user is an AUTHOR for
+        that paper since the endpoint is for ROLE_AUTHOR only and cant be a reviewer. Same logic goes for the review
+        paper
 
-            throw new AccessDeniedException(ACCESS_DENIED_MSG);
-        }
-
+        Case: Paper not found -> 404
+        Case: Requesting user is not author on the requested paper -> 403
+     */
+    void updatePaper(Long paperId, PaperUpdateRequest paperUpdateRequest, Authentication authentication) {
         if (paperUpdateRequest.title() == null
                 && paperUpdateRequest.authors() == null
                 && paperUpdateRequest.abstractText() == null
@@ -141,7 +153,17 @@ public class PaperService {
             throw new IllegalArgumentException("You must provide at least one property to update the paper");
         }
 
-        this.paperRepository.findById(id).ifPresentOrElse(paper -> {
+        this.paperRepository.findByPaperIdFetchingPaperUsers(paperId).ifPresentOrElse(paper -> {
+            SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+            if (paper.getPaperUsers()
+                    .stream()
+                    .noneMatch(paperUser -> paperUser.getUser().equals(securityUser.user()))) {
+                logger.error("Paper update failed. User with id: {} is not author for paper with id: {}",
+                        securityUser.user().getId(), paperId);
+
+                throw new AccessDeniedException(ACCESS_DENIED_MSG);
+            }
+
             if (paperUpdateRequest.title() != null) {
                 validateTitle(paperUpdateRequest.title());
 
@@ -179,7 +201,7 @@ public class PaperService {
                     3) Set up the content values from the new file
                     4) Update the record in DB
                  */
-                this.contentRepository.findByPaperId(id).ifPresent(
+                this.contentRepository.findByPaperId(paperId).ifPresent(
                         content -> {
                             this.fileService.deleteFile(content.getGeneratedFileName());
                             setupContent(content, paperUpdateRequest.file());
@@ -190,28 +212,29 @@ public class PaperService {
 
             this.paperRepository.save(paper);
         }, () -> {
-            logger.error("Paper update failed: Paper not found with: {}", id);
+            logger.error("Paper update failed: Paper not found with: {}", paperId);
 
-            throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + id);
+            throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
         });
     }
 
     /*
-        securityUser = user who made the request, author of the paper
-        user = co-author, retrieved based on the id
+        When we iterate through the users associated with the paper if there is a match then the user is an AUTHOR for
+        that paper since the endpoint is for ROLE_AUTHOR only and cant be a reviewer. Same logic goes for the assign
+        reviewer
      */
-    void addCoAuthor(Long id, AuthorAdditionRequest authorAdditionRequest, Authentication authentication) {
-        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
-        if (!this.paperUserRepository.existsByPaperIdUserIdAndRoleType(id,
-                securityUser.user().getId(),
-                RoleType.ROLE_AUTHOR)) {
-            logger.error("Co-author addition failed. User with id: {} is not author for paper with id: {}",
-                    securityUser.user().getId(), id);
+    void addCoAuthor(Long paperId, AuthorAdditionRequest authorAdditionRequest, Authentication authentication) {
+        this.paperRepository.findByPaperIdFetchingPaperUsers(paperId).ifPresentOrElse(paper -> {
+            SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+            if (paper.getPaperUsers()
+                    .stream()
+                    .noneMatch(paperUser -> paperUser.getUser().equals(securityUser.user()))) {
+                logger.error("Co-author addition failed. User with id: {} is not author for paper with id: {}",
+                        securityUser.user().getId(), paperId);
 
-            throw new AccessDeniedException(ACCESS_DENIED_MSG);
-        }
+                throw new AccessDeniedException(ACCESS_DENIED_MSG);
+            }
 
-        this.paperRepository.findById(id).ifPresentOrElse(paper -> {
             /*
                 Case: The user who is to be added as a co-author is not found, meaning it's not a registered user in
                 our system
@@ -223,21 +246,41 @@ public class PaperService {
                         " to be added as co-author");
             });
 
-            /*
-                If the user to be added as a co-author already is or the user who made the request, requested themselves
-                to be added as author.
-             */
-            if (this.paperUserRepository.existsByPaperIdUserIdAndRoleType(id, coAuthor.getId(), RoleType.ROLE_AUTHOR)
-                    || coAuthor.getId().equals(securityUser.user().getId())) {
-                logger.error("Co-author addition failed. User with id: {} is already an author for paper with id: {}",
-                        coAuthor.getId(), id);
-                throw new DuplicateResourceException("User with name: " + coAuthor.getFullName() + " is already an " +
-                        "author for the paper with id: " + id);
+            if (paper.getPaperUsers()
+                    .stream()
+                    .anyMatch(paperUser -> paperUser.getUser().equals(coAuthor)
+                            && paperUser.getUser().getRoles()
+                            .stream()
+                            .anyMatch(role -> role.getType().equals(RoleType.ROLE_REVIEWER)))) {
+                logger.error("Co-author addition failed. User with id: {} is already assigned as reviewer for paper " +
+                        "with id: {}", coAuthor.getId(), paperId);
+
+                throw new StateConflictException("The user to be added as co-author is already added as a" +
+                        " reviewer");
             }
 
             /*
-                If the user(co-author) was assigned a new role we update the entry in the db
+                If the user to be added as a co-author already is author for the paper or the user who made the request,
+                requested themselves to be added as author.
+
+                There is no need to do something like the code below, because if it was found and was a REVIEWER it
+                would be caught by the previous if. So if it's not found previously as REVIEWER now if it is found they
+                can only be AUTHOR of the paper not REVIEWER
+
+                paperUser.getUser().getRoles()
+                            .stream()
+                            .anyMatch(role -> role.getType().equals(RoleType.ROLE_AUTHOR))
              */
+            if (paper.getPaperUsers()
+                    .stream()
+                    .anyMatch(paperUser -> paperUser.getUser().equals(coAuthor))
+                    || coAuthor.getId().equals(securityUser.user().getId())) {
+                logger.error("Co-author addition failed. User with id: {} is already an author for paper with id: {}",
+                        coAuthor.getId(), paperId);
+                throw new DuplicateResourceException("User with name: " + coAuthor.getFullName() + " is already an " +
+                        "author for the paper with id: " + paperId);
+            }
+
             if (this.roleService.assignRole(coAuthor, RoleType.ROLE_AUTHOR)) {
                 logger.info("Author addition request: User with id: {} was assigned a new role type: {}",
                         coAuthor.getId(), RoleType.ROLE_AUTHOR);
@@ -270,30 +313,29 @@ public class PaperService {
             this.paperUserRepository.save(paperUser);
             this.paperRepository.save(paper);
         }, () -> {
-            logger.error("Co-Author addition failed. Paper not found with id: {}", id);
-            throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + id);
+            logger.error("Co-Author addition failed. Paper not found with id: {}", paperId);
+            throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
         });
     }
 
     Long reviewPaper(Long paperId, ReviewCreateRequest reviewCreateRequest, Authentication authentication) {
-        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+        Paper paper = this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(paperId).orElseThrow(() -> {
+            logger.error("Review failed. Paper not found with id: {}", paperId);
 
-        if (!this.paperUserRepository.existsByPaperIdUserIdAndRoleType(paperId,
-                securityUser.user().getId(),
-                RoleType.ROLE_REVIEWER)) {
+            return new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
+        });
+
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+        if (paper.getPaperUsers()
+                .stream()
+                .noneMatch(paperUser -> paperUser.getUser().equals(securityUser.user()))) {
             logger.error("Review failed. Reviewer with id: {} is not assigned to paper with id: {}",
                     securityUser.user().getId(), paperId);
 
             throw new AccessDeniedException(ACCESS_DENIED_MSG);
         }
 
-        Paper paper = this.paperRepository.findById(paperId).orElseThrow(() -> {
-            logger.error("Review failed. Paper not found with id: {}", paperId);
-
-            return new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
-        });
-
-        if(paper.getConference() == null) {
+        if (paper.getConference() == null) {
             logger.error("Review failed. Paper with id: {} is not submitted to any conference but was assigned a " +
                     "reviewer", paperId);
 
@@ -328,17 +370,18 @@ public class PaperService {
     }
 
     void withdrawPaper(Long paperId, Authentication authentication) {
-        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
-        if (!this.paperUserRepository.existsByPaperIdUserIdAndRoleType(paperId, securityUser.user().getId(),
-                RoleType.ROLE_AUTHOR)) {
-            logger.error("Paper withdrawal failed. User with id: {} is not author for paper with id: {}",
-                    securityUser.user().getId(), paperId);
+        this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(paperId).ifPresentOrElse(paper -> {
+            SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+            if (paper.getPaperUsers()
+                    .stream()
+                    .noneMatch(paperUser -> paperUser.getUser().equals(securityUser.user()))) {
+                logger.error("Paper withdrawal failed. User with id: {} is not author for paper with id: {}",
+                        securityUser.user().getId(), paperId);
 
-            throw new AccessDeniedException(ACCESS_DENIED_MSG);
-        }
+                throw new AccessDeniedException(ACCESS_DENIED_MSG);
+            }
 
-        this.paperRepository.findById(paperId).ifPresentOrElse(paper ->  {
-            if(paper.getConference() == null) {
+            if (paper.getConference() == null) {
                 logger.error("Review failed. Paper with id: {} is not submitted to any conference but was assigned a " +
                         "reviewer", paperId);
 
@@ -361,7 +404,7 @@ public class PaperService {
         properties of the PaperDTO.
      */
     PaperDTO findPaperById(Long paperId, SecurityContext context) {
-        Paper paper = this.paperRepository.findById(paperId).orElseThrow(() -> {
+        Paper paper = this.paperRepository.findByPaperId(paperId).orElseThrow(() -> {
             logger.error("Paper not found with id: {}", paperId);
 
             return new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
@@ -373,13 +416,21 @@ public class PaperService {
                 return this.pcChairPaperDTOMapper.apply(paper);
             }
 
-            if (this.paperUserRepository.existsByPaperIdUserIdAndRoleType(paperId, securityUser.user().getId(),
-                    RoleType.ROLE_AUTHOR)) {
+            if (paper.getPaperUsers()
+                    .stream()
+                    .anyMatch(paperUser -> paperUser.getUser().equals(securityUser.user())
+                            && paperUser.getUser().getRoles()
+                            .stream()
+                            .anyMatch(role -> role.getType().equals(RoleType.ROLE_AUTHOR)))) {
                 return this.authorPaperDTOMapper.apply(paper);
             }
 
-            if (this.paperUserRepository.existsByPaperIdUserIdAndRoleType(paperId, securityUser.user().getId(),
-                    RoleType.ROLE_REVIEWER)) {
+            if (paper.getPaperUsers()
+                    .stream()
+                    .anyMatch(paperUser -> paperUser.getUser().equals(securityUser.user())
+                            && paperUser.getUser().getRoles()
+                            .stream()
+                            .anyMatch(role -> role.getType().equals(RoleType.ROLE_REVIEWER)))) {
                 return this.reviewerPaperDTOMapper.apply(paper);
             }
         }
@@ -391,31 +442,50 @@ public class PaperService {
         return this.paperDTOMapper.apply(paper);
     }
 
+    List<PaperDTO> findPapers(String title, String authorsCsv, String abstractText) {
+
+
+//        if (paper.getPaperUsers().stream().noneMatch(paperUser -> paperUser.getUser().equals(securityUser.user()))
+//                && (paper.getConference() != null && paper.getConference().getConferenceUsers().stream().noneMatch(
+//                conferenceUser -> conferenceUser.getUser().equals(securityUser.user())))) {
+//            throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + id);
+        return null;
+    }
+
     /*
-        The users that can download the paper file are:
+        The users that can download the paper file if the paper file is found are:
             1)Authors of the paper
             2)Reviewers of the paper
             3)Pc chairs that the requested paper is submitted to their conference
 
-        Any other case would result in 404
+        Any other case would result in 403
      */
     PaperFile downloadPaperFile(Long id, Authentication authentication) {
-        Paper paper = this.paperRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException(
-                PAPER_NOT_FOUND_MSG + id));
         SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+        Paper paper = this.paperRepository.findByPaperId(id).orElseThrow(() -> new ResourceNotFoundException(
+                PAPER_NOT_FOUND_MSG + id));
 
-        if (!this.paperUserRepository.existsByPaperIdUserIdAndRoleType(id, securityUser.user().getId(),
-                RoleType.ROLE_AUTHOR)
-                && !this.paperUserRepository.existsByPaperIdUserIdAndRoleType(id, securityUser.user().getId(),
-                RoleType.ROLE_REVIEWER)
-                && (paper.getConference() == null || !this.conferenceUserRepository.existsByConferenceIdAndUserId(
-                        paper.getConference().getId(), securityUser.user().getId()))) {
-            throw new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + id);
+        /*
+            This could also have been a 404 it's just how we want to handle the fact that the requested user is not
+            the owner of the requested resource
+         */
+        if (paper.getPaperUsers()
+                .stream()
+                .noneMatch(paperUser -> paperUser.getUser().equals(securityUser.user()))
+                && (paper.getConference() != null && paper.getConference()
+                .getConferenceUsers()
+                .stream()
+                .noneMatch(conferenceUser -> conferenceUser.getUser().equals(securityUser.user())))) {
+            logger.error("Download paper failed. The user with id: {} is not in relationship with paper with id: {}",
+                    securityUser.user().getId(), id);
+
+            throw new AccessDeniedException(ACCESS_DENIED_MSG);
         }
 
-        Resource file = this.fileService.getFile(paper.getContent().getGeneratedFileName());
+        Content content = this.contentRepository.findById(id).orElseThrow();
+        Resource file = this.fileService.getFile(content.getGeneratedFileName());
 
-        return new PaperFile(file, paper.getContent().getOriginalFileName());
+        return new PaperFile(file, content.getOriginalFileName());
     }
 
     private void validatePaper(PaperCreateRequest paperCreateRequest) {

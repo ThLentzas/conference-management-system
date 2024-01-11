@@ -1,16 +1,6 @@
 package com.example.conference_management_system.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.*;
 
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
@@ -32,12 +22,11 @@ import com.example.conference_management_system.paper.PaperState;
 })
 @Getter
 @Setter
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@EqualsAndHashCode(of = "id")
 @EntityListeners(AuditingEntityListener.class)
 public class Paper {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @EqualsAndHashCode.Include
     private Long id;
     @Column(nullable = false)
     @CreatedDate
@@ -61,14 +50,8 @@ public class Paper {
     private String keywords;
     @OneToMany(mappedBy = "paper")
     private Set<PaperUser> paperUsers;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     private Conference conference;
-    /*
-        When we query for a paper we also need to fetch the content for that paper(original file name, generated file
-        name, extension)
-     */
-    @OneToOne(mappedBy = "paper")
-    private Content content;
     @OneToMany(mappedBy = "paper")
     private Set<Review> reviews;
 

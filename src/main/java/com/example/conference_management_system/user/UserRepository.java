@@ -19,6 +19,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("""
                 SELECT u
                 FROM User u
+                JOIN FETCH u.roles
                 WHERE LOWER(u.username) = LOWER(:username)
             """)
     Optional<User> findUserByUsername(@Param("username") String username);

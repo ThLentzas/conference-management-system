@@ -27,11 +27,10 @@ import java.time.LocalDate;
 @Table(name = "papers_users")
 @Getter
 @Setter
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@EqualsAndHashCode(of = "id")
 @EntityListeners(AuditingEntityListener.class)
 public class PaperUser {
     @EmbeddedId
-    @EqualsAndHashCode.Include
     private PaperUserId id;
     @ManyToOne
     @MapsId("paperId")

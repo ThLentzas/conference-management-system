@@ -99,6 +99,7 @@
             <artifactId>postgresql</artifactId>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 
     <build>
@@ -113,6 +114,25 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.hibernate.orm.tooling</groupId>
+                <artifactId>hibernate-enhance-maven-plugin</artifactId>
+                <version>6.3.1.Final</version>
+                <executions>
+                    <execution>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>enhance</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <enableLazyInitialization>true</enableLazyInitialization>
+                    <enableDirtyTracking>true</enableDirtyTracking>
+                    <enableAssociationManagement>true</enableAssociationManagement>
                 </configuration>
             </plugin>
         </plugins>

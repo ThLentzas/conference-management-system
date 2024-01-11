@@ -1,15 +1,12 @@
 package com.example.conference_management_system.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.*;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.LazyToOne;
+import org.hibernate.annotations.LazyToOneOption;
 
 /*
     Content is the entity we keep in our database as a reference with the file that we stored in our file system. The
@@ -18,9 +15,9 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
+@EqualsAndHashCode(of = "id")
 public class Content {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(nullable = false)
     private String originalFileName;
@@ -29,7 +26,8 @@ public class Content {
     @Column(nullable = false)
     private String fileExtension;
     @OneToOne
-    @JoinColumn(name = "paper_id")
+    @MapsId
+    @JoinColumn(name = "id")
     private Paper paper;
 
     public Content() {

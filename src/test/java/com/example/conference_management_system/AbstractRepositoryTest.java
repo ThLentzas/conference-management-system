@@ -17,7 +17,7 @@ import com.example.conference_management_system.config.JpaAuditingConfig;
 @Import({
         JpaAuditingConfig.class
 })
-public class AbstractUnitTest {
+public class AbstractRepositoryTest {
 
     @ServiceConnection
     protected static final PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>(

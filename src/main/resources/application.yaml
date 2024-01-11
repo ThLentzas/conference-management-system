@@ -24,7 +24,6 @@ spring:
     compose:
       lifecycle-management: start_only
 
-
 papers:
   directory: C:\\papers
 
@@ -32,4 +31,4 @@ logging:
   level:
     org:
       springframework:
-        security: TRACE # TRACE for more specific logging, filters getting invoked etc
+        security: TRACE

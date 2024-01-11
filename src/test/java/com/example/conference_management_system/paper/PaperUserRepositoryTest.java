@@ -1,6 +1,6 @@
 package com.example.conference_management_system.paper;
 
-import com.example.conference_management_system.AbstractUnitTest;
+import com.example.conference_management_system.AbstractRepositoryTest;
 import com.example.conference_management_system.entity.Paper;
 import com.example.conference_management_system.entity.PaperUser;
 import com.example.conference_management_system.entity.Role;
@@ -18,7 +18,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class PaperUserRepositoryTest extends AbstractUnitTest {
+class PaperUserRepositoryTest extends AbstractRepositoryTest {
     @Autowired
     private PaperRepository paperRepository;
     @Autowired

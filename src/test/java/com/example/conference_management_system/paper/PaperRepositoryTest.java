@@ -1,6 +1,6 @@
 package com.example.conference_management_system.paper;
 
-import com.example.conference_management_system.AbstractUnitTest;
+import com.example.conference_management_system.AbstractRepositoryTest;
 import com.example.conference_management_system.entity.Paper;
 
 import org.junit.jupiter.api.Test;
@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class PaperRepositoryTest extends AbstractUnitTest {
+class PaperRepositoryTest extends AbstractRepositoryTest {
     @Autowired
     private PaperRepository underTest;
 

@@ -1,7 +1,6 @@
 package com.example.conference_management_system.entity;
 
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -32,7 +31,7 @@ import lombok.Setter;
 })
 @Getter
 @Setter
-@EqualsAndHashCode
+@EqualsAndHashCode(of = "id")
 public class User implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -50,9 +49,9 @@ public class User implements Serializable {
     /*
         If we leave the default type of LAZY it will fail to get the roles. The UserDetails will be called and the
         transaction will end. In another session will try to grab the authorities, but it will fail since the
-        transaction is closed.
+        transaction is closed. This could cause an N+1 query problem, so we solve it in the query by doing a JOIN FETCH
      */
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany
     @JoinTable(
             name = "users_roles",
             joinColumns = @JoinColumn(name = "user_id"),

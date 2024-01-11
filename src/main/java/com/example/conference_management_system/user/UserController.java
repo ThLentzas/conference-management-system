@@ -17,6 +17,10 @@ import com.example.conference_management_system.user.dto.UserDTO;
 class UserController {
     private final UserService userService;
 
+    /*
+        This endpoint is tested in the IT of both PaperIT and ConferenceIT when we search for a user by username
+        to verify they get a new role after creating paper/conference
+     */
     @GetMapping
     ResponseEntity<UserDTO> findUserByUsername(@RequestParam("username") String username) {
         UserDTO user = this.userService.findUserByUsername(username);

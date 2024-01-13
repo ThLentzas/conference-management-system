@@ -28,10 +28,10 @@ import java.util.UUID;
 @Table(name = "conferences", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"name"}, name = "unique_conference_name")
 })
-@EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 @EqualsAndHashCode(of = "id")
+@EntityListeners(AuditingEntityListener.class)
 public class Conference {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

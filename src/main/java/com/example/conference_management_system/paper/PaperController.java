@@ -33,9 +33,11 @@ import com.example.conference_management_system.review.dto.ReviewCreateRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
+import java.net.URI;
+import java.util.List;
+
 import lombok.RequiredArgsConstructor;
 
-import java.net.URI;
 
 @RestController
 @RequiredArgsConstructor
@@ -122,14 +124,6 @@ class PaperController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-    @GetMapping("/{id}")
-    ResponseEntity<PaperDTO> findPaperById(@PathVariable("id") Long id,
-                                           @CurrentSecurityContext SecurityContext securityContext) {
-        PaperDTO paper = this.paperService.findPaperById(id, securityContext);
-
-        return new ResponseEntity<>(paper, HttpStatus.OK);
-    }
-
     /*
         Using .filename(paperFile.originalFileName(), StandardCharsets.UTF_8), it triggers the use of RFC 5987 encoding
         for non-ASCII characters, which is meant to handle special characters in filenames safely. However, this can
@@ -147,5 +141,26 @@ class PaperController {
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
 
         return new ResponseEntity<>(paperFile.file(), headers, HttpStatus.OK);
+    }
+
+    @GetMapping("/{id}")
+    ResponseEntity<PaperDTO> findPaperById(@PathVariable("id") Long id,
+                                           @CurrentSecurityContext SecurityContext securityContext) {
+        PaperDTO paper = this.paperService.findPaperById(id, securityContext);
+
+        return new ResponseEntity<>(paper, HttpStatus.OK);
+    }
+
+    @GetMapping
+    ResponseEntity<List<PaperDTO>> findPapers(@RequestParam(value = "title", required = false, defaultValue = "")
+                                              String title,
+                                              @RequestParam(value = "author", required = false, defaultValue = "")
+                                              String author,
+                                              @RequestParam(value = "abstractText", required = false, defaultValue = "")
+                                              String abstractText,
+                                              @CurrentSecurityContext SecurityContext securityContext) {
+        List<PaperDTO> papers = this.paperService.findPapers(title, author, abstractText, securityContext);
+
+        return new ResponseEntity<>(papers, HttpStatus.OK);
     }
 }

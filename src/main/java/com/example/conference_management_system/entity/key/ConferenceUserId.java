@@ -12,7 +12,7 @@ import jakarta.persistence.Embeddable;
 @Embeddable
 @Getter
 @Setter
-@EqualsAndHashCode
+@EqualsAndHashCode(of = {"conferenceId", "userId"})
 public class ConferenceUserId implements Serializable {
     private UUID conferenceId;
     private Long userId;

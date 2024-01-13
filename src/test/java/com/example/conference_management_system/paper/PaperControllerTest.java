@@ -59,7 +59,7 @@ class PaperControllerTest {
     //createPaper()
     @Test
     @WithMockUser(roles = "PC_MEMBER")
-    void shouldReturnHTTP201WhenPaperIsCreatedSuccessfully() throws Exception {
+    void should201WhenPaperIsCreatedSuccessfully() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
                 "test.pdf",
@@ -90,7 +90,7 @@ class PaperControllerTest {
 
     @Test
     @WithMockUser(roles = "PC_MEMBER")
-    void shouldReturnHTTP409WhenCreatingPaperWithExistingTitle() throws Exception {
+    void should409WhenCreatingPaperWithExistingTitle() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
                 "test.pdf",
@@ -126,7 +126,7 @@ class PaperControllerTest {
     }
 
     @Test
-    void shouldReturnHTTP401WhenCreatePaperIsCalledByUnauthenticatedUser() throws Exception {
+    void should401WhenCreatePaperIsCalledByUnauthenticatedUser() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
                 "test.pdf",
@@ -158,7 +158,7 @@ class PaperControllerTest {
     }
 
     @Test
-    void shouldReturnHTTP403WhenCreatePaperIsCalledWithInvalidCsrfToken() throws Exception {
+    void should403WhenCreatePaperIsCalledWithInvalidCsrfToken() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
                 "test.pdf",
@@ -190,7 +190,7 @@ class PaperControllerTest {
     }
 
     @Test
-    void shouldReturnHTTP403WhenCreatePaperIsCalledWithNoCsrfToken() throws Exception {
+    void should403WhenCreatePaperIsCalledWithNoCsrfToken() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
                 "test.pdf",
@@ -223,7 +223,7 @@ class PaperControllerTest {
 
     @Test
     @WithMockUser(roles = "PC_MEMBER")
-    void shouldReturnHTTP400WhenTitleIsBlankOnPaperCreate() throws Exception {
+    void should400WhenTitleIsBlankOnPaperCreate() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
                 "test.pdf",
@@ -263,7 +263,7 @@ class PaperControllerTest {
     //updatePaper()
     @Test
     @WithMockUser(roles = "AUTHOR")
-    void shouldReturnHTTP204WhenPaperIsUpdatedSuccessfully() throws Exception {
+    void should204WhenPaperIsUpdatedSuccessfully() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
                 "test.pdf",
@@ -299,7 +299,7 @@ class PaperControllerTest {
      */
     @Test
     @WithMockUser(roles = "AUTHOR")
-    void shouldReturnHTTP400WhenAllValuesAreNullOnPaperUpdate() throws Exception {
+    void should400WhenAllValuesAreNullOnPaperUpdate() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
                 "test.pdf",
@@ -329,7 +329,7 @@ class PaperControllerTest {
 
     @Test
     @WithMockUser(roles = "AUTHOR")
-    void shouldReturnHTTP404WhenPaperIsNotFoundOnPaperUpdate() throws Exception {
+    void should404WhenPaperIsNotFoundOnPaperUpdate() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
                 "test.pdf",
@@ -364,7 +364,7 @@ class PaperControllerTest {
     }
 
     @Test
-    void shouldReturn401WhenUpdatePaperIsCalledByUnauthenticatedUser() throws Exception {
+    void should401WhenUpdatePaperIsCalledByUnauthenticatedUser() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
                 "test.pdf",
@@ -396,7 +396,7 @@ class PaperControllerTest {
     }
 
     @Test
-    void shouldReturnHTTP403WhenUpdatePaperIsCalledWithInvalidCsrfToken() throws Exception {
+    void should403WhenUpdatePaperIsCalledWithInvalidCsrfToken() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
                 "test.pdf",
@@ -428,7 +428,7 @@ class PaperControllerTest {
     }
 
     @Test
-    void shouldReturnHTTP403WhenUpdatePaperIsCalledWithNoCsrfToken() throws Exception {
+    void should403WhenUpdatePaperIsCalledWithNoCsrfToken() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
                 "test.pdf",
@@ -462,7 +462,7 @@ class PaperControllerTest {
     //addCoAuthor()
     @Test
     @WithMockUser(roles = "AUTHOR")
-    void shouldReturnHTTP204WhenCoAuthorIsAddedSuccessfully() throws Exception {
+    void should204WhenCoAuthorIsAddedSuccessfully() throws Exception {
         String requestBody = """
                 {
                     "userId": 2
@@ -482,7 +482,7 @@ class PaperControllerTest {
 
     @Test
     @WithMockUser(roles = "AUTHOR")
-    void shouldReturnHTTP404WhenPaperIsNotFoundOnAuthorAddition() throws Exception {
+    void should404WhenPaperIsNotFoundOnAuthorAddition() throws Exception {
         String requestBody = """
                 {
                     "userId": 2
@@ -508,7 +508,7 @@ class PaperControllerTest {
 
     @Test
     @WithMockUser(roles = "AUTHOR")
-    void shouldReturnHTTP409WhenCoAuthorIsAlreadyAddedOnAuthorAddition() throws Exception {
+    void should409WhenCoAuthorIsAlreadyAddedOnAuthorAddition() throws Exception {
         String authorsName = "author";
         String requestBody = """
                 {
@@ -537,7 +537,7 @@ class PaperControllerTest {
     }
 
     @Test
-    void shouldReturnHTTP401WhenAddCoAuthorIsCalledByUnauthenticatedUser() throws Exception {
+    void should401WhenAddCoAuthorIsCalledByUnauthenticatedUser() throws Exception {
         String requestBody = """
                 {
                     "userId": 2
@@ -561,7 +561,7 @@ class PaperControllerTest {
     }
 
     @Test
-    void shouldReturnHTTP403WhenAddCoAuthorIsCalledWithInvalidCsrf() throws Exception {
+    void should403WhenAddCoAuthorIsCalledWithInvalidCsrf() throws Exception {
         String requestBody = """
                 {
                     "userId": 2
@@ -585,7 +585,7 @@ class PaperControllerTest {
     }
 
     @Test
-    void shouldReturnHTTP403WhenAddCoAuthorIsCalledWithNoCsrf() throws Exception {
+    void should403WhenAddCoAuthorIsCalledWithNoCsrf() throws Exception {
         String requestBody = """
                 {
                     "userId": 2
@@ -611,7 +611,7 @@ class PaperControllerTest {
     //reviewPaper()
     @Test
     @WithMockUser(roles = "REVIEWER")
-    void shouldReturnHTTP201WhenPaperIsReviewedSuccessfully() throws Exception {
+    void should201WhenPaperIsReviewedSuccessfully() throws Exception {
         String requestBody = """
                 {
                     "comment": "comment",
@@ -619,7 +619,7 @@ class PaperControllerTest {
                 }
                 """;
 
-        when(this.paperService.reviewPaper(any(Long.class), any(ReviewCreateRequest.class), any(Authentication.class)))
+        when(this.paperService.reviewPaper(eq(1L), any(ReviewCreateRequest.class), any(Authentication.class)))
                 .thenReturn(1L);
 
         this.mockMvc.perform(post(PAPER_PATH + "/{id}/reviews", 1L).with(csrf())
@@ -633,21 +633,21 @@ class PaperControllerTest {
 
     @Test
     @WithMockUser(roles = "REVIEWER")
-    void shouldReturnHTTP404WhenPaperIsNotFoundOnReviewPaper() throws Exception {
+    void should404WhenPaperIsNotFoundOnReviewPaper() throws Exception {
         String requestBody = """
                 {
                     "comment": "comment",
                     "score": 5.9
                 }
                 """;
-        String responseBody = """
+        String responseBody = String.format("""
                 {
-                    "message": "Paper was not found with id: 1"
+                    "message": "Paper was not found with id: %d"
                 }
-                """;
+                """, 1L);
 
-        when(this.paperService.reviewPaper(any(Long.class), any(ReviewCreateRequest.class), any(Authentication.class)))
-                .thenThrow(new ResourceNotFoundException("Paper was not found with id: 1"));
+        when(this.paperService.reviewPaper(eq(1L), any(ReviewCreateRequest.class), any(Authentication.class)))
+                .thenThrow(new ResourceNotFoundException("Paper was not found with id: " + 1L));
 
         this.mockMvc.perform(post(PAPER_PATH + "/{id}/reviews", 1L).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -660,7 +660,7 @@ class PaperControllerTest {
 
     @Test
     @WithMockUser(roles = "REVIEWER")
-    void shouldReturnHTTP500WhenPaperIsNotInSubmittedToAnyConferenceOnReviewPaper() throws Exception {
+    void should500WhenPaperIsNotInSubmittedToAnyConferenceOnReviewPaper() throws Exception {
         String requestBody = """
                 {
                     "comment": "comment",
@@ -673,7 +673,7 @@ class PaperControllerTest {
                 }
                 """;
 
-        when(this.paperService.reviewPaper(any(Long.class), any(ReviewCreateRequest.class), any(Authentication.class)))
+        when(this.paperService.reviewPaper(eq(1L), any(ReviewCreateRequest.class), any(Authentication.class)))
                 .thenThrow(new ServerErrorException("The server encountered an internal error and was unable to " +
                         "complete your request. Please try again later"));
 
@@ -688,20 +688,20 @@ class PaperControllerTest {
 
     @Test
     @WithMockUser(roles = "REVIEWER")
-    void shouldReturnHTTP409WhenPaperIsNotInSubmittedStateOnReviewPaper() throws Exception {
+    void should409WhenPaperIsNotInSubmittedStateOnReviewPaper() throws Exception {
         String requestBody = """
                 {
                     "comment": "comment",
                     "score": 5.9
                 }
                 """;
-        String responseBody = """
+        String responseBody = String.format("""
                 {
-                    "message": "Paper is in state: CREATED and can not be reviewed"
+                    "message": "Paper is in state: %s and can not be reviewed"
                 }
-                """;
+                """, PaperState.CREATED);
 
-        when(this.paperService.reviewPaper(any(Long.class), any(ReviewCreateRequest.class), any(Authentication.class)))
+        when(this.paperService.reviewPaper(eq(1L), any(ReviewCreateRequest.class), any(Authentication.class)))
                 .thenThrow(new StateConflictException("Paper is in state: " + PaperState.CREATED + " and can not be " +
                         "reviewed"));
 
@@ -715,7 +715,7 @@ class PaperControllerTest {
     }
 
     @Test
-    void shouldReturnHTTP401WhenReviewPaperIsCalledByUnauthenticatedUser() throws Exception {
+    void should401WhenReviewPaperIsCalledByUnauthenticatedUser() throws Exception {
         String requestBody = """
                 {
                     "comment": "comment",
@@ -740,7 +740,7 @@ class PaperControllerTest {
     }
 
     @Test
-    void shouldReturnHTTP403WhenReviewPaperIsCalledWithInvalidCsrf() throws Exception {
+    void should403WhenReviewPaperIsCalledWithInvalidCsrf() throws Exception {
         String requestBody = """
                 {
                     "comment": "comment",
@@ -765,7 +765,7 @@ class PaperControllerTest {
     }
 
     @Test
-    void shouldReturnHTTP403WhenReviewPaperIsCalledWithNoCsrf() throws Exception {
+    void should403WhenReviewPaperIsCalledWithNoCsrf() throws Exception {
         String requestBody = """
                 {
                     "comment": "comment",
@@ -791,25 +791,25 @@ class PaperControllerTest {
 
     @Test
     @WithMockUser(roles = "AUTHOR")
-    void shouldReturnHTTP204WhenPaperIsWithdrawnSuccessfully() throws Exception {
-        doNothing().when(this.paperService).withdrawPaper(any(Long.class), any(Authentication.class));
+    void should204WhenPaperIsWithdrawnSuccessfully() throws Exception {
+        doNothing().when(this.paperService).withdrawPaper(eq(1L), any(Authentication.class));
 
         this.mockMvc.perform(put(PAPER_PATH + "/{id}/withdraw", 1L).with(csrf()))
                 .andExpect(status().isNoContent());
 
-        verify(this.paperService, times(1)).withdrawPaper(any(Long.class), any(Authentication.class));
+        verify(this.paperService, times(1)).withdrawPaper(eq(1L), any(Authentication.class));
     }
 
     @Test
     @WithMockUser(roles = "AUTHOR")
-    void shouldReturnHTTP404WhenPaperIsNotFoundOnWithdrawPaper() throws Exception {
-        String responseBody = """
+    void should404WhenPaperIsNotFoundOnWithdrawPaper() throws Exception {
+        String responseBody = String.format("""
                 {
-                    "message": "Paper not found with id: 1"
+                    "message": "Paper not found with id: %d"
                 }
-                """;
+                """, 1L);
 
-        doThrow(new ResourceNotFoundException("Paper not found with id: 1")).when(this.paperService).withdrawPaper(
+        doThrow(new ResourceNotFoundException("Paper not found with id: " + 1L)).when(this.paperService).withdrawPaper(
                 any(Long.class), any(Authentication.class));
 
         this.mockMvc.perform(put(PAPER_PATH + "/{id}/withdraw", 1L).with(csrf()))
@@ -821,7 +821,7 @@ class PaperControllerTest {
 
     @Test
     @WithMockUser(roles = "AUTHOR")
-    void shouldReturnHTTP409WhenPaperIsNotSubmittedToAnyConferenceOnWithdrawPaper() throws Exception {
+    void should409WhenPaperIsNotSubmittedToAnyConferenceOnWithdrawPaper() throws Exception {
         String responseBody = """
                 {
                     "message": "You can not withdraw a paper that has not been submitted to any conference"
@@ -829,7 +829,7 @@ class PaperControllerTest {
                 """;
 
         doThrow(new StateConflictException("You can not withdraw a paper that has not been submitted to any " +
-                "conference")).when(this.paperService).withdrawPaper(any(Long.class), any(Authentication.class));
+                "conference")).when(this.paperService).withdrawPaper(eq(1L), any(Authentication.class));
 
         this.mockMvc.perform(put(PAPER_PATH + "/{id}/withdraw", 1L).with(csrf()))
                 .andExpectAll(
@@ -839,7 +839,7 @@ class PaperControllerTest {
     }
 
     @Test
-    void shouldReturnHTTP401WhenWithdrawPaperIsCalledByUnauthenticatedUser() throws Exception {
+    void should401WhenWithdrawPaperIsCalledByUnauthenticatedUser() throws Exception {
         String responseBody = """
                 {
                     "message": "Unauthorized"
@@ -856,7 +856,7 @@ class PaperControllerTest {
     }
 
     @Test
-    void shouldReturnHTTP403WhenWithdrawPaperIsCalledWithInvalidCsrf() throws Exception {
+    void should403WhenWithdrawPaperIsCalledWithInvalidCsrf() throws Exception {
         String responseBody = """
                 {
                     "message": "Access denied"
@@ -873,7 +873,7 @@ class PaperControllerTest {
     }
 
     @Test
-    void shouldReturnHTTP403WhenWithdrawPaperIsCalledWithNoCsrf() throws Exception {
+    void should403WhenWithdrawPaperIsCalledWithNoCsrf() throws Exception {
         String responseBody = """
                 {
                     "message": "Access denied"

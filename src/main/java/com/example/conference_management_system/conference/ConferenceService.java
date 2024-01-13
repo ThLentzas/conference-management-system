@@ -29,6 +29,7 @@ import com.example.conference_management_system.user.dto.ReviewerAssignmentReque
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -610,12 +611,13 @@ public class ConferenceService {
      */
     List<ConferenceDTO> findConferences(String name, String description, SecurityContext securityContext) {
         ConferenceSpecs conferenceSpecs = new ConferenceSpecs(name, description);
-        List<Conference> conferences = this.conferenceRepository.findAll(conferenceSpecs);
+        List<Conference> conferences = this.conferenceRepository.findAll(conferenceSpecs, Sort.by("name"));
         Set<ConferenceDTO> conferenceDTOs = new HashSet<>();
 
         if (securityContext.getAuthentication().getPrincipal() instanceof SecurityUser securityUser) {
             List<Conference> pcChairConferences = conferences.stream()
-                    .filter(conference -> conference.getConferenceUsers().stream()
+                    .filter(conference -> conference.getConferenceUsers()
+                            .stream()
                             .anyMatch(conferenceUser -> conferenceUser.getUser().equals(securityUser.user())))
                     .toList();
 

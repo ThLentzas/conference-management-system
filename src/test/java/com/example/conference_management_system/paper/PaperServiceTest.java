@@ -59,10 +59,7 @@ class PaperServiceTest {
     @Mock
     private PaperUserRepository paperUserRepository;
     @Mock
-    private ConferenceUserRepository conferenceUserRepository;
-    @Mock
     private ContentRepository contentRepository;
-
     @Mock
     private UserRepository userRepository;
     @Mock
@@ -80,7 +77,6 @@ class PaperServiceTest {
         this.underTest = new PaperService(
                 paperRepository,
                 paperUserRepository,
-                conferenceUserRepository,
                 contentRepository,
                 userRepository,
                 reviewRepository,
@@ -465,7 +461,7 @@ class PaperServiceTest {
 
         //Act & Assert
         assertThatThrownBy(() -> this.underTest.addCoAuthor(1L, authorAdditionRequest, authentication))
-                .isInstanceOf(DuplicateResourceException.class)
+                .isInstanceOf(StateConflictException.class)
                 .hasMessage("The user to be added as co-author is already added as a reviewer");
     }
 
@@ -521,14 +517,28 @@ class PaperServiceTest {
 
     //reviewPaper()
     @Test
-    void shouldThrowAccessDeniedExceptionWhenRequestingUserIsNotPaperReviewerOnReviewPaper() {
+    void shouldThrowResourceNotFoundExceptionWhenPaperIsNotFoundOnReviewPaper() {
         //Arrange
         ReviewCreateRequest reviewCreateRequest = new ReviewCreateRequest("comment", 6.1);
         Authentication authentication = getAuthentication();
 
-        when(this.paperUserRepository.existsByPaperIdUserIdAndRoleType(any(Long.class),
-                any(Long.class),
-                any(RoleType.class))).thenReturn(false);
+        when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.empty());
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.reviewPaper(1L, reviewCreateRequest, authentication))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Paper not found with id: " + 1L);
+    }
+
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenRequestingUserIsNotAssignedAsPaperReviewerOnReviewPaper() {
+        //Arrange
+        ReviewCreateRequest reviewCreateRequest = new ReviewCreateRequest("comment", 6.1);
+        Authentication authentication = getAuthentication();
+        Paper paper = getPaper();
+        paper.setPaperUsers(new HashSet<>());
+
+        when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.of(paper));
 
         //Act & Assert
         assertThatThrownBy(() -> this.underTest.reviewPaper(1L, reviewCreateRequest, authentication))
@@ -537,33 +547,18 @@ class PaperServiceTest {
     }
 
     @Test
-    void shouldThrowResourceNotFoundExceptionWhenPaperIsNotFoundOnReviewPaper() {
+    void shouldThrowServerErrorExceptionWhenPaperIsNotSubmittedToAnyConferenceForReview() {
         //Arrange
         ReviewCreateRequest reviewCreateRequest = new ReviewCreateRequest("comment", 6.1);
         Authentication authentication = getAuthentication();
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
 
-        when(this.paperUserRepository.existsByPaperIdUserIdAndRoleType(any(Long.class),
-                any(Long.class),
-                any(RoleType.class))).thenReturn(true);
-        when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.empty());
-
-        //Act & Assert
-        assertThatThrownBy(() -> this.underTest.reviewPaper(1L, reviewCreateRequest, authentication))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Paper not found with id: 1");
-    }
-
-    @Test
-    void shouldThrowServerErrorExceptionWhenToBeReviewedPaperIsNotSubmittedToAnyConference() {
-        //Arrange
-        ReviewCreateRequest reviewCreateRequest = new ReviewCreateRequest("comment", 6.1);
-        Authentication authentication = getAuthentication();
+        PaperUser paperUser = new PaperUser();
+        paperUser.setUser(securityUser.user());
         Paper paper = getPaper();
+        paper.setPaperUsers(Set.of(paperUser));
 
-        when(this.paperUserRepository.existsByPaperIdUserIdAndRoleType(any(Long.class),
-                any(Long.class),
-                any(RoleType.class))).thenReturn(true);
-        when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.of(paper));
+        when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.of(paper));
 
         //Act & Assert
         assertThatThrownBy(() -> this.underTest.reviewPaper(1L, reviewCreateRequest, authentication))
@@ -577,50 +572,68 @@ class PaperServiceTest {
         //Arrange
         ReviewCreateRequest reviewCreateRequest = new ReviewCreateRequest("comment", 6.1);
         Authentication authentication = getAuthentication();
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+
+        PaperUser paperUser = new PaperUser();
+        paperUser.setUser(securityUser.user());
         Paper paper = getPaper();
+        paper.setPaperUsers(Set.of(paperUser));
         paper.setConference(new Conference());
 
-        when(this.paperUserRepository.existsByPaperIdUserIdAndRoleType(any(Long.class),
-                any(Long.class),
-                any(RoleType.class))).thenReturn(true);
-        when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.of(paper));
+        when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.of(paper));
 
         //Act & Assert
         assertThatThrownBy(() -> this.underTest.reviewPaper(1L, reviewCreateRequest, authentication))
                 .isInstanceOf(StateConflictException.class)
-                .hasMessage("Conference is in the state: " + ConferenceState.CREATED + " and papers can not be " +
-                        "reviewed");
+                .hasMessage("Conference is in the state: " + paper.getConference().getState() + " and papers can not " +
+                        "be " + "reviewed");
     }
+
     @Test
     void shouldThrowStateConflictExceptionWhenPaperIsNotInSubmittedStateOnReviewPaper() {
         //Arrange
         ReviewCreateRequest reviewCreateRequest = new ReviewCreateRequest("comment", 6.1);
         Authentication authentication = getAuthentication();
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+
+        PaperUser paperUser = new PaperUser();
+        paperUser.setUser(securityUser.user());
         Paper paper = getPaper();
+        paper.setPaperUsers(Set.of(paperUser));
         Conference conference = new Conference();
         conference.setState(ConferenceState.REVIEW);
         paper.setConference(conference);
 
-        when(this.paperUserRepository.existsByPaperIdUserIdAndRoleType(any(Long.class),
-                any(Long.class),
-                any(RoleType.class))).thenReturn(true);
-        when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.of(paper));
+        when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.of(paper));
 
         //Act & Assert
         assertThatThrownBy(() -> this.underTest.reviewPaper(1L, reviewCreateRequest, authentication))
                 .isInstanceOf(StateConflictException.class)
-                .hasMessage("Paper is in state: " + PaperState.CREATED + " and can not be reviewed");
+                .hasMessage("Paper is in state: " + paper.getState() + " and can not be reviewed");
     }
 
     //withdrawPaper()
     @Test
-    void shouldThrowAccessDeniedExceptionWhenRequestingUserIsNotPaperAuthorOnWithdrawPaper() {
+    void shouldThrowResourceNotFoundExceptionWhenPaperIsNotFoundOnWithdrawPaper() {
         //Arrange
         Authentication authentication = getAuthentication();
 
-        when(this.paperUserRepository.existsByPaperIdUserIdAndRoleType(any(Long.class),
-                any(Long.class),
-                any(RoleType.class))).thenReturn(false);
+        when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.empty());
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.withdrawPaper(1L, authentication))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Paper not found with id: " + 1L);
+    }
+
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenRequestingUserIsNotPaperAuthorOnWithdrawPaper() {
+        //Arrange
+        Authentication authentication = getAuthentication();
+        Paper paper = getPaper();
+        paper.setPaperUsers(new HashSet<>());
+
+        when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.of(paper));
 
         //Act & Assert
         assertThatThrownBy(() -> this.underTest.withdrawPaper(1L, authentication))
@@ -629,31 +642,16 @@ class PaperServiceTest {
     }
 
     @Test
-    void shouldThrowResourceNotFoundExceptionWhenPaperIsNotFoundOnWithdrawPaper() {
-        //Arrange
-        Authentication authentication = getAuthentication();
-
-        when(this.paperUserRepository.existsByPaperIdUserIdAndRoleType(any(Long.class),
-                any(Long.class),
-                any(RoleType.class))).thenReturn(true);
-        when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.empty());
-
-        //Act & Assert
-        assertThatThrownBy(() -> this.underTest.withdrawPaper(1L, authentication))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Paper not found with id: 1");
-    }
-
-    @Test
     void shouldThrowStateConflictExceptionWhenToBeWithdrawnPaperIsNotSubmittedToAnyConference() {
         //Arrange
         Authentication authentication = getAuthentication();
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+        PaperUser paperUser = new PaperUser();
+        paperUser.setUser(securityUser.user());
         Paper paper = getPaper();
+        paper.setPaperUsers(Set.of(paperUser));
 
-        when(this.paperUserRepository.existsByPaperIdUserIdAndRoleType(any(Long.class),
-                any(Long.class),
-                any(RoleType.class))).thenReturn(true);
-        when(this.paperRepository.findById(any(Long.class))).thenReturn(Optional.of(paper));
+        when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.of(paper));
 
         //Act & Assert
         assertThatThrownBy(() -> this.underTest.withdrawPaper(1L, authentication))

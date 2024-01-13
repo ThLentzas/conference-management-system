@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
@@ -32,11 +33,11 @@ import java.time.LocalDate;
 public class PaperUser {
     @EmbeddedId
     private PaperUserId id;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("paperId")
     @JoinColumn(name = "paper_id")
     private Paper paper;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("userId")
     @JoinColumn(name = "user_id")
     private User user;

@@ -3,6 +3,7 @@ package com.example.conference_management_system.entity;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
@@ -23,17 +24,16 @@ import com.example.conference_management_system.entity.key.ConferenceUserId;
 @Table(name = "conferences_users")
 @Getter
 @Setter
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@EqualsAndHashCode(of = "id")
 @EntityListeners(AuditingEntityListener.class)
 public class ConferenceUser {
     @EmbeddedId
-    @EqualsAndHashCode.Include
     private ConferenceUserId id;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("conferenceId")
     @JoinColumn(name = "conference_id")
     private Conference conference;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("userId")
     @JoinColumn(name = "user_id")
     private User user;

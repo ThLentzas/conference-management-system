@@ -35,18 +35,17 @@ public class ConferenceSpecs implements Specification<Conference> {
         /*
             Case-insensitive searching
          */
-        if (!name.isBlank()) {
+        if (!this.name.isBlank()) {
             predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("name")),
-                    "%" + name.toLowerCase() + "%"));
+                    "%" + this.name.toLowerCase() + "%"));
         }
 
-        if (!description.isBlank()) {
+        if (!this.description.isBlank()) {
             predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("description")),
-                    "%" + description.toLowerCase() + "%"));
+                    "%" + this.description.toLowerCase() + "%"));
         }
 
         predicates.add(root.isNotNull());
-
         Predicate[] predicatesArr = predicates.toArray(new Predicate[0]);
 
         return criteriaBuilder.and(predicatesArr);

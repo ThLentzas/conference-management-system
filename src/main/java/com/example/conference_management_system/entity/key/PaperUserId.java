@@ -11,7 +11,7 @@ import jakarta.persistence.Embeddable;
 @Embeddable
 @Getter
 @Setter
-@EqualsAndHashCode
+@EqualsAndHashCode(of = {"paperId", "userId"})
 public class PaperUserId implements Serializable {
     private Long paperId;
     private Long userId;

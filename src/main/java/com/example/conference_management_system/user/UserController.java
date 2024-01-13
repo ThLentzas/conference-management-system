@@ -27,4 +27,9 @@ class UserController {
 
         return new ResponseEntity<>(user, HttpStatus.OK);
     }
+
+    /*
+        We don't have endpoints to return resources for the active user, if we wanted we could do something
+        like /user/conferences or /user/papers
+     */
 }

@@ -8,11 +8,10 @@ import org.springframework.data.repository.query.Param;
 import com.example.conference_management_system.entity.Conference;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 public interface ConferenceRepository extends JpaRepository<Conference, UUID>, JpaSpecificationExecutor<Conference> {
+
     @Query("""
                 SELECT COUNT(c) > 0
                 FROM Conference c
@@ -41,9 +40,9 @@ public interface ConferenceRepository extends JpaRepository<Conference, UUID>, J
     @Query("""
                 SELECT c
                 FROM Conference c
-                JOIN FETCH c.papers p
-                JOIN FETCH p.reviews r
-                JOIN FETCH r.user
+                LEFT JOIN FETCH c.papers p
+                LEFT JOIN FETCH p.reviews r
+                LEFT JOIN FETCH r.user
                 WHERE c IN :conferences
             """)
     List<Conference> fetchPapersForConferences(@Param("conferences") List<Conference> conferences);

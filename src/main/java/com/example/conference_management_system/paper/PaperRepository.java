@@ -5,10 +5,10 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import com.example.conference_management_system.entity.Paper;
-
 import java.util.List;
 import java.util.Optional;
+
+import com.example.conference_management_system.entity.Paper;
 
 /*
     We are using JOIN FETCH when it comes to paperUsers because there will always be a User associated with a paper but
@@ -45,6 +45,17 @@ public interface PaperRepository extends JpaRepository<Paper, Long>, JpaSpecific
                 WHERE p.id = :id
             """)
     Optional<Paper> findByPaperIdFetchingPaperUsers(@Param("id") Long id);
+
+    @Query("""
+                SELECT p
+                FROM Paper p
+                JOIN FETCH p.paperUsers pu
+                JOIN FETCH pu.user u
+                LEFT JOIN FETCH p.reviews r
+                LEFT JOIN FETCH r.user
+                WHERE p.id = :id
+            """)
+    Optional<Paper> findByPaperIdFetchingPaperUsersAndReviews(@Param("id") Long id);
 
     @Query("""
                 SELECT p

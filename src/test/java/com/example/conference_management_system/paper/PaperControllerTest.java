@@ -1,22 +1,24 @@
 package com.example.conference_management_system.paper;
 
-import com.example.conference_management_system.exception.DuplicateResourceException;
-import com.example.conference_management_system.exception.ServerErrorException;
-import com.example.conference_management_system.exception.StateConflictException;
-import com.example.conference_management_system.paper.dto.AuthorAdditionRequest;
-import com.example.conference_management_system.review.dto.ReviewCreateRequest;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.util.ResourceUtils;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -27,21 +29,28 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.conference_management_system.config.SecurityConfig;
 import com.example.conference_management_system.exception.ResourceNotFoundException;
+import com.example.conference_management_system.exception.DuplicateResourceException;
+import com.example.conference_management_system.exception.ServerErrorException;
+import com.example.conference_management_system.exception.StateConflictException;
+import com.example.conference_management_system.paper.dto.AuthorAdditionRequest;
 import com.example.conference_management_system.paper.dto.PaperCreateRequest;
+import com.example.conference_management_system.paper.dto.PaperDTO;
+import com.example.conference_management_system.paper.dto.PaperFile;
 import com.example.conference_management_system.paper.dto.PaperUpdateRequest;
+import com.example.conference_management_system.review.dto.ReviewCreateRequest;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
+import java.util.Arrays;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -490,11 +499,11 @@ class PaperControllerTest {
                 """;
         String responseBody = String.format("""
                 {
-                    "message": "Paper was not found with id: %d"
+                    "message": "Paper not found with id: %d"
                 }
                 """, 1L);
 
-        doThrow(new ResourceNotFoundException("Paper was not found with id: " + 1L)).when(this.paperService)
+        doThrow(new ResourceNotFoundException("Paper not found with id: " + 1L)).when(this.paperService)
                 .addCoAuthor(eq(1L), any(AuthorAdditionRequest.class), any(Authentication.class));
 
         this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L).with(csrf())
@@ -623,8 +632,8 @@ class PaperControllerTest {
                 .thenReturn(1L);
 
         this.mockMvc.perform(post(PAPER_PATH + "/{id}/reviews", 1L).with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(requestBody))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
                 .andExpectAll(
                         status().isCreated(),
                         header().string("Location", containsString(PAPER_PATH + "/" + 1L + "/reviews/" + 1L))
@@ -642,12 +651,12 @@ class PaperControllerTest {
                 """;
         String responseBody = String.format("""
                 {
-                    "message": "Paper was not found with id: %d"
+                    "message": "Paper not found with id: %d"
                 }
                 """, 1L);
 
         when(this.paperService.reviewPaper(eq(1L), any(ReviewCreateRequest.class), any(Authentication.class)))
-                .thenThrow(new ResourceNotFoundException("Paper was not found with id: " + 1L));
+                .thenThrow(new ResourceNotFoundException("Paper not found with id: " + 1L));
 
         this.mockMvc.perform(post(PAPER_PATH + "/{id}/reviews", 1L).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -889,10 +898,230 @@ class PaperControllerTest {
         verifyNoInteractions(paperService);
     }
 
+    //downloadPaper()
+    @Test
+    @WithMockUser(roles = "AUTHOR")
+    void should200WhenDownloadPaperIsSuccessful() throws Exception {
+        PaperFile paperFile = new PaperFile(new ByteArrayResource((getFileContent())), "test.pdf");
+
+        when(this.paperService.downloadPaperFile(eq(1L), any(Authentication.class))).thenReturn(paperFile);
+
+        MvcResult result = this.mockMvc.perform(get(PAPER_PATH + "/{id}/download", 1L)
+                        .accept(MediaType.APPLICATION_OCTET_STREAM))
+                .andExpectAll(
+                        status().isOk(),
+                        content().contentType(MediaType.APPLICATION_OCTET_STREAM),
+                        header().exists(HttpHeaders.CONTENT_DISPOSITION))
+                .andReturn();
+
+        assertThat(result.getResponse().getContentAsByteArray()).isEqualTo(paperFile.file().getContentAsByteArray());
+    }
+
+    @Test
+    @WithMockUser(roles = "AUTHOR")
+    void should404WhenPaperIsNotFoundOnDownloadPaper() throws Exception {
+        String responseBody = String.format("""
+                {
+                    "message": "Paper not found with id: %d"
+                }
+                """, 1L);
+
+        when(this.paperService.downloadPaperFile(eq(1L), any(Authentication.class)))
+                .thenThrow(new ResourceNotFoundException("Paper not found with id: " + 1L));
+
+        this.mockMvc.perform(get(PAPER_PATH + "/{id}/download", 1L)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpectAll(
+                        status().isNotFound(),
+                        content().json(responseBody)
+                );
+    }
+
+    @Test
+    @WithMockUser(roles = "AUTHOR")
+    @DisplayName("The requesting user is not AUTHOR or REVIEWER of the paper or PC_CHAIR at conference the paper has" +
+            " been submitted to")
+    void should403OnDownloadPaper() throws Exception {
+        String responseBody = """
+                {
+                    "message": "Access denied"
+                }
+                """;
+        when(this.paperService.downloadPaperFile(eq(1L), any(Authentication.class)))
+                .thenThrow(new AccessDeniedException("Access denied"));
+
+        this.mockMvc.perform(get(PAPER_PATH + "/{id}/download", 1L)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpectAll(
+                        status().isForbidden(),
+                        content().json(responseBody)
+                );
+    }
+
+    @Test
+    @WithMockUser(roles = "AUTHOR")
+    void should500WhenContentIsNotFoundOnDownloadPaper() throws Exception {
+        String responseBody = """
+                {
+                    "message": "The server encountered an internal error and was unable to complete your request. Please try again later"
+                }
+                """;
+
+        when(this.paperService.downloadPaperFile(eq(1L), any(Authentication.class)))
+                .thenThrow(new ServerErrorException("The server encountered an internal error and was unable to " +
+                        "complete your request. Please try again later"));
+
+        this.mockMvc.perform(get(PAPER_PATH + "/{id}/download", 1L)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpectAll(
+                        status().is5xxServerError(),
+                        content().json(responseBody)
+                );
+    }
+
+    @Test
+    void should401WhenDownloadPaperIsCalledByUnauthenticatedUser() throws Exception {
+        String responseBody = """
+                {
+                    "message": "Unauthorized"
+                }
+                """;
+
+        this.mockMvc.perform(get(PAPER_PATH + "/{id}/download", 1L))
+                .andExpectAll(
+                        status().isUnauthorized(),
+                        content().json(responseBody)
+                );
+
+        verifyNoInteractions(paperService);
+    }
+
+    //findByPaperId()
+    @Test
+    void should200WhenPaperIsFoundOnFindPaperById() throws Exception {
+        String responseBody = """
+                {
+                    "id": 4,
+                    "createdDate": "2024-01-11",
+                    "title": "title",
+                    "abstractText": "abstract",
+                    "authors": [
+                        "author 1",
+                        "author 2"
+                    ],
+                    "keywords": [
+                        "keyword 1",
+                        "keyword 2"
+                    ]
+                }
+                """;
+
+        when(this.paperService.findPaperById(eq(1L), any(SecurityContext.class))).thenReturn(getPapers()[0]);
+
+        this.mockMvc.perform(get(PAPER_PATH + "/{id}", 1L)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpectAll(
+                        status().isOk(),
+                        content().json(responseBody)
+                );
+    }
+
+    @Test
+    void should404WhenPaperIsNotFoundOnFindPaperById() throws Exception {
+        String responseBody = String.format("""
+                {
+                    "message": "Paper not found with id: %d"
+                }
+                """, 1L);
+
+        when(this.paperService.findPaperById(eq(1L), any(SecurityContext.class)))
+                .thenThrow(new ResourceNotFoundException("Paper not found with id: " + 1L));
+
+        this.mockMvc.perform(get(PAPER_PATH + "/{id}", 1L)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpectAll(
+                        status().isNotFound(),
+                        content().json(responseBody)
+                );
+    }
+
+    //findPapers()
+    @Test
+    void should200OnFindPapers() throws Exception {
+        String responseBody = """
+                [
+                    {
+                        "id": 4,
+                        "createdDate": "2024-01-11",
+                        "title": "title",
+                        "abstractText": "abstract",
+                        "authors": [
+                            "author 1",
+                            "author 2"
+                        ],
+                        "keywords": [
+                            "keyword 1",
+                            "keyword 2"
+                        ]
+                    }, {
+                        "id": 2,
+                        "createdDate": "2024-01-19",
+                        "title": "another title",
+                        "abstractText": "another abstract",
+                        "authors": [
+                            "author 1",
+                            "author 2"
+                        ],
+                        "keywords": [
+                            "keyword 1",
+                            "keyword 2"
+                        ]
+                    }
+                ]
+                """;
+
+        when(this.paperService.findPapers(any(String.class),
+                any(String.class),
+                any(String.class),
+                any(SecurityContext.class))).thenReturn(Arrays.stream(getPapers()).toList());
+
+        this.mockMvc.perform(get(PAPER_PATH)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpectAll(
+                        status().isOk(),
+                        content().json(responseBody)
+                );
+    }
 
     private byte[] getFileContent() throws IOException {
         Path pdfPath = ResourceUtils.getFile("classpath:files/test.pdf").toPath();
 
         return Files.readAllBytes(pdfPath);
+    }
+
+    private PaperDTO[] getPapers() {
+        PaperDTO[] papers = new PaperDTO[2];
+        String[] authors = {"author 1", "author 2"};
+        String[] keywords = {"keyword 1", "keyword 2"};
+
+        papers[0] = new PaperDTO(
+                4L,
+                LocalDate.parse("2024-01-11"),
+                "title",
+                "abstract",
+                authors,
+                keywords
+        );
+
+        papers[1] = new PaperDTO(
+                2L,
+                LocalDate.parse("2024-01-19"),
+                "another title",
+                "another abstract",
+                authors,
+                keywords
+        );
+
+        return papers;
     }
 }

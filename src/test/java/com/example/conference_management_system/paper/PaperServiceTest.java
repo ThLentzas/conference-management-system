@@ -1,7 +1,6 @@
 package com.example.conference_management_system.paper;
 
 import com.example.conference_management_system.conference.ConferenceState;
-import com.example.conference_management_system.conference.ConferenceUserRepository;
 import com.example.conference_management_system.content.ContentRepository;
 import com.example.conference_management_system.entity.*;
 import com.example.conference_management_system.entity.key.PaperUserId;
@@ -10,6 +9,7 @@ import com.example.conference_management_system.exception.ResourceNotFoundExcept
 import com.example.conference_management_system.exception.ServerErrorException;
 import com.example.conference_management_system.exception.StateConflictException;
 import com.example.conference_management_system.exception.UnsupportedFileException;
+import com.example.conference_management_system.paper.dto.PaperFile;
 import com.example.conference_management_system.review.dto.ReviewCreateRequest;
 import com.example.conference_management_system.utility.FileService;
 import com.example.conference_management_system.paper.dto.PaperCreateRequest;
@@ -23,31 +23,38 @@ import com.example.conference_management_system.role.RoleType;
 import com.example.conference_management_system.security.SecurityUser;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.util.ResourceUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.testcontainers.shaded.org.apache.commons.lang3.RandomStringUtils;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.testcontainers.shaded.org.checkerframework.checker.units.qual.C;
@@ -659,6 +666,129 @@ class PaperServiceTest {
                 .hasMessage("You can not withdraw a paper that has not been submitted to any conference");
     }
 
+    //downloadPaper()
+    @Test
+    void shouldDownloadPaperForPaperAuthorOrReviewerOnDownloadPaper() throws Exception {
+        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+
+        PaperUser paperUser = new PaperUser();
+        paperUser.setUser(securityUser.user());
+        Paper paper = getPaper();
+        paper.setPaperUsers(Set.of(paperUser));
+
+        String generatedFileName = UUID.randomUUID().toString();
+        Content content = new Content("test.pdf", generatedFileName, ".pdf");
+        content.setId(paper.getId());
+        Resource resource = new UrlResource(ResourceUtils.getFile("classpath:files/test.pdf").toPath().toUri());
+
+        PaperFile expected = new PaperFile(resource, content.getOriginalFileName());
+
+        when(this.paperRepository.findPaperGraphById(1L)).thenReturn(Optional.of(paper));
+        when(this.contentRepository.findByPaperId(1L)).thenReturn(Optional.of(content));
+        when(this.fileService.getFile(content.getGeneratedFileName())).thenReturn(resource);
+
+        PaperFile actual = this.underTest.downloadPaperFile(1L, authentication);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    void shouldDownloadPaperForPcChairAtConferencePaperHasBeenSubmittedTo() throws Exception {
+        //Arrange
+        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+        securityUser.user().setRoles(Set.of(new Role(RoleType.ROLE_PC_CHAIR)));
+
+        Conference conference = new Conference();
+        ConferenceUser conferenceUser = new ConferenceUser();
+        conferenceUser.setUser(securityUser.user());
+        conference.setConferenceUsers(Set.of(conferenceUser));
+        Paper paper = getPaper();
+        paper.setPaperUsers(new HashSet<>());
+        paper.setConference(conference);
+
+        String generatedFileName = UUID.randomUUID().toString();
+        Content content = new Content("test.pdf", generatedFileName, ".pdf");
+        content.setId(paper.getId());
+        Resource resource = new UrlResource(ResourceUtils.getFile("classpath:files/test.pdf").toPath().toUri());
+        PaperFile expected = new PaperFile(resource, content.getOriginalFileName());
+
+        when(this.paperRepository.findPaperGraphById(1L)).thenReturn(Optional.of(paper));
+        when(this.contentRepository.findByPaperId(1L)).thenReturn(Optional.of(content));
+        when(this.fileService.getFile(content.getGeneratedFileName())).thenReturn(resource);
+
+        //Act
+        PaperFile actual = this.underTest.downloadPaperFile(1L, authentication);
+
+        //Assert
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    void  shouldThrowResourceNotFoundExceptionWhenPaperIsNotFoundOnDownloadPaper() {
+        //Arrange
+        Authentication authentication = getAuthentication();
+
+        when(this.paperRepository.findPaperGraphById(1L)).thenReturn(Optional.empty());
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.downloadPaperFile(1L, authentication))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Paper not found with id: " + 1L);
+    }
+
+    @Test
+    @DisplayName("The requesting user is not AUTHOR or REVIEWER of the paper or PC_CHAIR at conference the paper has" +
+            " been submitted to")
+    void shouldThrowAccessDeniedExceptionOnDownloadPaper() {
+        //Arrange
+        Authentication authentication = getAuthentication();
+        Paper paper = getPaper();
+        paper.setPaperUsers(new HashSet<>());
+
+        when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.of(paper));
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.withdrawPaper(1L, authentication))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessage("Access denied");
+    }
+
+    @Test
+    void shouldThrowServerErrorExceptionWhenContentIsNotFoundOnDownloadPaper() {
+        //Arrange
+        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+
+        PaperUser paperUser = new PaperUser();
+        paperUser.setUser(securityUser.user());
+        Paper paper = getPaper();
+        paper.setPaperUsers(Set.of(paperUser));
+
+        when(this.paperRepository.findPaperGraphById(1L)).thenReturn(Optional.of(paper));
+        when(this.contentRepository.findByPaperId(1L)).thenReturn(Optional.empty());
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.downloadPaperFile(1L, authentication))
+                .isInstanceOf(ServerErrorException.class)
+                .hasMessage("The server encountered an internal error and was unable to complete your request. " +
+                        "Please try again later");
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenPaperIsNotFoundOnFindPaperById() {
+        //Arrange
+        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+        securityContext.setAuthentication(getAuthentication());
+
+        when(this.paperRepository.findByPaperIdFetchingPaperUsersAndReviews(1L)).thenReturn(Optional.empty());
+
+        //Act & Assert
+        assertThatThrownBy(() -> this.underTest.findPaperById(1L, securityContext))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Paper not found with id: " + 1L);
+    }
 
     private Paper getPaper() {
         Paper paper = new Paper();

@@ -1,5 +1,6 @@
 package com.example.conference_management_system.paper;
 
+import com.example.conference_management_system.paper.dto.AuthorPaperDTO;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,9 +17,12 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.util.ResourceUtils;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 
 import com.example.conference_management_system.AbstractIntegrationTest;
@@ -192,7 +196,7 @@ class PaperIT extends AbstractIntegrationTest {
         /*
             GET: /api/v1/papers/{id}/download
          */
-        EntityExchangeResult<byte[]> download = webTestClient.get()
+        EntityExchangeResult<byte[]> file = webTestClient.get()
                 .uri(PAPER_PATH + "/{id}/download?_csrf={csrf}", paperId, csrfToken)
                 .header("Cookie", sessionId)
                 .exchange()
@@ -204,8 +208,9 @@ class PaperIT extends AbstractIntegrationTest {
                 .expectBody(byte[].class)
                 .returnResult();
 
-        byte[] fileContent = download.getResponseBody();
-        assertThat(fileContent).isNotNull();
+        byte[] fileContent = file.getResponseBody();
+
+        assertThat(fileContent).isEqualTo(getFileContent("test.pdf"));
 
         /*
             GET: /api/v1/user
@@ -359,7 +364,7 @@ class PaperIT extends AbstractIntegrationTest {
                 .returnResult();
 
         byte[] fileContent = download.getResponseBody();
-        assertThat(fileContent).isNotNull();
+        assertThat(fileContent).isEqualTo(getFileContent("test.tex"));
     }
 
     @Test
@@ -503,6 +508,176 @@ class PaperIT extends AbstractIntegrationTest {
                  */
                 .jsonPath("$.roleTypes").value(roleTypes -> assertThat((List<String>) roleTypes).contains(
                         RoleType.ROLE_AUTHOR.name()));
+    }
+
+    @Test
+    void shouldFindPapers() throws IOException {
+                 /*
+            Getting the csrf token and the cookie of the current session for subsequent requests.
+
+            The CsrfToken is an interface, and we can not specify it as EntityExchangeResult<CsrfToken>. It would result
+            in a deserialization error. The default implementation of that interface is the DefaultCsrfToken, so we
+            specify that instead.
+         */
+        EntityExchangeResult<DefaultCsrfToken> result = this.webTestClient.get()
+                .uri(AUTH_PATH + "/csrf")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectHeader().exists(HttpHeaders.SET_COOKIE)
+                .expectBody(DefaultCsrfToken.class)
+                .returnResult();
+
+        String csrfToken = result.getResponseBody().getToken();
+        /*
+            The cookie in the response Header(SET_COOKIE) is in the form of
+            SESSION=OTU2ODllODktYjZhMS00YmUxLTk1NGEtMDk0ZTBmODg0Mzhm; Path=/; HttpOnly; SameSite=Lax
+
+            By splitting with ";" we get the first value which then we set it in the Cookie request header. The expected
+            value is SESSION= plus some value.
+         */
+        String cookieHeader = result.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        String sessionId = cookieHeader.split(";")[0];
+        String requestBody = """
+                {
+                    "username": "username",
+                    "password": "CyN549!@o2Cr",
+                    "fullName": "Full Name",
+                    "roleTypes": [
+                        "ROLE_AUTHOR"
+                    ]
+                }
+                """;
+
+        this.webTestClient.post()
+                .uri(AUTH_PATH + "/signup?_csrf={csrf}", csrfToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Cookie", sessionId)
+                .bodyValue(requestBody)
+                .exchange()
+                .expectStatus().isCreated();
+
+        /*
+            Each .part() call adds a part to the multipart request
+            1st argument: name of the part. Must match the @RequestParam in the PaperController
+            2nd argument: content
+         */
+        MultipartBodyBuilder bodyBuilder = new MultipartBodyBuilder();
+        bodyBuilder.part("title", "title");
+        bodyBuilder.part("abstractText", "abstractText");
+        bodyBuilder.part("authors", "author 1,author 2");
+        bodyBuilder.part("keywords", "keyword 1,keyword 2");
+        bodyBuilder.part("file", getFileContent("test.pdf")).filename("test.pdf");
+
+        MultiValueMap<String, HttpEntity<?>> multipartBody = bodyBuilder.build();
+
+        EntityExchangeResult<byte[]> response = webTestClient.post()
+                .uri(PAPER_PATH + "?_csrf={csrf}", csrfToken)
+                .header("Cookie", sessionId)
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .bodyValue(multipartBody)
+                .exchange()
+                .expectStatus().isCreated()
+                .expectHeader().exists("Location")
+                .expectBody()
+                .returnResult();
+        String location = response.getResponseHeaders().getFirst(HttpHeaders.LOCATION);
+        Long paperId1 = Long.parseLong(location.substring(location.lastIndexOf('/') + 1));
+
+        bodyBuilder = new MultipartBodyBuilder();
+        bodyBuilder.part("title", "another title");
+        bodyBuilder.part("abstractText", "another abstractText");
+        bodyBuilder.part("authors", "author 1,author 2");
+        bodyBuilder.part("keywords", "keyword 1,keyword 2");
+        bodyBuilder.part("file", getFileContent("test.pdf")).filename("test.pdf");
+
+        multipartBody = bodyBuilder.build();
+
+        response = webTestClient.post()
+                .uri(PAPER_PATH + "?_csrf={csrf}", csrfToken)
+                .header("Cookie", sessionId)
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .bodyValue(multipartBody)
+                .exchange()
+                .expectStatus().isCreated()
+                .expectHeader().exists("Location")
+                .expectBody()
+                .returnResult();
+        location = response.getResponseHeaders().getFirst(HttpHeaders.LOCATION);
+        Long paperId2 = Long.parseLong(location.substring(location.lastIndexOf('/') + 1));
+
+         /*
+            The order that the papers were inserted in the db is not guaranteed to be the same when fetching them
+            from the db. In the code below we see how we would handle the cases where we dont know the exact order the
+            papers are gonna be in the list.In our case the papers are sorted by their title so we can use jsonPath as
+            show in the code below the comment
+
+           List<AuthorPaperDTO> papers = this.webTestClient.get()
+                .uri(PAPER_PATH)
+                .accept(MediaType.APPLICATION_JSON)
+                .header("Cookie", sessionId)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBodyList(AuthorPaperDTO.class)
+                .returnResult()
+                .getResponseBody();
+
+            assertThat(papers).hasSize(2)
+                    .anyMatch(authorPaperDTO -> authorPaperDTO.getId().equals(paperId1)
+                            && authorPaperDTO.getCreatedDate().equals(LocalDate.now())
+                            && authorPaperDTO.getTitle().equals("title")
+                            && authorPaperDTO.getAbstractText().equals("abstractText")
+                            && authorPaperDTO.getAuthors()[0].equals("author 1")
+                            && authorPaperDTO.getAuthors()[1].equals("author 2")
+                            && authorPaperDTO.getAuthors()[2].equals("Full Name")
+                            && authorPaperDTO.getKeywords()[0].equals("keyword 1")
+                            && authorPaperDTO.getKeywords()[1].equals("keyword 2")
+                            && authorPaperDTO.getState().equals(PaperState.CREATED)
+                            && authorPaperDTO.getReviews().isEmpty())
+                    .anyMatch(authorPaperDTO -> authorPaperDTO.getId().equals(paperId2)
+                            && authorPaperDTO.getCreatedDate().equals(LocalDate.now())
+                            && authorPaperDTO.getTitle().equals("another title")
+                            && authorPaperDTO.getAbstractText().equals("another abstractText")
+                            && authorPaperDTO.getAuthors()[0].equals("author 1")
+                            && authorPaperDTO.getAuthors()[1].equals("author 2")
+                            && authorPaperDTO.getAuthors()[2].equals("Full Name")
+                            && authorPaperDTO.getKeywords()[0].equals("keyword 1")
+                            && authorPaperDTO.getKeywords()[1].equals("keyword 2")
+                            && authorPaperDTO.getState().equals(PaperState.CREATED)
+                            && authorPaperDTO.getReviews().isEmpty()
+                    );
+         */
+        this.webTestClient.get()
+                .uri(PAPER_PATH)
+                .accept(MediaType.APPLICATION_JSON)
+                .header("Cookie", sessionId)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.length()").isEqualTo(2)
+                .jsonPath("$[0].id").isEqualTo(paperId2)
+                .jsonPath("$[0].createdDate").isEqualTo(LocalDate.now().toString())
+                .jsonPath("$[0].title").isEqualTo("another title")
+                .jsonPath("$[0].abstractText").isEqualTo("another abstractText")
+                .jsonPath("$[0].authors[0]").isEqualTo("author 1")
+                .jsonPath("$[0].authors[1]").isEqualTo("author 2")
+                .jsonPath("$[0].authors[2]").isEqualTo("Full Name")
+                .jsonPath("$[0].keywords[0]").isEqualTo("keyword 1")
+                .jsonPath("$[0].keywords[1]").isEqualTo("keyword 2")
+                .jsonPath("$[0].state").isEqualTo(PaperState.CREATED.toString())
+                .jsonPath("$[0].reviews.length()").isEqualTo(0)
+                .jsonPath("$[1].id").isEqualTo(paperId1)
+                .jsonPath("$[1].createdDate").isEqualTo(LocalDate.now().toString())
+                .jsonPath("$[1].title").isEqualTo("title")
+                .jsonPath("$[1].abstractText").isEqualTo("abstractText")
+                .jsonPath("$[1].authors[0]").isEqualTo("author 1")
+                .jsonPath("$[1].authors[1]").isEqualTo("author 2")
+                .jsonPath("$[1].authors[2]").isEqualTo("Full Name")
+                .jsonPath("$[1].keywords[0]").isEqualTo("keyword 1")
+                .jsonPath("$[1].keywords[1]").isEqualTo("keyword 2")
+                .jsonPath("$[1].state").isEqualTo(PaperState.CREATED.toString())
+                .jsonPath("$[1].reviews.length()").isEqualTo(0);
+
+
     }
 
     private byte[] getFileContent(String fileName) throws IOException {

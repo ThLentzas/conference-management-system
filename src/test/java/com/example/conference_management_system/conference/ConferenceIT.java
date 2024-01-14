@@ -11,8 +11,6 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 
 import com.example.conference_management_system.AbstractIntegrationTest;
 import com.example.conference_management_system.role.RoleType;
-import com.example.conference_management_system.conference.dto.ConferenceDTO;
-import com.example.conference_management_system.conference.dto.PCChairConferenceDTO;
 import com.example.conference_management_system.user.dto.UserDTO;
 
 import java.util.List;
@@ -324,7 +322,7 @@ class ConferenceIT extends AbstractIntegrationTest {
 
         requestBody = """
                 {
-                    "username": "new username",
+                    "username": "another username",
                     "password": "CyN549!@o2Cr",
                     "fullName": "Test",
                     "roleTypes": [
@@ -386,32 +384,34 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .exchange()
                 .expectStatus().isNoContent();
 
-        ConferenceDTO conference = this.webTestClient.get()
+        this.webTestClient.get()
                 .uri(CONFERENCE_PATH + "/{id}", conferenceId)
                 .accept(MediaType.APPLICATION_JSON)
                 .header("Cookie", sessionId)
                 .exchange()
-                .expectBody(ConferenceDTO.class)
-                .returnResult()
-                .getResponseBody();
-
+                .expectStatus().isOk();
         /*
             The order that the users were inserted in the db is not guaranteed to be the same when fetching them
             from the db. The following piece of code will not work 100% of the time. The user with username "username"
             will not always be the 1st element on the list.
 
-                .jsonPath("$.users[0].username").isEqualTo("username")
-                .jsonPath("$.users[0].fullName").isEqualTo("Full Name")
-                .jsonPath("$.users[1].username").isEqualTo("test")
-                .jsonPath("$.users[1].fullName").isEqualTo("test")
-         */
+            ConferenceDTO conference = this.webTestClient.get()
+                    .uri(CONFERENCE_PATH + "/{id}", conferenceId)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .header("Cookie", sessionId)
+                    .exchange()
+                    .expectBody(ConferenceDTO.class)
+                    .returnResult()
+                    .getResponseBody();
 
-        assertThat(conference.getUsers()).anyMatch(pcChair -> pcChair.username().equals("username")
-                && pcChair.fullName().equals("Full Name")
-                && pcChair.roleTypes().stream().anyMatch(roleType -> roleType.equals(RoleType.ROLE_PC_CHAIR)));
-        assertThat(conference.getUsers()).anyMatch(pcChair -> pcChair.username().equals("new username")
-                && pcChair.fullName().equals("Test")
-                && pcChair.roleTypes().stream().anyMatch(roleType -> roleType.equals(RoleType.ROLE_PC_CHAIR)));
+            assertThat(conference.getUsers()).anyMatch(pcChair -> pcChair.username().equals("username")
+                    && pcChair.fullName().equals("Full Name")
+                    && pcChair.roleTypes().stream().anyMatch(roleType -> roleType.equals(RoleType.ROLE_PC_CHAIR)));
+            assertThat(conference.getUsers()).anyMatch(pcChair -> pcChair.username().equals("new username")
+                    && pcChair.fullName().equals("Test")
+                    && pcChair.roleTypes().stream().anyMatch(roleType -> roleType.equals(RoleType.ROLE_PC_CHAIR)));
+
+         */
     }
 
     @Test
@@ -483,8 +483,8 @@ class ConferenceIT extends AbstractIntegrationTest {
 
         requestBody = """
                 {
-                    "name": "new name",
-                    "description": "new description"
+                    "name": "another name",
+                    "description": "another description"
                 }
                 """;
 
@@ -502,12 +502,12 @@ class ConferenceIT extends AbstractIntegrationTest {
         location = response.getResponseHeaders().getFirst(HttpHeaders.LOCATION);
         UUID conferenceId2 = UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
 
-        /*
-            GET: /api/v1/conferences
+    /*
+            The order that the conferences were inserted in the db is not guaranteed to be the same when fetching them
+            from the db. In the code below we see how we would handle the cases where we don't know the exact order of
+            the conferences in the list.In our case the conferences are sorted by their name, so we can use jsonPath as
+            show in the code below the comment
 
-            Since the user that made the request has the role PC_CHAIR for the requested conference, they also have
-            access to the conference's state and papers
-         */
         List<PCChairConferenceDTO> conferences = this.webTestClient.get()
                 .uri(CONFERENCE_PATH)
                 .accept(MediaType.APPLICATION_JSON)
@@ -517,16 +517,6 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .returnResult()
                 .getResponseBody();
 
-        /*
-            The order that the conferences were inserted in the db is not guaranteed to be the same when fetching them
-            from the db. The following piece of code will not work 100% of the time. The conference with name "name"
-            will not always be the 1st element on the list.
-
-                    .jsonPath("$.[0].name").isEqualTo("name")
-                    .jsonPath("$.[0].description").isEqualTo("description")
-                    .jsonPath("$.[1].name").isEqualTo("new name")
-                    .jsonPath("$.[1].description").isEqualTo("new description")
-         */
         assertThat(conferences).hasSize(2)
                 .anyMatch(conferenceDTO -> conferenceDTO.getId().equals(conferenceId1)
                         && conferenceDTO.getName().equals("name")
@@ -538,14 +528,41 @@ class ConferenceIT extends AbstractIntegrationTest {
                                 && userDTO.roleTypes().contains(RoleType.ROLE_PC_CHAIR))
                         && conferenceDTO.getPapers().isEmpty())
                 .anyMatch(conferenceDTO -> conferenceDTO.getId().equals(conferenceId2)
-                        && conferenceDTO.getName().equals("new name")
-                        && conferenceDTO.getDescription().equals("new description")
+                        && conferenceDTO.getName().equals("another name")
+                        && conferenceDTO.getDescription().equals("another description")
                         && conferenceDTO.getConferenceState().equals(ConferenceState.CREATED)
                         && conferenceDTO.getUsers().stream().anyMatch(userDTO ->
                         userDTO.username().equals("username")
                                 && userDTO.fullName().equals("Full Name")
                                 && userDTO.roleTypes().contains(RoleType.ROLE_PC_CHAIR))
                         && conferenceDTO.getPapers().isEmpty());
+    */
+
+        this.webTestClient.get()
+                .uri(CONFERENCE_PATH) // Replace with your actual endpoint
+                .accept(MediaType.APPLICATION_JSON)
+                .header("Cookie", sessionId) // If required for your context
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.length()").isEqualTo(2)
+                .jsonPath("$[0].id").isEqualTo(conferenceId2.toString())
+                .jsonPath("$[0].name").isEqualTo("another name")
+                .jsonPath("$[0].description").isEqualTo("another description")
+                .jsonPath("$[0].conferenceState").isEqualTo(ConferenceState.CREATED.toString())
+                .jsonPath("$[0].users[0].username").isEqualTo("username")
+                .jsonPath("$[0].users[0].fullName").isEqualTo("Full Name")
+                .jsonPath("$[0].users[0].roleTypes").value(roleTypes -> assertThat((List<String>) roleTypes).contains(
+                        RoleType.ROLE_PC_CHAIR.name()))
+                .jsonPath("$[0].papers.length()").isEqualTo(0)
+                .jsonPath("$[1].id").isEqualTo(conferenceId1.toString())
+                .jsonPath("$[1].name").isEqualTo("name")
+                .jsonPath("$[1].description").isEqualTo("description")
+                .jsonPath("$[1].conferenceState").isEqualTo(ConferenceState.CREATED.toString())
+                .jsonPath("$[1].users[0].fullName").isEqualTo("Full Name")
+                .jsonPath("$[1].users[0].roleTypes").value(roleTypes -> assertThat((List<String>) roleTypes).contains(
+                        RoleType.ROLE_PC_CHAIR.name()))
+                .jsonPath("$[1].papers.length()").isEqualTo(0);
     }
 
     @Test

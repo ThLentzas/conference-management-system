@@ -1,8 +1,8 @@
 package com.example.conference_management_system.user;
 
 import com.example.conference_management_system.exception.ResourceNotFoundException;
-import com.example.conference_management_system.security.SecurityUser;
 import com.example.conference_management_system.user.dto.UserDTO;
+import com.example.conference_management_system.user.mapper.UserDTOMapper;
 import org.passay.CharacterRule;
 import org.passay.EnglishCharacterData;
 import org.passay.LengthRule;
@@ -11,7 +11,6 @@ import org.passay.PasswordValidator;
 import org.passay.RuleResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.example.conference_management_system.entity.User;

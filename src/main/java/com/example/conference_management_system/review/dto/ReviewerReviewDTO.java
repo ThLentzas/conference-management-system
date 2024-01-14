@@ -8,7 +8,6 @@ import java.time.LocalDate;
 @Getter
 @Setter
 public class ReviewerReviewDTO extends ReviewDTO {
-    private LocalDate assignedDate;
     private String reviewer;
 
     public ReviewerReviewDTO(

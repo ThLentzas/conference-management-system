@@ -17,10 +17,14 @@ import com.example.conference_management_system.security.CustomAuthenticationEnt
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    /*
+        We can't use authorize.requestMatchers(HttpMethod.GET, "/api/v1/papers/**").permitAll(); because the endpoint
+        to download a paper is api/v1/papers/{id}/download, and it is not permit all.
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(authorize -> {
-                    authorize.requestMatchers(HttpMethod.GET, "/api/v1/papers/**").permitAll();
+                    authorize.requestMatchers(HttpMethod.GET, "/api/v1/papers", "/api/v1/papers/{id}").permitAll();
                     authorize.requestMatchers(HttpMethod.GET, "/api/v1/conferences/**").permitAll();
                     authorize.requestMatchers("/api/v1/auth/**").permitAll();
                     authorize.anyRequest().authenticated();

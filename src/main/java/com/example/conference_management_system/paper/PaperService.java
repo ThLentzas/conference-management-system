@@ -2,7 +2,6 @@ package com.example.conference_management_system.paper;
 
 import com.example.conference_management_system.auth.AuthService;
 import com.example.conference_management_system.conference.ConferenceState;
-import com.example.conference_management_system.conference.ConferenceUserRepository;
 import com.example.conference_management_system.content.ContentRepository;
 import com.example.conference_management_system.entity.Content;
 import com.example.conference_management_system.entity.Paper;
@@ -72,6 +71,8 @@ public class PaperService {
     private static final Logger logger = LoggerFactory.getLogger(PaperService.class);
     private static final String PAPER_NOT_FOUND_MSG = "Paper not found with id: ";
     private static final String ACCESS_DENIED_MSG = "Access denied";
+    private static final String SERVER_ERROR_MSG = "The server encountered an internal error and was unable to " +
+            "complete your request. Please try again later";
 
     /*
         In order to create a paper a user has to be authenticated. The user that made the request to create the paper
@@ -338,8 +339,7 @@ public class PaperService {
             logger.error("Paper review failed. Paper with id: {} is not submitted to any conference but was " +
                     "assigned a reviewer", paperId);
 
-            throw new ServerErrorException("The server encountered an internal error and was unable to " +
-                    "complete your request. Please try again later");
+            throw new ServerErrorException(SERVER_ERROR_MSG);
         }
 
         if (!paper.getConference().getState().equals(ConferenceState.REVIEW)) {
@@ -399,14 +399,54 @@ public class PaperService {
     }
 
     /*
-        A use can have an association with the paper directly as AUTHOR or REVIEWER, and we return extra information
-        according to the role.
+    The users that can download the paper file if the paper file is found are:
+        1)Authors of the paper
+        2)Reviewers of the paper
+        3)Pc chairs that the requested paper is submitted to their conference
 
-        Based on the role of the user that makes the GET request for a paper, we would have to return different
-        properties of the PaperDTO.
+    Any other case would result in 403
+ */
+    PaperFile downloadPaperFile(Long paperId, Authentication authentication) {
+        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+        Paper paper = this.paperRepository.findPaperGraphById(paperId).orElseThrow(() -> new ResourceNotFoundException(
+                PAPER_NOT_FOUND_MSG + paperId));
+
+        /*
+            This could also have been a 404 it's just how we want to handle the fact that the requesting user is not
+            the owner of the requested resource
+         */
+        if (paper.getPaperUsers()
+                .stream()
+                .noneMatch(paperUser -> paperUser.getUser().equals(securityUser.user()))
+                && (paper.getConference() != null && paper.getConference()
+                .getConferenceUsers()
+                .stream()
+                .noneMatch(conferenceUser -> conferenceUser.getUser().equals(securityUser.user())))) {
+            logger.error("Download paper failed. The user with id: {} is not in relationship with paper with id: {}",
+                    securityUser.user().getId(), paperId);
+
+            throw new AccessDeniedException(ACCESS_DENIED_MSG);
+        }
+
+        /*
+            A paper should always have content(some file). If else then something is wrong with our db and our data
+            integrity
+         */
+        Content content = this.contentRepository.findByPaperId(paperId).orElseThrow(() -> {
+            logger.error("No content was found for paper with id: {}", paperId);
+            return new ServerErrorException(SERVER_ERROR_MSG);
+        });
+        Resource file = this.fileService.getFile(content.getGeneratedFileName());
+
+        return new PaperFile(file, content.getOriginalFileName());
+    }
+
+    /*
+        A user can have an association with the paper directly as AUTHOR or REVIEWER, and we return extra information
+        according to the role.
      */
     PaperDTO findPaperById(Long paperId, SecurityContext context) {
-        Paper paper = this.paperRepository.findByPaperIdFetchingPaperUsers(paperId).orElseThrow(() -> {
+        Paper paper = this.paperRepository.findByPaperIdFetchingPaperUsersAndReviews(paperId).orElseThrow(() -> {
             logger.error("Paper not found with id: {}", paperId);
 
             return new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId);
@@ -420,10 +460,14 @@ public class PaperService {
                 return this.authorPaperDTOMapper.apply(paper);
             }
 
+            /*
+                Pointless to say paperUser.getRoleType().equals(RoleType.ROLE_REVIEWER) because if they were associated
+                as AUTHOR - paper the previous if() would return true, so since the code reached this point the only
+                association can be REVIEWER - paper
+             */
             if (paper.getPaperUsers()
                     .stream()
-                    .anyMatch(paperUser -> paperUser.getUser().equals(securityUser.user())
-                            && paperUser.getRoleType().equals(RoleType.ROLE_REVIEWER))) {
+                    .anyMatch(paperUser -> paperUser.getUser().equals(securityUser.user()))) {
                 return this.reviewerPaperDTOMapper.apply(paper);
             }
         }
@@ -473,42 +517,6 @@ public class PaperService {
         return papers.stream()
                 .map(paperDTOMapper)
                 .toList();
-    }
-
-    /*
-        The users that can download the paper file if the paper file is found are:
-            1)Authors of the paper
-            2)Reviewers of the paper
-            3)Pc chairs that the requested paper is submitted to their conference
-
-        Any other case would result in 403
-     */
-    PaperFile downloadPaperFile(Long id, Authentication authentication) {
-        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
-        Paper paper = this.paperRepository.findPaperGraphById(id).orElseThrow(() -> new ResourceNotFoundException(
-                PAPER_NOT_FOUND_MSG + id));
-
-        /*
-            This could also have been a 404 it's just how we want to handle the fact that the requested user is not
-            the owner of the requested resource
-         */
-        if (paper.getPaperUsers()
-                .stream()
-                .noneMatch(paperUser -> paperUser.getUser().equals(securityUser.user()))
-                && (paper.getConference() != null && paper.getConference()
-                .getConferenceUsers()
-                .stream()
-                .noneMatch(conferenceUser -> conferenceUser.getUser().equals(securityUser.user())))) {
-            logger.error("Download paper failed. The user with id: {} is not in relationship with paper with id: {}",
-                    securityUser.user().getId(), id);
-
-            throw new AccessDeniedException(ACCESS_DENIED_MSG);
-        }
-
-        Content content = this.contentRepository.findById(id).orElseThrow();
-        Resource file = this.fileService.getFile(content.getGeneratedFileName());
-
-        return new PaperFile(file, content.getOriginalFileName());
     }
 
     private void validatePaper(PaperCreateRequest paperCreateRequest) {

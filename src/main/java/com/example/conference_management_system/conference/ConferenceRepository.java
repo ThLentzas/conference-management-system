@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import com.example.conference_management_system.entity.Conference;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface ConferenceRepository extends JpaRepository<Conference, UUID>, JpaSpecificationExecutor<Conference> {
@@ -18,6 +19,15 @@ public interface ConferenceRepository extends JpaRepository<Conference, UUID>, J
                 WHERE LOWER(c.name) = LOWER(:name)
             """)
     boolean existsByNameIgnoringCase(@Param("name") String name);
+
+    @Query("""
+                SELECT c
+                FROM Conference c
+                JOIN FETCH c.conferenceUsers cu
+                JOIN FETCH cu.user
+                WHERE c.id = :id
+            """)
+    Optional<Conference> findByConferenceIdFetchingConferenceUsers(@Param("id") UUID id);
 
     @Query("""
                 SELECT c

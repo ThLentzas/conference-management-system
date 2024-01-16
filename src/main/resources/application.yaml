@@ -31,4 +31,5 @@ logging:
   level:
     org:
       springframework:
+        web: DEBUG
         security: TRACE

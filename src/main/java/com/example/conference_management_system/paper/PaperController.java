@@ -1,5 +1,6 @@
 package com.example.conference_management_system.paper;
 
+import com.example.conference_management_system.security.SecurityUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
@@ -10,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.annotation.CurrentSecurityContext;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -52,13 +54,13 @@ class PaperController {
                                      @RequestParam("authors") String authors,
                                      @RequestParam("keywords") String keywords,
                                      @RequestParam("file") MultipartFile file,
-                                     Authentication authentication,
+                                     @AuthenticationPrincipal SecurityUser securityUser,
                                      UriComponentsBuilder uriBuilder,
                                      HttpServletRequest servletRequest) {
         PaperCreateRequest paperCreateRequest = new PaperCreateRequest(title, abstractText, authors, keywords, file);
         logger.info("Paper create request: {}", paperCreateRequest);
 
-        Long id = this.paperService.createPaper(paperCreateRequest, authentication, servletRequest);
+        Long id = this.paperService.createPaper(paperCreateRequest, securityUser, servletRequest);
         URI location = uriBuilder
                 .path("/api/v1/papers/{id}")
                 .buildAndExpand(id)
@@ -77,11 +79,11 @@ class PaperController {
                                      @RequestParam(value = "authors", required = false) String authors,
                                      @RequestParam(value = "keywords", required = false) String keywords,
                                      @RequestParam(value = "file", required = false) MultipartFile file,
-                                     Authentication authentication) {
+                                     @AuthenticationPrincipal SecurityUser securityUser) {
         PaperUpdateRequest paperUpdateRequest = new PaperUpdateRequest(title, abstractText, authors, keywords, file);
         logger.info("Paper update request: {}", paperUpdateRequest);
 
-        this.paperService.updatePaper(id, paperUpdateRequest, authentication);
+        this.paperService.updatePaper(id, paperUpdateRequest, securityUser);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -90,9 +92,9 @@ class PaperController {
     @PutMapping("/{id}/author")
     ResponseEntity<Void> addCoAuthor(@PathVariable("id") Long id,
                                      @Valid @RequestBody AuthorAdditionRequest authorAdditionRequest,
-                                     Authentication authentication) {
+                                     @AuthenticationPrincipal SecurityUser securityUser) {
         logger.info("Paper co-author addition request: {}", authorAdditionRequest);
-        this.paperService.addCoAuthor(id, authorAdditionRequest, authentication);
+        this.paperService.addCoAuthor(id, authorAdditionRequest, securityUser);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -101,10 +103,10 @@ class PaperController {
     @PostMapping("/{id}/reviews")
     ResponseEntity<Void> reviewPaper(@PathVariable("id") Long id,
                                      @Valid @RequestBody ReviewCreateRequest reviewCreateRequest,
-                                     Authentication authentication,
+                                     @AuthenticationPrincipal SecurityUser securityUser,
                                      UriComponentsBuilder uriBuilder) {
 
-        Long reviewId = this.paperService.reviewPaper(id, reviewCreateRequest, authentication);
+        Long reviewId = this.paperService.reviewPaper(id, reviewCreateRequest, securityUser);
 
         URI location = uriBuilder
                 .path("/api/v1/papers/{paperId}/reviews/{reviewId}")
@@ -118,8 +120,8 @@ class PaperController {
 
     @PreAuthorize("hasRole('AUTHOR')")
     @PutMapping("/{id}/withdraw")
-    ResponseEntity<Void> withdrawPaper(@PathVariable("id") Long id, Authentication authentication) {
-        this.paperService.withdrawPaper(id, authentication);
+    ResponseEntity<Void> withdrawPaper(@PathVariable("id") Long id, @AuthenticationPrincipal SecurityUser securityUser) {
+        this.paperService.withdrawPaper(id, securityUser);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -131,8 +133,9 @@ class PaperController {
      */
     @PreAuthorize("hasAnyRole('AUTHOR', 'PC_MEMBER', 'PC_CHAIR')")
     @GetMapping("/{id}/download")
-    ResponseEntity<Resource> downloadPaper(@PathVariable("id") Long id, Authentication authentication) {
-        PaperFile paperFile = this.paperService.downloadPaperFile(id, authentication);
+    ResponseEntity<Resource> downloadPaper(@PathVariable("id") Long id,
+                                           @AuthenticationPrincipal SecurityUser securityUser) {
+        PaperFile paperFile = this.paperService.downloadPaperFile(id, securityUser);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentDisposition(ContentDisposition.attachment()

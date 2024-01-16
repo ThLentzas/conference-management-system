@@ -1,5 +1,6 @@
 package com.example.conference_management_system.conference;
 
+import com.example.conference_management_system.conference.dto.ConferenceDTO;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
@@ -275,7 +276,7 @@ class ConferenceIT extends AbstractIntegrationTest {
 
     @Test
     void shouldAddPCChair() {
-                /*
+        /*
             Getting the csrf token and the cookie of the current session for subsequent requests.
 
             The CsrfToken is an interface, and we can not specify it as EntityExchangeResult<CsrfToken>. It would result
@@ -315,6 +316,14 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .bodyValue(requestBody)
                 .exchange()
                 .expectStatus().isCreated();
+
+        result = this.webTestClient.get()
+                .uri(AUTH_PATH + "/csrf")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectHeader().exists(HttpHeaders.SET_COOKIE)
+                .expectBody(DefaultCsrfToken.class)
+                .returnResult();
 
         csrfToken = result.getResponseBody().getToken();
         cookieHeader = result.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
@@ -384,34 +393,21 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .exchange()
                 .expectStatus().isNoContent();
 
-        this.webTestClient.get()
+        ConferenceDTO conference = this.webTestClient.get()
                 .uri(CONFERENCE_PATH + "/{id}", conferenceId)
                 .accept(MediaType.APPLICATION_JSON)
                 .header("Cookie", sessionId)
                 .exchange()
-                .expectStatus().isOk();
-        /*
-            The order that the users were inserted in the db is not guaranteed to be the same when fetching them
-            from the db. The following piece of code will not work 100% of the time. The user with username "username"
-            will not always be the 1st element on the list.
+                .expectBody(ConferenceDTO.class)
+                .returnResult()
+                .getResponseBody();
 
-            ConferenceDTO conference = this.webTestClient.get()
-                    .uri(CONFERENCE_PATH + "/{id}", conferenceId)
-                    .accept(MediaType.APPLICATION_JSON)
-                    .header("Cookie", sessionId)
-                    .exchange()
-                    .expectBody(ConferenceDTO.class)
-                    .returnResult()
-                    .getResponseBody();
-
-            assertThat(conference.getUsers()).anyMatch(pcChair -> pcChair.username().equals("username")
-                    && pcChair.fullName().equals("Full Name")
-                    && pcChair.roleTypes().stream().anyMatch(roleType -> roleType.equals(RoleType.ROLE_PC_CHAIR)));
-            assertThat(conference.getUsers()).anyMatch(pcChair -> pcChair.username().equals("new username")
-                    && pcChair.fullName().equals("Test")
-                    && pcChair.roleTypes().stream().anyMatch(roleType -> roleType.equals(RoleType.ROLE_PC_CHAIR)));
-
-         */
+        assertThat(conference.getUsers()).anyMatch(pcChair -> pcChair.username().equals("username")
+                && pcChair.fullName().equals("Full Name")
+                && pcChair.roleTypes().stream().anyMatch(roleType -> roleType.equals(RoleType.ROLE_PC_CHAIR)));
+        assertThat(conference.getUsers()).anyMatch(pcChair -> pcChair.username().equals("another username")
+                && pcChair.fullName().equals("Test")
+                && pcChair.roleTypes().stream().anyMatch(roleType -> roleType.equals(RoleType.ROLE_PC_CHAIR)));
     }
 
     @Test

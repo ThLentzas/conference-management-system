@@ -5,11 +5,11 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import com.example.conference_management_system.entity.Conference;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import com.example.conference_management_system.entity.Conference;
 
 public interface ConferenceRepository extends JpaRepository<Conference, UUID>, JpaSpecificationExecutor<Conference> {
 
@@ -32,20 +32,12 @@ public interface ConferenceRepository extends JpaRepository<Conference, UUID>, J
     @Query("""
                 SELECT c
                 FROM Conference c
-                WHERE c.name
-                ILIKE (CONCAT('%', :name, '%'))
-                ORDER BY c.name DESC
+                JOIN FETCH c.conferenceUsers cu
+                JOIN FETCH cu.user
+                LEFT JOIN FETCH c.papers
+                WHERE c.id = :id
             """)
-    List<Conference> findConferencesByNameContainingIgnoringCase(@Param("name") String name);
-
-    @Query("""
-                SELECT c
-                FROM Conference c
-                WHERE c.description
-                ILIKE (CONCAT('%', :description, '%'))
-                ORDER BY c.name DESC
-            """)
-    List<Conference> findConferencesByDescriptionContainingIgnoringCase(@Param("description") String description);
+    Optional<Conference> findByConferenceIdFetchingConferenceUsersAndPapers(@Param("id") UUID id);
 
     @Query("""
                 SELECT c

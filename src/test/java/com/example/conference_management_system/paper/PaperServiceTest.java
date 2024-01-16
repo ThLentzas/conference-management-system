@@ -11,11 +11,11 @@ import com.example.conference_management_system.exception.StateConflictException
 import com.example.conference_management_system.exception.UnsupportedFileException;
 import com.example.conference_management_system.paper.dto.PaperFile;
 import com.example.conference_management_system.review.dto.ReviewCreateRequest;
+import com.example.conference_management_system.user.UserService;
 import com.example.conference_management_system.utility.FileService;
 import com.example.conference_management_system.paper.dto.PaperCreateRequest;
 import com.example.conference_management_system.review.ReviewRepository;
 import com.example.conference_management_system.role.RoleService;
-import com.example.conference_management_system.user.UserRepository;
 import com.example.conference_management_system.auth.AuthService;
 import com.example.conference_management_system.paper.dto.AuthorAdditionRequest;
 import com.example.conference_management_system.paper.dto.PaperUpdateRequest;
@@ -27,6 +27,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -34,30 +35,27 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.util.ResourceUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.testcontainers.shaded.org.apache.commons.lang3.RandomStringUtils;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import jakarta.servlet.http.HttpServletRequest;
-import org.testcontainers.shaded.org.checkerframework.checker.units.qual.C;
 
 @ExtendWith(MockitoExtension.class)
 class PaperServiceTest {
@@ -68,15 +66,16 @@ class PaperServiceTest {
     @Mock
     private ContentRepository contentRepository;
     @Mock
-    private UserRepository userRepository;
-    @Mock
     private ReviewRepository reviewRepository;
+    @Mock
+    private UserService userService;
+    @Mock
+    private AuthService authService;
     @Mock
     private RoleService roleService;
     @Mock
     private FileService fileService;
-    @Mock
-    private AuthService authService;
+
     private PaperService underTest;
 
     @BeforeEach
@@ -85,11 +84,11 @@ class PaperServiceTest {
                 paperRepository,
                 paperUserRepository,
                 contentRepository,
-                userRepository,
                 reviewRepository,
+                userService,
+                authService,
                 roleService,
-                fileService,
-                authService
+                fileService
         );
     }
 
@@ -109,9 +108,9 @@ class PaperServiceTest {
                 "keyword 1, keyword 2",
                 pdfFile
         );
-        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = getSecurityUser();
 
-        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, authentication, httpServletRequest))
+        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, securityUser, httpServletRequest))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("You must provide the title of the paper");
     }
@@ -133,10 +132,10 @@ class PaperServiceTest {
                 "keyword 1, keyword 2",
                 pdfFile
         );
-        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = getSecurityUser();
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, authentication, httpServletRequest))
+        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, securityUser, httpServletRequest))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Title must not exceed 100 characters");
     }
@@ -159,10 +158,10 @@ class PaperServiceTest {
                 "keyword 1, keyword 2",
                 pdfFile
         );
-        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = getSecurityUser();
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, authentication, httpServletRequest))
+        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, securityUser, httpServletRequest))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Every author you provide must have a name");
     }
@@ -183,10 +182,10 @@ class PaperServiceTest {
                 "keyword 1, keyword 2",
                 pdfFile
         );
-        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = getSecurityUser();
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, authentication, httpServletRequest))
+        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, securityUser, httpServletRequest))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("You must provide the abstract text of the paper");
     }
@@ -209,10 +208,10 @@ class PaperServiceTest {
                 keywordsCsv,
                 pdfFile
         );
-        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = getSecurityUser();
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, authentication, httpServletRequest))
+        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, securityUser, httpServletRequest))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Every keyword you provide must have a value");
     }
@@ -233,10 +232,10 @@ class PaperServiceTest {
                 "keyword 1, keyword 2",
                 pdfFile
         );
-        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = getSecurityUser();
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, authentication, httpServletRequest))
+        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, securityUser, httpServletRequest))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("The file name must contain only alphanumeric characters, hyphen, underscores spaces, " +
                         "and periods");
@@ -258,10 +257,10 @@ class PaperServiceTest {
                 "keyword 1, keyword 2",
                 pdfFile
         );
-        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = getSecurityUser();
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, authentication, httpServletRequest))
+        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, securityUser, httpServletRequest))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("File name must not exceed 100 characters");
     }
@@ -284,12 +283,12 @@ class PaperServiceTest {
                 "keyword 1, keyword 2",
                 imageFile
         );
-        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = getSecurityUser();
 
         when(this.fileService.isFileSupported(imageFile)).thenReturn(false);
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, authentication, httpServletRequest))
+        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, securityUser, httpServletRequest))
                 .isInstanceOf(UnsupportedFileException.class)
                 .hasMessage("The provided file is not supported. Make sure your file is either a pdf or a Latex one");
     }
@@ -310,13 +309,13 @@ class PaperServiceTest {
                 "keyword 1, keyword 2",
                 pdfFile
         );
-        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = getSecurityUser();
 
         when(this.paperRepository.existsByTitleIgnoreCase(paperCreateRequest.title())).thenReturn(true);
         when(this.fileService.isFileSupported(pdfFile)).thenReturn(true);
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, authentication, httpServletRequest))
+        assertThatThrownBy(() -> this.underTest.createPaper(paperCreateRequest, securityUser, httpServletRequest))
                 .isInstanceOf(DuplicateResourceException.class)
                 .hasMessage("A paper with the provided title already exists");
     }
@@ -332,10 +331,10 @@ class PaperServiceTest {
                 null,
                 null
         );
-        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = getSecurityUser();
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.updatePaper(1L, paperUpdateRequest, authentication))
+        assertThatThrownBy(() -> this.underTest.updatePaper(1L, paperUpdateRequest, securityUser))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("You must provide at least one property to update the paper");
     }
@@ -355,12 +354,12 @@ class PaperServiceTest {
                 "keyword 1, keyword 2",
                 pdfFile
         );
-        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = getSecurityUser();
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsers(1L)).thenReturn(Optional.empty());
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.updatePaper(1L, paperUpdateRequest, authentication))
+        assertThatThrownBy(() -> this.underTest.updatePaper(1L, paperUpdateRequest, securityUser))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Paper not found with id: " + 1L);
     }
@@ -381,14 +380,14 @@ class PaperServiceTest {
                 "keyword 1, keyword 2",
                 pdfFile
         );
-        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = getSecurityUser();
         Paper paper = getPaper();
         paper.setPaperUsers(new HashSet<>());
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsers(1L)).thenReturn(Optional.of(paper));
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.updatePaper(1L, paperUpdateRequest, authentication))
+        assertThatThrownBy(() -> this.underTest.updatePaper(1L, paperUpdateRequest, securityUser))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessage("Access denied");
     }
@@ -398,12 +397,12 @@ class PaperServiceTest {
     void shouldThrowResourceNotFoundExceptionWhenPaperIsNotFoundOnAuthorAddition() {
         //Arrange
         AuthorAdditionRequest authorAdditionRequest = new AuthorAdditionRequest(1L);
-        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = getSecurityUser();
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsers(1L)).thenReturn(Optional.empty());
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.addCoAuthor(1L, authorAdditionRequest, authentication))
+        assertThatThrownBy(() -> this.underTest.addCoAuthor(1L, authorAdditionRequest, securityUser))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Paper not found with id: " + 1L);
     }
@@ -412,62 +411,42 @@ class PaperServiceTest {
     void shouldThrowAccessDeniedExceptionWhenRequestingUserIsNotPaperAuthorOnCoAuthorAddition() {
         //Arrange
         AuthorAdditionRequest authorAdditionRequest = new AuthorAdditionRequest(1L);
-        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = getSecurityUser();
         Paper paper = getPaper();
         paper.setPaperUsers(new HashSet<>());
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsers(1L)).thenReturn(Optional.of(paper));
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.addCoAuthor(1L, authorAdditionRequest, authentication))
+        assertThatThrownBy(() -> this.underTest.addCoAuthor(1L, authorAdditionRequest, securityUser))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessage("Access denied");
-    }
-
-    @Test
-    void shouldThrowResourceNotFoundExceptionWhenCoAuthorToAddIsNotFound() {
-        //Arrange
-        AuthorAdditionRequest authorAdditionRequest = new AuthorAdditionRequest(1L);
-        Authentication authentication = getAuthentication();
-        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
-
-        PaperUser paperUser = new PaperUser();
-        paperUser.setUser(securityUser.user());
-        Paper paper = getPaper();
-        paper.setPaperUsers(Set.of(paperUser));
-
-        when(this.paperRepository.findByPaperIdFetchingPaperUsers(1L)).thenReturn(Optional.of(paper));
-        when(this.userRepository.findById(securityUser.user().getId())).thenReturn(Optional.empty());
-
-        //Act & Assert
-        assertThatThrownBy(() -> this.underTest.addCoAuthor(1L, authorAdditionRequest, authentication))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("User not found with id: " + 1L + " to be added as co-author");
     }
 
     @Test
     void shouldThrowStateConflictExceptionWhenUserToBeAddedAsCoAuthorIsAlreadyReviewerForThePaper() {
         //Arrange
         AuthorAdditionRequest authorAdditionRequest = new AuthorAdditionRequest(2L);
-        Authentication authentication = getAuthentication();
-        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+        SecurityUser securityUser = getSecurityUser();
         User coAuthor = new User("test", "test", "Test User", Set.of(new Role(RoleType.ROLE_REVIEWER)));
         coAuthor.setId(2L);
 
         PaperUser paperUser1 = new PaperUser();
         paperUser1.setId(new PaperUserId(1L , securityUser.user().getId()));
         paperUser1.setUser(securityUser.user());
+        paperUser1.setRoleType(RoleType.ROLE_AUTHOR);
         PaperUser paperUser2 = new PaperUser();
-        paperUser1.setId(new PaperUserId(1L , coAuthor.getId()));
+        paperUser2.setId(new PaperUserId(1L , coAuthor.getId()));
         paperUser2.setUser(coAuthor);
+        paperUser2.setRoleType(RoleType.ROLE_REVIEWER);
         Paper paper = getPaper();
         paper.setPaperUsers(Set.of(paperUser1, paperUser2));
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsers(1L)).thenReturn(Optional.of(paper));
-        when(this.userRepository.findById(coAuthor.getId())).thenReturn(Optional.of(coAuthor));
+        when(this.userService.findUserByIdFetchingRoles(2L)).thenReturn(coAuthor);
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.addCoAuthor(1L, authorAdditionRequest, authentication))
+        assertThatThrownBy(() -> this.underTest.addCoAuthor(1L, authorAdditionRequest, securityUser))
                 .isInstanceOf(StateConflictException.class)
                 .hasMessage("The user to be added as co-author is already added as a reviewer");
     }
@@ -475,48 +454,21 @@ class PaperServiceTest {
     @Test
     void shouldThrowDuplicateResourceExceptionWhenAddingExistingCoAuthor() {
         //Arrange
-        AuthorAdditionRequest authorAdditionRequest = new AuthorAdditionRequest(2L);
-        Authentication authentication = getAuthentication();
-        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
-        User coAuthor = new User("test", "test", "Test User", Set.of(new Role(RoleType.ROLE_AUTHOR)));
-        coAuthor.setId(2L);
+        AuthorAdditionRequest authorAdditionRequest = new AuthorAdditionRequest(1L);
+        SecurityUser securityUser = getSecurityUser();
 
         PaperUser paperUser1 = new PaperUser();
         paperUser1.setId(new PaperUserId(1L , securityUser.user().getId()));
         paperUser1.setUser(securityUser.user());
-        PaperUser paperUser2 = new PaperUser();
-        paperUser1.setId(new PaperUserId(1L , coAuthor.getId()));
-        paperUser2.setUser(coAuthor);
+        paperUser1.setRoleType(RoleType.ROLE_AUTHOR);
         Paper paper = getPaper();
-        paper.setPaperUsers(Set.of(paperUser1, paperUser2));
+        paper.setPaperUsers(Set.of(paperUser1));
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsers(1L)).thenReturn(Optional.of(paper));
-        when(this.userRepository.findById(coAuthor.getId())).thenReturn(Optional.of(coAuthor));
+        when(this.userService.findUserByIdFetchingRoles(1L)).thenReturn(securityUser.user());
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.addCoAuthor(1L, authorAdditionRequest, authentication))
-                .isInstanceOf(DuplicateResourceException.class)
-                .hasMessage("User with name: " + coAuthor.getFullName() + " is already an author for the paper with " +
-                        "id: " + 1L);
-    }
-
-    @Test
-    void shouldThrowDuplicateResourceExceptionWhenRequestingUserAddsSelfAsCoAuthor() {
-        //Arrange
-        AuthorAdditionRequest authorAdditionRequest = new AuthorAdditionRequest(1L);
-        Authentication authentication = getAuthentication();
-        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
-
-        PaperUser paperUser = new PaperUser();
-        paperUser.setUser(securityUser.user());
-        Paper paper = getPaper();
-        paper.setPaperUsers(Set.of(paperUser));
-
-        when(this.paperRepository.findByPaperIdFetchingPaperUsers(1L)).thenReturn(Optional.of(paper));
-        when(this.userRepository.findById(securityUser.user().getId())).thenReturn(Optional.of(securityUser.user()));
-
-        //Act & Assert
-        assertThatThrownBy(() -> this.underTest.addCoAuthor(1L, authorAdditionRequest, authentication))
+        assertThatThrownBy(() -> this.underTest.addCoAuthor(1L, authorAdditionRequest, securityUser))
                 .isInstanceOf(DuplicateResourceException.class)
                 .hasMessage("User with name: " + securityUser.user().getFullName() + " is already an author for the " +
                         "paper with id: " + 1L);
@@ -527,12 +479,12 @@ class PaperServiceTest {
     void shouldThrowResourceNotFoundExceptionWhenPaperIsNotFoundOnReviewPaper() {
         //Arrange
         ReviewCreateRequest reviewCreateRequest = new ReviewCreateRequest("comment", 6.1);
-        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = getSecurityUser();
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.empty());
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.reviewPaper(1L, reviewCreateRequest, authentication))
+        assertThatThrownBy(() -> this.underTest.reviewPaper(1L, reviewCreateRequest, securityUser))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Paper not found with id: " + 1L);
     }
@@ -541,14 +493,14 @@ class PaperServiceTest {
     void shouldThrowAccessDeniedExceptionWhenRequestingUserIsNotAssignedAsPaperReviewerOnReviewPaper() {
         //Arrange
         ReviewCreateRequest reviewCreateRequest = new ReviewCreateRequest("comment", 6.1);
-        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = getSecurityUser();
         Paper paper = getPaper();
         paper.setPaperUsers(new HashSet<>());
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.of(paper));
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.reviewPaper(1L, reviewCreateRequest, authentication))
+        assertThatThrownBy(() -> this.underTest.reviewPaper(1L, reviewCreateRequest, securityUser))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessage("Access denied");
     }
@@ -557,18 +509,18 @@ class PaperServiceTest {
     void shouldThrowServerErrorExceptionWhenPaperIsNotSubmittedToAnyConferenceForReview() {
         //Arrange
         ReviewCreateRequest reviewCreateRequest = new ReviewCreateRequest("comment", 6.1);
-        Authentication authentication = getAuthentication();
-        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+        SecurityUser securityUser = getSecurityUser();
 
         PaperUser paperUser = new PaperUser();
         paperUser.setUser(securityUser.user());
+        paperUser.setRoleType(RoleType.ROLE_REVIEWER);
         Paper paper = getPaper();
         paper.setPaperUsers(Set.of(paperUser));
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.of(paper));
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.reviewPaper(1L, reviewCreateRequest, authentication))
+        assertThatThrownBy(() -> this.underTest.reviewPaper(1L, reviewCreateRequest, securityUser))
                 .isInstanceOf(ServerErrorException.class)
                 .hasMessage("The server encountered an internal error and was unable to complete your request. " +
                         "Please try again later");
@@ -578,11 +530,11 @@ class PaperServiceTest {
     void shouldThrowStateConflictExceptionWhenPaperConferenceIsNotInReviewState() {
         //Arrange
         ReviewCreateRequest reviewCreateRequest = new ReviewCreateRequest("comment", 6.1);
-        Authentication authentication = getAuthentication();
-        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+        SecurityUser securityUser = getSecurityUser();
 
         PaperUser paperUser = new PaperUser();
         paperUser.setUser(securityUser.user());
+        paperUser.setRoleType(RoleType.ROLE_REVIEWER);
         Paper paper = getPaper();
         paper.setPaperUsers(Set.of(paperUser));
         paper.setConference(new Conference());
@@ -590,7 +542,7 @@ class PaperServiceTest {
         when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.of(paper));
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.reviewPaper(1L, reviewCreateRequest, authentication))
+        assertThatThrownBy(() -> this.underTest.reviewPaper(1L, reviewCreateRequest, securityUser))
                 .isInstanceOf(StateConflictException.class)
                 .hasMessage("Conference is in the state: " + paper.getConference().getState() + " and papers can not " +
                         "be " + "reviewed");
@@ -600,13 +552,13 @@ class PaperServiceTest {
     void shouldThrowStateConflictExceptionWhenPaperIsNotInSubmittedStateOnReviewPaper() {
         //Arrange
         ReviewCreateRequest reviewCreateRequest = new ReviewCreateRequest("comment", 6.1);
-        Authentication authentication = getAuthentication();
-        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+        SecurityUser securityUser = getSecurityUser();
 
         PaperUser paperUser = new PaperUser();
         paperUser.setUser(securityUser.user());
         Paper paper = getPaper();
         paper.setPaperUsers(Set.of(paperUser));
+        paperUser.setRoleType(RoleType.ROLE_REVIEWER);
         Conference conference = new Conference();
         conference.setState(ConferenceState.REVIEW);
         paper.setConference(conference);
@@ -614,7 +566,7 @@ class PaperServiceTest {
         when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.of(paper));
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.reviewPaper(1L, reviewCreateRequest, authentication))
+        assertThatThrownBy(() -> this.underTest.reviewPaper(1L, reviewCreateRequest, securityUser))
                 .isInstanceOf(StateConflictException.class)
                 .hasMessage("Paper is in state: " + paper.getState() + " and can not be reviewed");
     }
@@ -623,12 +575,12 @@ class PaperServiceTest {
     @Test
     void shouldThrowResourceNotFoundExceptionWhenPaperIsNotFoundOnWithdrawPaper() {
         //Arrange
-        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = getSecurityUser();
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.empty());
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.withdrawPaper(1L, authentication))
+        assertThatThrownBy(() -> this.underTest.withdrawPaper(1L, securityUser))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Paper not found with id: " + 1L);
     }
@@ -636,14 +588,14 @@ class PaperServiceTest {
     @Test
     void shouldThrowAccessDeniedExceptionWhenRequestingUserIsNotPaperAuthorOnWithdrawPaper() {
         //Arrange
-        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = getSecurityUser();
         Paper paper = getPaper();
         paper.setPaperUsers(new HashSet<>());
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.of(paper));
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.withdrawPaper(1L, authentication))
+        assertThatThrownBy(() -> this.underTest.withdrawPaper(1L, securityUser))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessage("Access denied");
     }
@@ -651,31 +603,33 @@ class PaperServiceTest {
     @Test
     void shouldThrowStateConflictExceptionWhenToBeWithdrawnPaperIsNotSubmittedToAnyConference() {
         //Arrange
-        Authentication authentication = getAuthentication();
-        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+        SecurityUser securityUser = getSecurityUser();
+
         PaperUser paperUser = new PaperUser();
         paperUser.setUser(securityUser.user());
+        paperUser.setRoleType(RoleType.ROLE_AUTHOR);
         Paper paper = getPaper();
         paper.setPaperUsers(Set.of(paperUser));
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.of(paper));
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.withdrawPaper(1L, authentication))
+        assertThatThrownBy(() -> this.underTest.withdrawPaper(1L, securityUser))
                 .isInstanceOf(StateConflictException.class)
                 .hasMessage("You can not withdraw a paper that has not been submitted to any conference");
     }
 
     //downloadPaper()
-    @Test
-    void shouldDownloadPaperForPaperAuthorOrReviewerOnDownloadPaper() throws Exception {
-        Authentication authentication = getAuthentication();
-        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+    @ParameterizedTest
+    @EnumSource(value = RoleType.class, names = {"ROLE_AUTHOR", "ROLE_REVIEWER"})
+    void shouldDownloadPaperForPaperAuthorOrReviewerOnDownloadPaper(RoleType roleType) throws Exception {
+        SecurityUser securityUser = getSecurityUser();
 
         PaperUser paperUser = new PaperUser();
         paperUser.setUser(securityUser.user());
         Paper paper = getPaper();
         paper.setPaperUsers(Set.of(paperUser));
+        paperUser.setRoleType(roleType);
 
         String generatedFileName = UUID.randomUUID().toString();
         Content content = new Content("test.pdf", generatedFileName, ".pdf");
@@ -688,7 +642,7 @@ class PaperServiceTest {
         when(this.contentRepository.findByPaperId(1L)).thenReturn(Optional.of(content));
         when(this.fileService.getFile(content.getGeneratedFileName())).thenReturn(resource);
 
-        PaperFile actual = this.underTest.downloadPaperFile(1L, authentication);
+        PaperFile actual = this.underTest.downloadPaperFile(1L, securityUser);
 
         assertThat(actual).isEqualTo(expected);
     }
@@ -696,8 +650,7 @@ class PaperServiceTest {
     @Test
     void shouldDownloadPaperForPcChairAtConferencePaperHasBeenSubmittedTo() throws Exception {
         //Arrange
-        Authentication authentication = getAuthentication();
-        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+        SecurityUser securityUser = getSecurityUser();
         securityUser.user().setRoles(Set.of(new Role(RoleType.ROLE_PC_CHAIR)));
 
         Conference conference = new Conference();
@@ -719,7 +672,7 @@ class PaperServiceTest {
         when(this.fileService.getFile(content.getGeneratedFileName())).thenReturn(resource);
 
         //Act
-        PaperFile actual = this.underTest.downloadPaperFile(1L, authentication);
+        PaperFile actual = this.underTest.downloadPaperFile(1L, securityUser);
 
         //Assert
         assertThat(actual).isEqualTo(expected);
@@ -728,12 +681,12 @@ class PaperServiceTest {
     @Test
     void  shouldThrowResourceNotFoundExceptionWhenPaperIsNotFoundOnDownloadPaper() {
         //Arrange
-        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = getSecurityUser();
 
         when(this.paperRepository.findPaperGraphById(1L)).thenReturn(Optional.empty());
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.downloadPaperFile(1L, authentication))
+        assertThatThrownBy(() -> this.underTest.downloadPaperFile(1L, securityUser))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Paper not found with id: " + 1L);
     }
@@ -743,14 +696,14 @@ class PaperServiceTest {
             " been submitted to")
     void shouldThrowAccessDeniedExceptionOnDownloadPaper() {
         //Arrange
-        Authentication authentication = getAuthentication();
+        SecurityUser securityUser = getSecurityUser();
         Paper paper = getPaper();
         paper.setPaperUsers(new HashSet<>());
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.of(paper));
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.withdrawPaper(1L, authentication))
+        assertThatThrownBy(() -> this.underTest.withdrawPaper(1L, securityUser))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessage("Access denied");
     }
@@ -758,11 +711,11 @@ class PaperServiceTest {
     @Test
     void shouldThrowServerErrorExceptionWhenContentIsNotFoundOnDownloadPaper() {
         //Arrange
-        Authentication authentication = getAuthentication();
-        SecurityUser securityUser = (SecurityUser) authentication.getPrincipal();
+        SecurityUser securityUser = getSecurityUser();
 
         PaperUser paperUser = new PaperUser();
         paperUser.setUser(securityUser.user());
+        paperUser.setRoleType(RoleType.ROLE_AUTHOR);
         Paper paper = getPaper();
         paper.setPaperUsers(Set.of(paperUser));
 
@@ -770,7 +723,7 @@ class PaperServiceTest {
         when(this.contentRepository.findByPaperId(1L)).thenReturn(Optional.empty());
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.downloadPaperFile(1L, authentication))
+        assertThatThrownBy(() -> this.underTest.downloadPaperFile(1L, securityUser))
                 .isInstanceOf(ServerErrorException.class)
                 .hasMessage("The server encountered an internal error and was unable to complete your request. " +
                         "Please try again later");
@@ -780,7 +733,6 @@ class PaperServiceTest {
     void shouldThrowResourceNotFoundExceptionWhenPaperIsNotFoundOnFindPaperById() {
         //Arrange
         SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-        securityContext.setAuthentication(getAuthentication());
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsersAndReviews(1L)).thenReturn(Optional.empty());
 
@@ -798,12 +750,11 @@ class PaperServiceTest {
         return paper;
     }
 
-    private Authentication getAuthentication() {
+    private SecurityUser getSecurityUser() {
         User user = new User("username", "password", "Full Name", Set.of(new Role(RoleType.ROLE_AUTHOR)));
         user.setId(1L);
-        SecurityUser securityUser = new SecurityUser(user);
 
-        return new UsernamePasswordAuthenticationToken(securityUser, null, securityUser.getAuthorities());
+        return new SecurityUser(user);
     }
 
     private byte[] getFileContent() throws IOException {

@@ -23,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 public class UserService {
     private final UserRepository userRepository;
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
+    private static final String USER_NOT_FOUND_MSG = "User not found";
     private static final UserDTOMapper dtoMapper = new UserDTOMapper();
 
     public void registerUser(User user) {
@@ -34,14 +35,19 @@ public class UserService {
     }
 
     UserDTO findUserByUsername(String username) {
-        User user = this.userRepository.findUserByUsername(username).orElseThrow(() -> {
-            logger.error("No user found with username: {}", username);
-
-            return new ResourceNotFoundException("User not found with username: " + username);
-        });
+        User user = this.userRepository.findUserByUsernameFetchingRoles(username).orElseThrow(() ->
+                new ResourceNotFoundException(USER_NOT_FOUND_MSG + " with username: " + username)
+        );
 
         return dtoMapper.apply(user);
     }
+
+    public User findUserByIdFetchingRoles(Long userId) {
+        return this.userRepository.findUserByIdFetchingRoles(userId).orElseThrow(() ->
+                new ResourceNotFoundException(USER_NOT_FOUND_MSG + " with id: " + userId)
+        );
+    }
+
 
     public void validateUser(User user) {
         if (user.getUsername().length() > 20) {

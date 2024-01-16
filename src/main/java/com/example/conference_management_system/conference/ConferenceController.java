@@ -1,13 +1,10 @@
 package com.example.conference_management_system.conference;
 
-import com.example.conference_management_system.review.ReviewDecision;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.annotation.CurrentSecurityContext;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -27,6 +24,8 @@ import com.example.conference_management_system.conference.dto.ConferenceDTO;
 import com.example.conference_management_system.conference.dto.ConferenceUpdateRequest;
 import com.example.conference_management_system.conference.dto.PCChairAdditionRequest;
 import com.example.conference_management_system.conference.dto.PaperSubmissionRequest;
+import com.example.conference_management_system.review.ReviewDecision;
+import com.example.conference_management_system.security.SecurityUser;
 
 import java.net.URI;
 import java.util.List;
@@ -42,19 +41,17 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/v1/conferences")
 class ConferenceController {
     private final ConferenceService conferenceService;
-    private static final Logger logger = LoggerFactory.getLogger(ConferenceController.class);
 
     @PostMapping
     ResponseEntity<Void> createConference(@Valid @RequestBody ConferenceCreateRequest conferenceCreateRequest,
-                                          Authentication authentication,
+                                          @AuthenticationPrincipal SecurityUser securityUser,
                                           UriComponentsBuilder uriBuilder,
                                           HttpServletRequest servletRequest) {
-        logger.info("Conference create request: {}", conferenceCreateRequest);
-
         UUID conferenceId = this.conferenceService.createConference(
                 conferenceCreateRequest,
-                authentication,
-                servletRequest);
+                securityUser,
+                servletRequest
+        );
 
         URI location = uriBuilder
                 .path("/api/v1/conferences/{id}")
@@ -70,10 +67,8 @@ class ConferenceController {
     @PutMapping("/{id}")
     ResponseEntity<Void> updateConference(@PathVariable("id") UUID id,
                                           @RequestBody ConferenceUpdateRequest conferenceUpdateRequest,
-                                          Authentication authentication) {
-        logger.info("Conference update request: {}", conferenceUpdateRequest);
-
-        this.conferenceService.updateConference(id, conferenceUpdateRequest, authentication);
+                                          @AuthenticationPrincipal SecurityUser securityUser) {
+        this.conferenceService.updateConference(id, conferenceUpdateRequest, securityUser);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -83,40 +78,45 @@ class ConferenceController {
      */
     @PreAuthorize("hasRole('PC_CHAIR')")
     @PutMapping("/{id}/submission")
-    ResponseEntity<Void> startSubmission(@PathVariable("id") UUID id, Authentication authentication) {
-        this.conferenceService.startSubmission(id, authentication);
+    ResponseEntity<Void> startSubmission(@PathVariable("id") UUID id,
+                                         @AuthenticationPrincipal SecurityUser securityUser) {
+        this.conferenceService.startSubmission(id, securityUser);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @PreAuthorize("hasRole('PC_CHAIR')")
     @PutMapping("/{id}/assignment")
-    ResponseEntity<Void> startAssignment(@PathVariable("id") UUID id, Authentication authentication) {
-        this.conferenceService.startAssignment(id, authentication);
+    ResponseEntity<Void> startAssignment(@PathVariable("id") UUID id,
+                                         @AuthenticationPrincipal SecurityUser securityUser) {
+        this.conferenceService.startAssignment(id, securityUser);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @PreAuthorize("hasRole('PC_CHAIR')")
     @PutMapping("/{id}/review")
-    ResponseEntity<Void> startReview(@PathVariable("id") UUID id, Authentication authentication) {
-        this.conferenceService.startReview(id, authentication);
+    ResponseEntity<Void> startReview(@PathVariable("id") UUID id,
+                                     @AuthenticationPrincipal SecurityUser securityUser) {
+        this.conferenceService.startReview(id, securityUser);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @PreAuthorize("hasRole('PC_CHAIR')")
     @PutMapping("/{id}/decision")
-    ResponseEntity<Void> startDecision(@PathVariable("id") UUID id, Authentication authentication) {
-        this.conferenceService.startDecision(id, authentication);
+    ResponseEntity<Void> startDecision(@PathVariable("id") UUID id,
+                                       @AuthenticationPrincipal SecurityUser securityUser) {
+        this.conferenceService.startDecision(id, securityUser);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @PreAuthorize("hasRole('PC_CHAIR')")
     @PutMapping("/{id}/final")
-    ResponseEntity<Void> startFinal(@PathVariable("id") UUID id, Authentication authentication) {
-        this.conferenceService.startFinal(id, authentication);
+    ResponseEntity<Void> startFinal(@PathVariable("id") UUID id,
+                                    @AuthenticationPrincipal SecurityUser securityUser) {
+        this.conferenceService.startFinal(id, securityUser);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -125,8 +125,8 @@ class ConferenceController {
     @PutMapping("/{id}/pc-chair")
     ResponseEntity<Void> addPCChair(@PathVariable("id") UUID id,
                                     @Valid @RequestBody PCChairAdditionRequest pcChairAdditionRequest,
-                                    Authentication authentication) {
-        this.conferenceService.addPCChair(id, pcChairAdditionRequest, authentication);
+                                    @AuthenticationPrincipal SecurityUser securityUser) {
+        this.conferenceService.addPCChair(id, pcChairAdditionRequest, securityUser);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -139,8 +139,8 @@ class ConferenceController {
     @PostMapping("/{id}/papers")
     ResponseEntity<Void> submitPaper(@PathVariable("id") UUID id,
                                      @RequestBody PaperSubmissionRequest paperSubmissionRequest,
-                                     Authentication authentication) {
-        this.conferenceService.submitPaper(id, paperSubmissionRequest, authentication);
+                                     @AuthenticationPrincipal SecurityUser securityUser) {
+        this.conferenceService.submitPaper(id, paperSubmissionRequest, securityUser);
 
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -151,8 +151,8 @@ class ConferenceController {
     ResponseEntity<Void> assignReviewer(@PathVariable("conferenceId") UUID conferenceId,
                                         @PathVariable("paperId") Long paperId,
                                         @RequestBody ReviewerAssignmentRequest reviewerAssignmentRequest,
-                                        Authentication authentication) {
-        this.conferenceService.assignReviewer(conferenceId, paperId, reviewerAssignmentRequest, authentication);
+                                        @AuthenticationPrincipal SecurityUser securityUser) {
+        this.conferenceService.assignReviewer(conferenceId, paperId, reviewerAssignmentRequest, securityUser);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -165,8 +165,8 @@ class ConferenceController {
     ResponseEntity<Void> updatePaperApprovalStatus(@PathVariable("conferenceId") UUID conferenceId,
                                                    @PathVariable("paperId") Long paperId,
                                                    @PathVariable("decision") ReviewDecision decision,
-                                                   Authentication authentication) {
-        this.conferenceService.updatePaperApprovalStatus(conferenceId, paperId, decision, authentication);
+                                                   @AuthenticationPrincipal SecurityUser securityUser) {
+        this.conferenceService.updatePaperApprovalStatus(conferenceId, paperId, decision, securityUser);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -182,15 +182,11 @@ class ConferenceController {
         return new ResponseEntity<>(conferenceDTO, HttpStatus.OK);
     }
 
-    /*
-        Similar logic with findConferenceById() to return conferences based on the user that made the request
-     */
     @GetMapping
     ResponseEntity<List<ConferenceDTO>> findConferences(
             @RequestParam(value = "name", defaultValue = "", required = false) String name,
             @RequestParam(value = "description", defaultValue = "", required = false) String description,
             @CurrentSecurityContext SecurityContext securityContext) {
-        logger.info("Find conferences request. name: {} description: {}", name, description);
         List<ConferenceDTO> conferences = this.conferenceService.findConferences(name, description, securityContext);
 
         return new ResponseEntity<>(conferences, HttpStatus.OK);
@@ -198,8 +194,9 @@ class ConferenceController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('PC_CHAIR')")
-    ResponseEntity<Void> deleteConferenceById(@PathVariable("id") UUID id, Authentication authentication) {
-        this.conferenceService.deleteConferenceById(id, authentication);
+    ResponseEntity<Void> deleteConferenceById(@PathVariable("id") UUID id,
+                                              @AuthenticationPrincipal SecurityUser securityUser) {
+        this.conferenceService.deleteConferenceById(id, securityUser);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }

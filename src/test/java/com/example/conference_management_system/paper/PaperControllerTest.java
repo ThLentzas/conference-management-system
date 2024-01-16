@@ -11,9 +11,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.util.ResourceUtils;
@@ -45,6 +43,8 @@ import com.example.conference_management_system.paper.dto.PaperDTO;
 import com.example.conference_management_system.paper.dto.PaperFile;
 import com.example.conference_management_system.paper.dto.PaperUpdateRequest;
 import com.example.conference_management_system.review.dto.ReviewCreateRequest;
+import com.example.conference_management_system.security.SecurityUser;
+import com.example.conference_management_system.security.WithMockCustomUser;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -67,7 +67,7 @@ class PaperControllerTest {
 
     //createPaper()
     @Test
-    @WithMockUser(roles = "PC_MEMBER")
+    @WithMockCustomUser(roles = "ROLE_AUTHOR")
     void should201WhenPaperIsCreatedSuccessfully() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
@@ -78,7 +78,7 @@ class PaperControllerTest {
 
         when(this.paperService.createPaper(
                 any(PaperCreateRequest.class),
-                any(Authentication.class),
+                any(SecurityUser.class),
                 any(HttpServletRequest.class))).thenReturn(1L);
 
         this.mockMvc.perform(multipart(PAPER_PATH).file(pdfFile).with(csrf())
@@ -92,13 +92,14 @@ class PaperControllerTest {
                         .param("keywords", "keyword 1, keyword 2")
                         .contentType(MediaType.MULTIPART_FORM_DATA))
                 .andExpectAll(
-                        status().isCreated(),
-                        header().string("Location", containsString(PAPER_PATH + "/" + 1L))
+                        status().isCreated()
                 );
+
+        verify(this.paperService, times(1)).createPaper(any(PaperCreateRequest.class), any(SecurityUser.class), any(HttpServletRequest.class));
     }
 
     @Test
-    @WithMockUser(roles = "PC_MEMBER")
+    @WithMockCustomUser(roles = "ROLE_AUTHOR")
     void should409WhenCreatingPaperWithExistingTitle() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
@@ -114,7 +115,7 @@ class PaperControllerTest {
 
         when(this.paperService.createPaper(
                 any(PaperCreateRequest.class),
-                any(Authentication.class),
+                any(SecurityUser.class),
                 any(HttpServletRequest.class))).thenThrow(new DuplicateResourceException(
                 "A paper with the provided title already exists"));
 
@@ -231,7 +232,7 @@ class PaperControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "PC_MEMBER")
+    @WithMockCustomUser(roles = "ROLE_AUTHOR")
     void should400WhenTitleIsBlankOnPaperCreate() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
@@ -248,7 +249,7 @@ class PaperControllerTest {
 
         when(this.paperService.createPaper(
                 any(PaperCreateRequest.class),
-                any(Authentication.class),
+                any(SecurityUser.class),
                 any(HttpServletRequest.class))).thenThrow(new IllegalArgumentException(
                 "You must provide the title of the paper")
         );
@@ -271,7 +272,7 @@ class PaperControllerTest {
 
     //updatePaper()
     @Test
-    @WithMockUser(roles = "AUTHOR")
+    @WithMockCustomUser(roles = "ROLE_AUTHOR")
     void should204WhenPaperIsUpdatedSuccessfully() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
@@ -282,7 +283,7 @@ class PaperControllerTest {
 
         doNothing().when(this.paperService).updatePaper(eq(1L),
                 any(PaperUpdateRequest.class),
-                any(Authentication.class));
+                any(SecurityUser.class));
 
         this.mockMvc.perform(multipart(PAPER_PATH + "/{id}", 1L).file(pdfFile).with(csrf())
                         .with(request -> {
@@ -299,7 +300,7 @@ class PaperControllerTest {
         verify(this.paperService, times(1)).updatePaper(
                 any(Long.class),
                 any(PaperUpdateRequest.class),
-                any(Authentication.class));
+                any(SecurityUser.class));
     }
 
     /*
@@ -307,7 +308,7 @@ class PaperControllerTest {
         param("title", null) => error values must not be empty.
      */
     @Test
-    @WithMockUser(roles = "AUTHOR")
+    @WithMockCustomUser(roles = "ROLE_AUTHOR")
     void should400WhenAllValuesAreNullOnPaperUpdate() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
@@ -322,7 +323,7 @@ class PaperControllerTest {
                 """;
 
         doThrow(new IllegalArgumentException("You must provide at least one property to update the paper")).when(
-                this.paperService).updatePaper(eq(1L), any(PaperUpdateRequest.class), any(Authentication.class));
+                this.paperService).updatePaper(eq(1L), any(PaperUpdateRequest.class), any(SecurityUser.class));
 
         this.mockMvc.perform(multipart(PAPER_PATH + "/{id}", 1L).file(pdfFile).with(csrf())
                         .with(request -> {
@@ -337,7 +338,7 @@ class PaperControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "AUTHOR")
+    @WithMockCustomUser(roles = "ROLE_AUTHOR")
     void should404WhenPaperIsNotFoundOnPaperUpdate() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
@@ -354,7 +355,7 @@ class PaperControllerTest {
         doThrow(new ResourceNotFoundException("Paper not found with id: " + 1L)).when(this.paperService).updatePaper(
                 eq(1L),
                 any(PaperUpdateRequest.class),
-                any(Authentication.class));
+                any(SecurityUser.class));
 
         this.mockMvc.perform(multipart(PAPER_PATH + "/{id}", 1L).file(pdfFile).with(csrf())
                         .with(request -> {
@@ -470,7 +471,7 @@ class PaperControllerTest {
 
     //addCoAuthor()
     @Test
-    @WithMockUser(roles = "AUTHOR")
+    @WithMockCustomUser(roles = "ROLE_AUTHOR")
     void should204WhenCoAuthorIsAddedSuccessfully() throws Exception {
         String requestBody = """
                 {
@@ -481,7 +482,7 @@ class PaperControllerTest {
         doNothing().when(this.paperService).addCoAuthor(
                 eq(1L),
                 any(AuthorAdditionRequest.class),
-                any(Authentication.class));
+                any(SecurityUser.class));
 
         this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -490,7 +491,7 @@ class PaperControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "AUTHOR")
+    @WithMockCustomUser(roles = "ROLE_AUTHOR")
     void should404WhenPaperIsNotFoundOnAuthorAddition() throws Exception {
         String requestBody = """
                 {
@@ -504,7 +505,7 @@ class PaperControllerTest {
                 """, 1L);
 
         doThrow(new ResourceNotFoundException("Paper not found with id: " + 1L)).when(this.paperService)
-                .addCoAuthor(eq(1L), any(AuthorAdditionRequest.class), any(Authentication.class));
+                .addCoAuthor(eq(1L), any(AuthorAdditionRequest.class), any(SecurityUser.class));
 
         this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -516,7 +517,7 @@ class PaperControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "AUTHOR")
+    @WithMockCustomUser(roles = "ROLE_AUTHOR")
     void should409WhenCoAuthorIsAlreadyAddedOnAuthorAddition() throws Exception {
         String authorsName = "author";
         String requestBody = """
@@ -534,7 +535,7 @@ class PaperControllerTest {
                 "User with name: " + authorsName + " is already an author for the paper with id: " + 1L))
                 .when(this.paperService).addCoAuthor(eq(1L),
                         any(AuthorAdditionRequest.class),
-                        any(Authentication.class));
+                        any(SecurityUser.class));
 
         this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -619,7 +620,7 @@ class PaperControllerTest {
 
     //reviewPaper()
     @Test
-    @WithMockUser(roles = "REVIEWER")
+    @WithMockCustomUser(roles = "ROLE_REVIEWER")
     void should201WhenPaperIsReviewedSuccessfully() throws Exception {
         String requestBody = """
                 {
@@ -628,7 +629,7 @@ class PaperControllerTest {
                 }
                 """;
 
-        when(this.paperService.reviewPaper(eq(1L), any(ReviewCreateRequest.class), any(Authentication.class)))
+        when(this.paperService.reviewPaper(eq(1L), any(ReviewCreateRequest.class), any(SecurityUser.class)))
                 .thenReturn(1L);
 
         this.mockMvc.perform(post(PAPER_PATH + "/{id}/reviews", 1L).with(csrf())
@@ -641,7 +642,7 @@ class PaperControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "REVIEWER")
+    @WithMockCustomUser(roles = "ROLE_REVIEWER")
     void should404WhenPaperIsNotFoundOnReviewPaper() throws Exception {
         String requestBody = """
                 {
@@ -655,7 +656,7 @@ class PaperControllerTest {
                 }
                 """, 1L);
 
-        when(this.paperService.reviewPaper(eq(1L), any(ReviewCreateRequest.class), any(Authentication.class)))
+        when(this.paperService.reviewPaper(eq(1L), any(ReviewCreateRequest.class), any(SecurityUser.class)))
                 .thenThrow(new ResourceNotFoundException("Paper not found with id: " + 1L));
 
         this.mockMvc.perform(post(PAPER_PATH + "/{id}/reviews", 1L).with(csrf())
@@ -668,7 +669,7 @@ class PaperControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "REVIEWER")
+    @WithMockCustomUser(roles = "ROLE_REVIEWER")
     void should500WhenPaperIsNotInSubmittedToAnyConferenceOnReviewPaper() throws Exception {
         String requestBody = """
                 {
@@ -682,7 +683,7 @@ class PaperControllerTest {
                 }
                 """;
 
-        when(this.paperService.reviewPaper(eq(1L), any(ReviewCreateRequest.class), any(Authentication.class)))
+        when(this.paperService.reviewPaper(eq(1L), any(ReviewCreateRequest.class), any(SecurityUser.class)))
                 .thenThrow(new ServerErrorException("The server encountered an internal error and was unable to " +
                         "complete your request. Please try again later"));
 
@@ -696,7 +697,7 @@ class PaperControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "REVIEWER")
+    @WithMockCustomUser(roles = "ROLE_REVIEWER")
     void should409WhenPaperIsNotInSubmittedStateOnReviewPaper() throws Exception {
         String requestBody = """
                 {
@@ -710,7 +711,7 @@ class PaperControllerTest {
                 }
                 """, PaperState.CREATED);
 
-        when(this.paperService.reviewPaper(eq(1L), any(ReviewCreateRequest.class), any(Authentication.class)))
+        when(this.paperService.reviewPaper(eq(1L), any(ReviewCreateRequest.class), any(SecurityUser.class)))
                 .thenThrow(new StateConflictException("Paper is in state: " + PaperState.CREATED + " and can not be " +
                         "reviewed"));
 
@@ -799,18 +800,18 @@ class PaperControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "AUTHOR")
+    @WithMockCustomUser(roles = "ROLE_AUTHOR")
     void should204WhenPaperIsWithdrawnSuccessfully() throws Exception {
-        doNothing().when(this.paperService).withdrawPaper(eq(1L), any(Authentication.class));
+        doNothing().when(this.paperService).withdrawPaper(eq(1L), any(SecurityUser.class));
 
         this.mockMvc.perform(put(PAPER_PATH + "/{id}/withdraw", 1L).with(csrf()))
                 .andExpect(status().isNoContent());
 
-        verify(this.paperService, times(1)).withdrawPaper(eq(1L), any(Authentication.class));
+        verify(this.paperService, times(1)).withdrawPaper(eq(1L), any(SecurityUser.class));
     }
 
     @Test
-    @WithMockUser(roles = "AUTHOR")
+    @WithMockCustomUser(roles = "ROLE_AUTHOR")
     void should404WhenPaperIsNotFoundOnWithdrawPaper() throws Exception {
         String responseBody = String.format("""
                 {
@@ -819,7 +820,7 @@ class PaperControllerTest {
                 """, 1L);
 
         doThrow(new ResourceNotFoundException("Paper not found with id: " + 1L)).when(this.paperService).withdrawPaper(
-                any(Long.class), any(Authentication.class));
+                any(Long.class), any(SecurityUser.class));
 
         this.mockMvc.perform(put(PAPER_PATH + "/{id}/withdraw", 1L).with(csrf()))
                 .andExpectAll(
@@ -829,7 +830,7 @@ class PaperControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "AUTHOR")
+    @WithMockCustomUser(roles = "ROLE_AUTHOR")
     void should409WhenPaperIsNotSubmittedToAnyConferenceOnWithdrawPaper() throws Exception {
         String responseBody = """
                 {
@@ -838,7 +839,7 @@ class PaperControllerTest {
                 """;
 
         doThrow(new StateConflictException("You can not withdraw a paper that has not been submitted to any " +
-                "conference")).when(this.paperService).withdrawPaper(eq(1L), any(Authentication.class));
+                "conference")).when(this.paperService).withdrawPaper(eq(1L), any(SecurityUser.class));
 
         this.mockMvc.perform(put(PAPER_PATH + "/{id}/withdraw", 1L).with(csrf()))
                 .andExpectAll(
@@ -900,11 +901,11 @@ class PaperControllerTest {
 
     //downloadPaper()
     @Test
-    @WithMockUser(roles = "AUTHOR")
+    @WithMockCustomUser(roles = "ROLE_AUTHOR")
     void should200WhenDownloadPaperIsSuccessful() throws Exception {
         PaperFile paperFile = new PaperFile(new ByteArrayResource((getFileContent())), "test.pdf");
 
-        when(this.paperService.downloadPaperFile(eq(1L), any(Authentication.class))).thenReturn(paperFile);
+        when(this.paperService.downloadPaperFile(eq(1L), any(SecurityUser.class))).thenReturn(paperFile);
 
         MvcResult result = this.mockMvc.perform(get(PAPER_PATH + "/{id}/download", 1L)
                         .accept(MediaType.APPLICATION_OCTET_STREAM))
@@ -918,7 +919,7 @@ class PaperControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "AUTHOR")
+    @WithMockCustomUser(roles = "ROLE_AUTHOR")
     void should404WhenPaperIsNotFoundOnDownloadPaper() throws Exception {
         String responseBody = String.format("""
                 {
@@ -926,7 +927,7 @@ class PaperControllerTest {
                 }
                 """, 1L);
 
-        when(this.paperService.downloadPaperFile(eq(1L), any(Authentication.class)))
+        when(this.paperService.downloadPaperFile(eq(1L), any(SecurityUser.class)))
                 .thenThrow(new ResourceNotFoundException("Paper not found with id: " + 1L));
 
         this.mockMvc.perform(get(PAPER_PATH + "/{id}/download", 1L)
@@ -938,7 +939,7 @@ class PaperControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "AUTHOR")
+    @WithMockCustomUser(roles = "ROLE_AUTHOR")
     @DisplayName("The requesting user is not AUTHOR or REVIEWER of the paper or PC_CHAIR at conference the paper has" +
             " been submitted to")
     void should403OnDownloadPaper() throws Exception {
@@ -947,7 +948,7 @@ class PaperControllerTest {
                     "message": "Access denied"
                 }
                 """;
-        when(this.paperService.downloadPaperFile(eq(1L), any(Authentication.class)))
+        when(this.paperService.downloadPaperFile(eq(1L), any(SecurityUser.class)))
                 .thenThrow(new AccessDeniedException("Access denied"));
 
         this.mockMvc.perform(get(PAPER_PATH + "/{id}/download", 1L)
@@ -959,7 +960,7 @@ class PaperControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "AUTHOR")
+    @WithMockCustomUser(roles = "ROLE_AUTHOR")
     void should500WhenContentIsNotFoundOnDownloadPaper() throws Exception {
         String responseBody = """
                 {
@@ -967,7 +968,7 @@ class PaperControllerTest {
                 }
                 """;
 
-        when(this.paperService.downloadPaperFile(eq(1L), any(Authentication.class)))
+        when(this.paperService.downloadPaperFile(eq(1L), any(SecurityUser.class)))
                 .thenThrow(new ServerErrorException("The server encountered an internal error and was unable to " +
                         "complete your request. Please try again later"));
 

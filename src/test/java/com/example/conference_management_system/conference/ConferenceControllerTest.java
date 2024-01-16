@@ -402,6 +402,7 @@ class ConferenceControllerTest {
                     "message": "Conference not found with id: %s"
                 }
                 """, conferenceId);
+
         doThrow(new ResourceNotFoundException("Conference not found with id: " + conferenceId))
                 .when(this.conferenceService).startSubmission(eq(conferenceId), any(Authentication.class));
 
@@ -416,12 +417,6 @@ class ConferenceControllerTest {
     @WithMockUser(roles = "PC_CHAIR")
     void should403WhenRequestingUserIsNotConferencePCChairOnStartSubmission() throws Exception {
         UUID conferenceId = UUID.randomUUID();
-        String requestBody = """
-                {
-                    "name": "name",
-                    "description": "description"
-                }
-                """;
         String responseBody = """
                 {
                     "message": "Access denied"
@@ -431,9 +426,7 @@ class ConferenceControllerTest {
         doThrow(new AccessDeniedException("Access denied"))
                 .when(this.conferenceService).startSubmission(eq(conferenceId), any(Authentication.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/submission", conferenceId).with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/submission", conferenceId).with(csrf()))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody)
@@ -518,6 +511,7 @@ class ConferenceControllerTest {
     @WithMockUser(roles = "PC_CHAIR")
     void should204WhenStartAssignmentIsSuccessful() throws Exception {
         UUID conferenceId = UUID.randomUUID();
+
         doNothing().when(this.conferenceService).startAssignment(eq(conferenceId), any(Authentication.class));
 
         this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/assignment", conferenceId).with(csrf()))
@@ -535,6 +529,7 @@ class ConferenceControllerTest {
                     "message": "Conference not found with id: %s"
                 }
                 """, conferenceId);
+
         doThrow(new ResourceNotFoundException("Conference not found with id: " + conferenceId))
                 .when(this.conferenceService).startAssignment(eq(conferenceId), any(Authentication.class));
 
@@ -549,12 +544,6 @@ class ConferenceControllerTest {
     @WithMockUser(roles = "PC_CHAIR")
     void should403WhenRequestingUserIsNotConferencePCChairOnStartAssignment() throws Exception {
         UUID conferenceId = UUID.randomUUID();
-        String requestBody = """
-                {
-                    "name": "name",
-                    "description": "description"
-                }
-                """;
         String responseBody = """
                 {
                     "message": "Access denied"
@@ -564,9 +553,7 @@ class ConferenceControllerTest {
         doThrow(new AccessDeniedException("Access denied"))
                 .when(this.conferenceService).startAssignment(eq(conferenceId), any(Authentication.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/assignment", conferenceId).with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/assignment", conferenceId).with(csrf()))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody)
@@ -651,6 +638,7 @@ class ConferenceControllerTest {
     @WithMockUser(roles = "PC_CHAIR")
     void should204WhenConferenceStartReviewIsSuccessful() throws Exception {
         UUID conferenceId = UUID.randomUUID();
+
         doNothing().when(this.conferenceService).startReview(eq(conferenceId), any(Authentication.class));
 
         this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/review", conferenceId).with(csrf()))
@@ -668,6 +656,7 @@ class ConferenceControllerTest {
                     "message": "Conference not found with id: %s"
                 }
                 """, conferenceId);
+
         doThrow(new ResourceNotFoundException("Conference not found with id: " + conferenceId))
                 .when(this.conferenceService).startReview(eq(conferenceId), any(Authentication.class));
 
@@ -682,12 +671,6 @@ class ConferenceControllerTest {
     @WithMockUser(roles = "PC_CHAIR")
     void should403WhenRequestingUserIsNotConferencePCChairOnStartReview() throws Exception {
         UUID conferenceId = UUID.randomUUID();
-        String requestBody = """
-                {
-                    "name": "name",
-                    "description": "description"
-                }
-                """;
         String responseBody = """
                 {
                     "message": "Access denied"
@@ -697,9 +680,7 @@ class ConferenceControllerTest {
         doThrow(new AccessDeniedException("Access denied"))
                 .when(this.conferenceService).startReview(eq(conferenceId), any(Authentication.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/review", conferenceId).with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/review", conferenceId).with(csrf()))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody)
@@ -784,6 +765,7 @@ class ConferenceControllerTest {
     @WithMockUser(roles = "PC_CHAIR")
     void should204WhenConferenceStartDecisionIsSuccessful() throws Exception {
         UUID conferenceId = UUID.randomUUID();
+
         doNothing().when(this.conferenceService).startDecision(eq(conferenceId), any(Authentication.class));
 
         this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/decision", conferenceId).with(csrf()))
@@ -801,6 +783,7 @@ class ConferenceControllerTest {
                     "message": "Conference not found with id: %s"
                 }
                 """, conferenceId);
+
         doThrow(new ResourceNotFoundException("Conference not found with id: " + conferenceId))
                 .when(this.conferenceService).startDecision(eq(conferenceId), any(Authentication.class));
 
@@ -815,12 +798,6 @@ class ConferenceControllerTest {
     @WithMockUser(roles = "PC_CHAIR")
     void should403WhenRequestingUserIsNotConferencePCChairOnStartDecision() throws Exception {
         UUID conferenceId = UUID.randomUUID();
-        String requestBody = """
-                {
-                    "name": "name",
-                    "description": "description"
-                }
-                """;
         String responseBody = """
                 {
                     "message": "Access denied"
@@ -830,9 +807,7 @@ class ConferenceControllerTest {
         doThrow(new AccessDeniedException("Access denied")).when(this.conferenceService)
                 .startDecision(eq(conferenceId), any(Authentication.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/decision", conferenceId).with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/decision", conferenceId).with(csrf()))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody)
@@ -915,28 +890,31 @@ class ConferenceControllerTest {
     //startFinal()
     @Test
     @WithMockUser(roles = "PC_CHAIR")
-    void shouldReturnHTTP204WhenConferenceStartFinalIsSuccessful() throws Exception {
-        doNothing().when(this.conferenceService).startFinal(any(UUID.class), any(Authentication.class));
+    void should204WhenConferenceStartFinalIsSuccessful() throws Exception {
+        UUID conferenceId = UUID.randomUUID();
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/final", UUID.randomUUID()).with(csrf()))
+        doNothing().when(this.conferenceService).startFinal(eq(conferenceId), any(Authentication.class));
+
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/final", conferenceId).with(csrf()))
                 .andExpect(status().isNoContent());
 
-        verify(this.conferenceService, times(1)).startFinal(any(UUID.class), any(Authentication.class));
+        verify(this.conferenceService, times(1)).startFinal(eq(conferenceId), any(Authentication.class));
     }
 
     @Test
     @WithMockUser(roles = "PC_CHAIR")
-    void shouldReturnHTTP404WhenConferenceIsNotFoundOnStartFinal() throws Exception {
-        UUID id = UUID.randomUUID();
+    void should404WhenConferenceIsNotFoundOnStartFinal() throws Exception {
+        UUID conferenceId = UUID.randomUUID();
         String responseBody = String.format("""
                 {
                     "message": "Conference not found with id: %s"
                 }
-                """, id);
-        doThrow(new ResourceNotFoundException("Conference not found with id: " + id)).when(this.conferenceService)
-                .startFinal(any(UUID.class), any(Authentication.class));
+                """, conferenceId);
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/final", id).with(csrf()))
+        doThrow(new ResourceNotFoundException("Conference not found with id: " + conferenceId))
+                .when(this.conferenceService).startFinal(eq(conferenceId), any(Authentication.class));
+
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/final", conferenceId).with(csrf()))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody)
@@ -945,18 +923,39 @@ class ConferenceControllerTest {
 
     @Test
     @WithMockUser(roles = "PC_CHAIR")
-    void shouldReturnHTTP409WhenConferenceIsNotInReviewStateOnStartFinal() throws Exception {
-        doThrow(new StateConflictException("Conference is in the state: " + ConferenceState.CREATED.name() + " and" +
-                " the approved papers final submission is not allowed")).when(this.conferenceService)
-                .startFinal(any(UUID.class), any(Authentication.class));
+    void should403WhenRequestingUserIsNotConferencePCChairOnStartFinal() throws Exception {
+        UUID conferenceId = UUID.randomUUID();
+        String responseBody = """
+                {
+                    "message": "Access denied"
+                }
+                """;
 
+        doThrow(new AccessDeniedException("Access denied")).when(this.conferenceService)
+                .startFinal(eq(conferenceId), any(Authentication.class));
+
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/final", conferenceId).with(csrf()))
+                .andExpectAll(
+                        status().isForbidden(),
+                        content().json(responseBody)
+                );
+    }
+
+    @Test
+    @WithMockUser(roles = "PC_CHAIR")
+    void should409WhenConferenceIsNotInDecisionStateOnStartFinal() throws Exception {
+        UUID conferenceId = UUID.randomUUID();
         String responseBody = String.format("""
                 {
-                    "message": "Conference is in the state: %s and the approved papers final submission is not allowed"
+                    "message": "Conference is in the state: %s and the papers can neither be accepted nor rejected"
                 }
-                """, ConferenceState.CREATED.name());
+                """, ConferenceState.CREATED);
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/final", UUID.randomUUID()).with(csrf()))
+        doThrow(new StateConflictException("Conference is in the state: " + ConferenceState.CREATED + " and the " +
+                "papers can neither be accepted nor rejected"))
+                .when(this.conferenceService).startFinal(eq(conferenceId), any(Authentication.class));
+
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/final", conferenceId).with(csrf()))
                 .andExpectAll(
                         status().isConflict(),
                         content().json(responseBody)

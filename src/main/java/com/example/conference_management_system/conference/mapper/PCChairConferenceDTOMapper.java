@@ -23,14 +23,12 @@ public class PCChairConferenceDTOMapper implements Function<Conference, PCChairC
         Set<UserDTO> users = conference.getConferenceUsers()
                 .stream()
                 .map(conferenceUser -> this.userDTOMapper.apply(conferenceUser.getUser()))
-                .sorted(Comparator.comparing(UserDTO::id))
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+                .collect(Collectors.toSet());
 
         Set<PCChairPaperDTO> papers = conference.getPapers()
                 .stream()
                 .map(this.pcChairPaperDTOMapper)
-                .sorted(Comparator.comparing(PaperDTO::getId))
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+                .collect(Collectors.toSet());
 
         return new PCChairConferenceDTO(
                 conference.getId(),

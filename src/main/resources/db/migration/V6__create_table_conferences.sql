@@ -4,7 +4,6 @@ CREATE TYPE conference_state AS ENUM (
     'ASSIGNMENT',
     'REVIEW',
     'DECISION',
-    'FINAL_SUBMISSION',
     'FINAL'
 );
 
@@ -25,6 +24,6 @@ CREATE TABLE IF NOT EXISTS conferences_users (
     user_id INTEGER NOT NULL,
     assigned_date DATE NOT NULL,
     CONSTRAINT pk_conferences_users PRIMARY KEY (conference_id, user_iD),
-    CONSTRAINT fk_conferences_users_users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT fk_conferences_users_conferences FOREIGN KEY (conference_id) REFERENCES conferences ON DELETE CASCADE
+    CONSTRAINT fk_conferences_users_users_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_conferences_users_conferences_id FOREIGN KEY (conference_id) REFERENCES conferences ON DELETE CASCADE
 );

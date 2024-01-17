@@ -9,9 +9,9 @@ import org.testcontainers.containers.PostgreSQLContainer;
 
 import com.example.conference_management_system.config.JpaAuditingConfig;
 
-/*
-    We have to import the JpaAuditingConfig class for the database to auto-generated the created date.
- */
+
+//We have to import the JpaAuditingConfig class for the database to auto-generated the created date.
+
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import({
@@ -27,7 +27,7 @@ public class AbstractRepositoryTest {
             .withDatabaseName("conference_ms_test");
 
     @ServiceConnection
-    protected static GenericContainer<?> redisContainer = new GenericContainer<>("redis:alpine")
+    protected static final GenericContainer<?> redisContainer = new GenericContainer<>("redis:alpine")
             .withExposedPorts(6379);
 
     static {

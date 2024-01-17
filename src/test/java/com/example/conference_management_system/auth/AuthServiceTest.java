@@ -56,7 +56,8 @@ class AuthServiceTest {
                 "password",
                 "test user",
                 Set.of(RoleType.ROLE_AUTHOR));
-        Set<Role> roles = registerRequest.roleTypes().stream()
+        Set<Role> roles = registerRequest.roleTypes()
+                .stream()
                 .map(Role::new)
                 .collect(Collectors.toSet());
         User user = new User(registerRequest.username(), registerRequest.password(), registerRequest.fullName(), roles);
@@ -78,6 +79,7 @@ class AuthServiceTest {
 
         //Assert
         assertThat(actual).isEqualTo(expected);
+
         verify(this.userService, times(1)).validateUser(any(User.class));
         verify(this.userService, times(1)).registerUser(any(User.class));
     }
@@ -90,6 +92,7 @@ class AuthServiceTest {
         user.setUsername(loginRequest.username());
         user.setPassword(loginRequest.password());
         user.setRoles(Set.of(new Role(RoleType.ROLE_AUTHOR)));
+
         SecurityUser securityUser = new SecurityUser(user);
         Authentication expected = new UsernamePasswordAuthenticationToken(
                 securityUser,

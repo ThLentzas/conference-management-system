@@ -8,10 +8,10 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import java.io.IOException;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.conference_management_system.exception.ApiError;
+
+import java.io.IOException;
 
 public class CustomAccessDeniedHandler implements AccessDeniedHandler {
     @Override

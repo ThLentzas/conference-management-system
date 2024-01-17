@@ -85,6 +85,10 @@ class ConferenceController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
+    /*
+        The state of conference changes to ASSIGNMENT, and reviewers can be assigned to submitted papers. Papers can
+        no longer be submitted.
+     */
     @PreAuthorize("hasRole('PC_CHAIR')")
     @PutMapping("/{id}/assignment")
     ResponseEntity<Void> startAssignment(@PathVariable("id") UUID id,
@@ -94,6 +98,10 @@ class ConferenceController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
+    /*
+        The state of conference changes to REVIEW, and the assigned reviewers can write a review for the submitted
+        papers.
+     */
     @PreAuthorize("hasRole('PC_CHAIR')")
     @PutMapping("/{id}/review")
     ResponseEntity<Void> startReview(@PathVariable("id") UUID id,
@@ -103,6 +111,10 @@ class ConferenceController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
+    /*
+        The state of conference changes to DECISION, and a PC_CHAIR at the conference can either APPROVE or REJECT
+        the submitted papers based on the reviews
+     */
     @PreAuthorize("hasRole('PC_CHAIR')")
     @PutMapping("/{id}/decision")
     ResponseEntity<Void> startDecision(@PathVariable("id") UUID id,
@@ -112,6 +124,10 @@ class ConferenceController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
+    /*
+        The state of conference changes to FINAL, the APPROVED papers are getting ACCEPTED and the REJECTED ones are
+        removed from the specific to be submitted to another one.
+     */
     @PreAuthorize("hasRole('PC_CHAIR')")
     @PutMapping("/{id}/final")
     ResponseEntity<Void> startFinal(@PathVariable("id") UUID id,
@@ -158,7 +174,7 @@ class ConferenceController {
     }
 
     /*
-        A paper that has been reviewed can either get approved or rejected
+        A paper that has been reviewed can either get APPROVED or REJECTED
      */
     @PreAuthorize("hasRole('PC_CHAIR')")
     @PutMapping("/{conferenceId}/papers/{paperId}/{decision}")

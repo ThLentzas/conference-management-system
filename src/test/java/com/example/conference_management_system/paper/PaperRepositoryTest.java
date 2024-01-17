@@ -35,6 +35,7 @@ class PaperRepositoryTest extends AbstractRepositoryTest {
 
     private Paper getPaper() {
         Paper paper = new Paper();
+        paper.setId(1L);
         paper.setTitle("title");
         paper.setAbstractText("abstractText");
         paper.setAuthors("author 1, author2");

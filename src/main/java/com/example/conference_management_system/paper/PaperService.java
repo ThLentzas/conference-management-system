@@ -64,8 +64,8 @@ public class PaperService {
     private final AuthService authService;
     private final RoleService roleService;
     private final FileService fileService;
-    private final AuthorPaperDTOMapper authorPaperDTOMapper = new AuthorPaperDTOMapper();
     private final ReviewerPaperDTOMapper reviewerPaperDTOMapper = new ReviewerPaperDTOMapper();
+    private final AuthorPaperDTOMapper authorPaperDTOMapper = new AuthorPaperDTOMapper();
     private final PaperDTOMapper paperDTOMapper = new PaperDTOMapper();
     private static final Logger logger = LoggerFactory.getLogger(PaperService.class);
     private static final String PAPER_NOT_FOUND_MSG = "Paper not found with id: ";
@@ -104,11 +104,13 @@ public class PaperService {
 
         Content content = new Content();
         setupContent(content, paperCreateRequest.file());
-        Paper paper = new Paper(paperCreateRequest.title(),
+        Paper paper = new Paper(
+                paperCreateRequest.title(),
                 paperCreateRequest.abstractText(),
                 String.join(",", authors),
                 paperCreateRequest.keywords());
-        PaperUser paperUser = new PaperUser(new PaperUserId(paper.getId(), securityUser.user().getId()),
+        PaperUser paperUser = new PaperUser(
+                new PaperUserId(paper.getId(), securityUser.user().getId()),
                 paper,
                 securityUser.user(),
                 RoleType.ROLE_AUTHOR
@@ -123,7 +125,8 @@ public class PaperService {
     }
 
     void updatePaper(Long paperId, PaperUpdateRequest paperUpdateRequest, SecurityUser securityUser) {
-        if (paperUpdateRequest.title() == null && paperUpdateRequest.authors() == null
+        if (paperUpdateRequest.title() == null
+                && paperUpdateRequest.authors() == null
                 && paperUpdateRequest.abstractText() == null
                 && paperUpdateRequest.keywords() == null
                 && paperUpdateRequest.file() == null) {
@@ -217,7 +220,8 @@ public class PaperService {
         */
         paper.setAuthors(String.join(",", authors));
 
-        PaperUser paperUser = new PaperUser(new PaperUserId(paper.getId(), coAuthor.getId()),
+        PaperUser paperUser = new PaperUser(
+                new PaperUserId(paper.getId(), coAuthor.getId()),
                 paper,
                 coAuthor,
                 RoleType.ROLE_AUTHOR
@@ -253,7 +257,8 @@ public class PaperService {
             throw new StateConflictException("Paper is in state: " + paper.getState() + " and can not be reviewed");
         }
 
-        Review review = new Review(paper,
+        Review review = new Review(
+                paper,
                 securityUser.user(),
                 reviewCreateRequest.comment(),
                 reviewCreateRequest.score()

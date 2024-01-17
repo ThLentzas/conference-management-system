@@ -26,6 +26,7 @@ public class SecurityConfig {
         http.authorizeHttpRequests(authorize -> {
                     authorize.requestMatchers(HttpMethod.GET, "/api/v1/papers", "/api/v1/papers/{id}").permitAll();
                     authorize.requestMatchers(HttpMethod.GET, "/api/v1/conferences/**").permitAll();
+                    authorize.requestMatchers(HttpMethod.GET, "/api/v1/users/**").permitAll();
                     authorize.requestMatchers("/api/v1/auth/**").permitAll();
                     authorize.anyRequest().authenticated();
                 })

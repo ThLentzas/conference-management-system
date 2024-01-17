@@ -26,6 +26,6 @@ CREATE TABLE IF NOT EXISTS papers_users (
     role_type role_type NOT NULL,
     assigned_date DATE NOT NULL,
     CONSTRAINT pk_papers_users PRIMARY KEY (user_id, paper_id),
-    CONSTRAINT fk_papers_users_users FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-    CONSTRAINT fk_papers_users_papers FOREIGN KEY (paper_id) REFERENCES papers (id) ON DELETE CASCADE
+    CONSTRAINT fk_papers_users_users_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    CONSTRAINT fk_papers_users_papers_id FOREIGN KEY (paper_id) REFERENCES papers (id) ON DELETE CASCADE
 );

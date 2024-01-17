@@ -1,6 +1,5 @@
 package com.example.conference_management_system.paper;
 
-import com.example.conference_management_system.security.SecurityUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
@@ -30,6 +29,7 @@ import com.example.conference_management_system.paper.dto.PaperDTO;
 import com.example.conference_management_system.paper.dto.PaperFile;
 import com.example.conference_management_system.paper.dto.PaperUpdateRequest;
 import com.example.conference_management_system.review.dto.ReviewCreateRequest;
+import com.example.conference_management_system.security.SecurityUser;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;

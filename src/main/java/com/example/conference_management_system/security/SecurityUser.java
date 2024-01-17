@@ -11,7 +11,8 @@ public record SecurityUser(User user) implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return user.getRoles().stream()
+        return user.getRoles()
+                .stream()
                 .map(SecurityRole::new)
                 .toList();
     }

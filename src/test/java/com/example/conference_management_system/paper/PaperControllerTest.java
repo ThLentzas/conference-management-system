@@ -1,21 +1,5 @@
 package com.example.conference_management_system.paper;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Import;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.util.ResourceUtils;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
@@ -27,7 +11,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -45,6 +32,22 @@ import com.example.conference_management_system.paper.dto.PaperUpdateRequest;
 import com.example.conference_management_system.review.dto.ReviewCreateRequest;
 import com.example.conference_management_system.security.SecurityUser;
 import com.example.conference_management_system.security.WithMockCustomUser;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.util.ResourceUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -95,7 +98,10 @@ class PaperControllerTest {
                         status().isCreated()
                 );
 
-        verify(this.paperService, times(1)).createPaper(any(PaperCreateRequest.class), any(SecurityUser.class), any(HttpServletRequest.class));
+        verify(this.paperService, times(1)).createPaper(
+                any(PaperCreateRequest.class),
+                any(SecurityUser.class),
+                any(HttpServletRequest.class));
     }
 
     @Test
@@ -116,8 +122,8 @@ class PaperControllerTest {
         when(this.paperService.createPaper(
                 any(PaperCreateRequest.class),
                 any(SecurityUser.class),
-                any(HttpServletRequest.class))).thenThrow(new DuplicateResourceException(
-                "A paper with the provided title already exists"));
+                any(HttpServletRequest.class))).thenThrow(new DuplicateResourceException("A paper with the provided" +
+                " title already exists"));
 
         this.mockMvc.perform(multipart(PAPER_PATH).file(pdfFile).with(csrf())
                         .with(request -> {
@@ -250,9 +256,8 @@ class PaperControllerTest {
         when(this.paperService.createPaper(
                 any(PaperCreateRequest.class),
                 any(SecurityUser.class),
-                any(HttpServletRequest.class))).thenThrow(new IllegalArgumentException(
-                "You must provide the title of the paper")
-        );
+                any(HttpServletRequest.class))).thenThrow(new IllegalArgumentException("You must provide the title " +
+                "of the paper"));
 
         this.mockMvc.perform(multipart(PAPER_PATH).file(pdfFile).with(csrf())
                         .with(request -> {
@@ -281,9 +286,7 @@ class PaperControllerTest {
                 getFileContent()
         );
 
-        doNothing().when(this.paperService).updatePaper(eq(1L),
-                any(PaperUpdateRequest.class),
-                any(SecurityUser.class));
+        doNothing().when(this.paperService).updatePaper(eq(1L), any(PaperUpdateRequest.class), any(SecurityUser.class));
 
         this.mockMvc.perform(multipart(PAPER_PATH + "/{id}", 1L).file(pdfFile).with(csrf())
                         .with(request -> {
@@ -297,10 +300,7 @@ class PaperControllerTest {
                         .contentType(MediaType.MULTIPART_FORM_DATA))
                 .andExpect(status().isNoContent());
 
-        verify(this.paperService, times(1)).updatePaper(
-                any(Long.class),
-                any(PaperUpdateRequest.class),
-                any(SecurityUser.class));
+        verify(this.paperService, times(1)).updatePaper(eq(1L), any(PaperUpdateRequest.class), any(SecurityUser.class));
     }
 
     /*
@@ -482,7 +482,8 @@ class PaperControllerTest {
         doNothing().when(this.paperService).addCoAuthor(
                 eq(1L),
                 any(AuthorAdditionRequest.class),
-                any(SecurityUser.class));
+                any(SecurityUser.class)
+        );
 
         this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -533,7 +534,8 @@ class PaperControllerTest {
 
         doThrow(new DuplicateResourceException(
                 "User with name: " + authorsName + " is already an author for the paper with id: " + 1L))
-                .when(this.paperService).addCoAuthor(eq(1L),
+                .when(this.paperService).addCoAuthor(
+                        eq(1L),
                         any(AuthorAdditionRequest.class),
                         any(SecurityUser.class));
 
@@ -819,8 +821,8 @@ class PaperControllerTest {
                 }
                 """, 1L);
 
-        doThrow(new ResourceNotFoundException("Paper not found with id: " + 1L)).when(this.paperService).withdrawPaper(
-                any(Long.class), any(SecurityUser.class));
+        doThrow(new ResourceNotFoundException("Paper not found with id: " + 1L)).when(this.paperService)
+                .withdrawPaper(eq(1L), any(SecurityUser.class));
 
         this.mockMvc.perform(put(PAPER_PATH + "/{id}/withdraw", 1L).with(csrf()))
                 .andExpectAll(
@@ -1081,7 +1083,8 @@ class PaperControllerTest {
                 ]
                 """;
 
-        when(this.paperService.findPapers(any(String.class),
+        when(this.paperService.findPapers(
+                any(String.class),
                 any(String.class),
                 any(String.class),
                 any(SecurityContext.class))).thenReturn(Arrays.stream(getPapers()).toList());

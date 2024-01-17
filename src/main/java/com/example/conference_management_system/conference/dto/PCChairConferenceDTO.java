@@ -16,7 +16,8 @@ public class PCChairConferenceDTO extends ConferenceDTO {
     private ConferenceState conferenceState;
     private Set<PCChairPaperDTO> papers;
 
-    public PCChairConferenceDTO(UUID id,
+    public PCChairConferenceDTO(
+            UUID id,
             String name,
             String description,
             Set<UserDTO> users,

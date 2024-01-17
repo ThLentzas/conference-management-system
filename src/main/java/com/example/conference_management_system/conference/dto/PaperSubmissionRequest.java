@@ -4,5 +4,6 @@ import jakarta.validation.constraints.NotNull;
 
 public record PaperSubmissionRequest(
         @NotNull(message = "You must provide the id of the paper")
-        Long paperId) {
+        Long paperId
+) {
 }

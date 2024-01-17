@@ -10,7 +10,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.securityContext;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -19,9 +18,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.example.conference_management_system.conference.dto.*;
+import com.example.conference_management_system.config.SecurityConfig;
+import com.example.conference_management_system.exception.DuplicateResourceException;
+import com.example.conference_management_system.exception.ResourceNotFoundException;
+import com.example.conference_management_system.exception.StateConflictException;
+import com.example.conference_management_system.user.dto.ReviewerAssignmentRequest;
+import com.example.conference_management_system.review.ReviewDecision;
+import com.example.conference_management_system.conference.dto.ConferenceCreateRequest;
+import com.example.conference_management_system.conference.dto.ConferenceDTO;
+import com.example.conference_management_system.conference.dto.ConferenceUpdateRequest;
+import com.example.conference_management_system.conference.dto.PCChairAdditionRequest;
+import com.example.conference_management_system.conference.dto.PaperSubmissionRequest;
 import com.example.conference_management_system.security.SecurityUser;
 import com.example.conference_management_system.security.WithMockCustomUser;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -29,17 +39,8 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
-
-import com.example.conference_management_system.config.SecurityConfig;
-import com.example.conference_management_system.exception.DuplicateResourceException;
-import com.example.conference_management_system.exception.ResourceNotFoundException;
-import com.example.conference_management_system.exception.StateConflictException;
-import com.example.conference_management_system.user.dto.ReviewerAssignmentRequest;
-import com.example.conference_management_system.review.ReviewDecision;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -99,7 +100,8 @@ class ConferenceControllerTest {
                 }
                 """;
 
-        when(this.conferenceService.createConference(any(ConferenceCreateRequest.class),
+        when(this.conferenceService.createConference(
+                any(ConferenceCreateRequest.class),
                 any(SecurityUser.class),
                 any(HttpServletRequest.class))).thenThrow(new DuplicateResourceException("A conference with the" +
                 " provided name already exists"));
@@ -200,7 +202,8 @@ class ConferenceControllerTest {
                 }
                 """;
 
-        doNothing().when(this.conferenceService).updateConference(eq(conferenceId),
+        doNothing().when(this.conferenceService).updateConference(
+                eq(conferenceId),
                 any(ConferenceUpdateRequest.class),
                 any(SecurityUser.class));
 
@@ -209,7 +212,8 @@ class ConferenceControllerTest {
                         .content(requestBody))
                 .andExpect(status().isNoContent());
 
-        verify(this.conferenceService, times(1)).updateConference(any(UUID.class),
+        verify(this.conferenceService, times(1)).updateConference(
+                eq(conferenceId),
                 any(ConferenceUpdateRequest.class),
                 any(SecurityUser.class));
     }
@@ -231,7 +235,8 @@ class ConferenceControllerTest {
                 """, conferenceId);
 
         doThrow(new ResourceNotFoundException("Conference not found with id: " + conferenceId))
-                .when(this.conferenceService).updateConference(eq(conferenceId),
+                .when(this.conferenceService).updateConference(
+                        eq(conferenceId),
                         any(ConferenceUpdateRequest.class),
                         any(SecurityUser.class));
 
@@ -260,10 +265,10 @@ class ConferenceControllerTest {
                 }
                 """;
 
-        doThrow(new AccessDeniedException("Access denied"))
-                .when(this.conferenceService).updateConference(eq(conferenceId),
-                        any(ConferenceUpdateRequest.class),
-                        any(SecurityUser.class));
+        doThrow(new AccessDeniedException("Access denied")).when(this.conferenceService).updateConference(
+                eq(conferenceId),
+                any(ConferenceUpdateRequest.class),
+                any(SecurityUser.class));
 
         this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}", conferenceId).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -291,7 +296,8 @@ class ConferenceControllerTest {
                 """;
 
         doThrow(new IllegalArgumentException("At least one valid property must be provided to update conference"))
-                .when(this.conferenceService).updateConference(eq(conferenceId),
+                .when(this.conferenceService).updateConference(
+                        eq(conferenceId),
                         any(ConferenceUpdateRequest.class),
                         any(SecurityUser.class));
 
@@ -320,8 +326,9 @@ class ConferenceControllerTest {
                 }
                 """;
 
-        doThrow(new StateConflictException("A conference with the provided name already exists"))
-                .when(this.conferenceService).updateConference(eq(conferenceId),
+        doThrow(new DuplicateResourceException("A conference with the provided name already exists"))
+                .when(this.conferenceService).updateConference(
+                        eq(conferenceId),
                         any(ConferenceUpdateRequest.class),
                         any(SecurityUser.class));
 
@@ -450,7 +457,8 @@ class ConferenceControllerTest {
                 """, ConferenceState.ASSIGNMENT.name());
 
         doThrow(new StateConflictException("Conference is in the state: " + ConferenceState.ASSIGNMENT + " and can " +
-                "not start submission")).when(this.conferenceService).startSubmission(eq(conferenceId),
+                "not start submission")).when(this.conferenceService).startSubmission(
+                eq(conferenceId),
                 any(SecurityUser.class));
 
         this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/submission", conferenceId).with(csrf()))
@@ -577,7 +585,8 @@ class ConferenceControllerTest {
                 """, ConferenceState.ASSIGNMENT.name());
 
         doThrow(new StateConflictException("Conference is in the state: " + ConferenceState.ASSIGNMENT + " and can " +
-                "not start assignment")).when(this.conferenceService).startAssignment(eq(conferenceId),
+                "not start assignment")).when(this.conferenceService).startAssignment(
+                eq(conferenceId),
                 any(SecurityUser.class));
 
         this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/assignment", conferenceId).with(csrf()))
@@ -704,7 +713,8 @@ class ConferenceControllerTest {
                 """, ConferenceState.CREATED);
 
         doThrow(new StateConflictException("Conference is in the state: " + ConferenceState.CREATED + " and can " +
-                "not start review")).when(this.conferenceService).startReview(eq(conferenceId),
+                "not start review")).when(this.conferenceService).startReview(
+                eq(conferenceId),
                 any(SecurityUser.class));
 
         this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/review", conferenceId).with(csrf()))
@@ -1061,8 +1071,11 @@ class ConferenceControllerTest {
                 }
                 """, conferenceId);
 
-        doThrow(new ResourceNotFoundException("Conference not found with id: " + conferenceId)).when(this.conferenceService)
-                .addPCChair(eq(conferenceId), any(PCChairAdditionRequest.class), any(SecurityUser.class));
+        doThrow(new ResourceNotFoundException("Conference not found with id: " + conferenceId))
+                .when(this.conferenceService).addPCChair(
+                        eq(conferenceId),
+                        any(PCChairAdditionRequest.class),
+                        any(SecurityUser.class));
 
         this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/pc-chair", conferenceId).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -1089,7 +1102,8 @@ class ConferenceControllerTest {
                 """, 4L, conferenceId);
 
         doThrow(new DuplicateResourceException("User with id: " + 4L + " is already PCChair for conference with id: " +
-                conferenceId)).when(this.conferenceService).addPCChair(eq(conferenceId),
+                conferenceId)).when(this.conferenceService).addPCChair(
+                eq(conferenceId),
                 any(PCChairAdditionRequest.class),
                 any(SecurityUser.class));
 
@@ -1148,7 +1162,6 @@ class ConferenceControllerTest {
                 );
     }
 
-
     //submitPaper()
     @Test
     @WithMockCustomUser(roles = "ROLE_AUTHOR")
@@ -1162,8 +1175,7 @@ class ConferenceControllerTest {
         doNothing().when(this.conferenceService).submitPaper(
                 eq(conferenceId),
                 any(PaperSubmissionRequest.class),
-                any(SecurityUser.class)
-        );
+                any(SecurityUser.class));
 
         this.mockMvc.perform(post(CONFERENCE_PATH + "/{id}/papers", conferenceId).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -1191,8 +1203,11 @@ class ConferenceControllerTest {
                 }
                 """, conferenceId);
 
-        doThrow(new ResourceNotFoundException("Conference not found with id: " + conferenceId)).when(this.conferenceService)
-                .submitPaper(eq(conferenceId), any(PaperSubmissionRequest.class), any(SecurityUser.class));
+        doThrow(new ResourceNotFoundException("Conference not found with id: " + conferenceId))
+                .when(this.conferenceService).submitPaper(
+                        eq(conferenceId),
+                        any(PaperSubmissionRequest.class),
+                        any(SecurityUser.class));
 
         this.mockMvc.perform(post(CONFERENCE_PATH + "/{id}/papers", conferenceId).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -1289,13 +1304,12 @@ class ConferenceControllerTest {
                     "userId": 1
                 }
                 """;
-        doNothing().when(this.conferenceService)
-                .assignReviewer(
-                        any(UUID.class),
-                        any(Long.class),
-                        any(ReviewerAssignmentRequest.class),
-                        any(SecurityUser.class)
-                );
+        doNothing().when(this.conferenceService).assignReviewer(
+                eq(conferenceId),
+                eq(1L),
+                any(ReviewerAssignmentRequest.class),
+                any(SecurityUser.class)
+        );
 
         this.mockMvc.perform(post(CONFERENCE_PATH + "/{conferenceId}/papers/{paperId}/reviewer", conferenceId, 1L)
                         .with(csrf())
@@ -1306,8 +1320,8 @@ class ConferenceControllerTest {
                 );
 
         verify(this.conferenceService, times(1)).assignReviewer(
-                any(UUID.class),
-                any(Long.class),
+                eq(conferenceId),
+                eq(1L),
                 any(ReviewerAssignmentRequest.class),
                 any(SecurityUser.class)
         );
@@ -1330,7 +1344,7 @@ class ConferenceControllerTest {
         doThrow(new ResourceNotFoundException("Conference not found with id: " + conferenceId))
                 .when(this.conferenceService).assignReviewer(
                         eq(conferenceId),
-                        any(Long.class),
+                        eq(1L),
                         any(ReviewerAssignmentRequest.class),
                         any(SecurityUser.class)
                 );
@@ -1360,13 +1374,12 @@ class ConferenceControllerTest {
                 }
                 """, ConferenceState.DECISION.name());
         doThrow(new StateConflictException("Conference is in the state: " + ConferenceState.DECISION.name() + " and " +
-                "can not assign reviewers")).when(this.conferenceService)
-                .assignReviewer(
-                        any(UUID.class),
-                        any(Long.class),
-                        any(ReviewerAssignmentRequest.class),
-                        any(SecurityUser.class)
-                );
+                "can not assign reviewers")).when(this.conferenceService).assignReviewer(
+                eq(conferenceId),
+                eq(1L),
+                any(ReviewerAssignmentRequest.class),
+                any(SecurityUser.class)
+        );
 
         this.mockMvc.perform(post(CONFERENCE_PATH + "/{conferenceId}/papers/{paperId}/reviewer", conferenceId, 1L)
                         .with(csrf())
@@ -1394,8 +1407,8 @@ class ConferenceControllerTest {
                 """;
         doThrow(new IllegalArgumentException("User is not a reviewer with id: 1")).when(this.conferenceService)
                 .assignReviewer(
-                        any(UUID.class),
-                        any(Long.class),
+                        eq(conferenceId),
+                        eq(1L),
                         any(ReviewerAssignmentRequest.class),
                         any(SecurityUser.class)
                 );
@@ -1486,7 +1499,7 @@ class ConferenceControllerTest {
 
         doNothing().when(this.conferenceService).updatePaperApprovalStatus(
                 eq(conferenceId),
-                any(Long.class),
+                eq(1L),
                 any(ReviewDecision.class),
                 any(SecurityUser.class));
 
@@ -1515,8 +1528,8 @@ class ConferenceControllerTest {
 
         doThrow(new ResourceNotFoundException("Conference not found with id: " + conferenceId)).when(
                 this.conferenceService).updatePaperApprovalStatus(
-                any(UUID.class),
-                any(Long.class),
+                eq(conferenceId),
+                eq(1L),
                 any(ReviewDecision.class),
                 any(SecurityUser.class));
 
@@ -1545,11 +1558,12 @@ class ConferenceControllerTest {
                 "the decision to either approve or reject the paper can not be made")).when(
                 this.conferenceService).updatePaperApprovalStatus(
                 eq(conferenceId),
-                any(Long.class),
+                eq(1L),
                 any(ReviewDecision.class),
                 any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{conferenceId}/papers/{paperId}/{decision}", conferenceId,
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{conferenceId}/papers/{paperId}/{decision}",
+                        conferenceId,
                         1L,
                         ReviewDecision.APPROVED).with(csrf()))
                 .andExpectAll(

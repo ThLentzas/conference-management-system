@@ -1,7 +1,5 @@
 package com.example.conference_management_system.user;
 
-import com.example.conference_management_system.entity.Role;
-import com.example.conference_management_system.role.RoleType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,15 +9,17 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.testcontainers.shaded.org.apache.commons.lang3.RandomStringUtils;
 
+import com.example.conference_management_system.entity.User;
+import com.example.conference_management_system.exception.DuplicateResourceException;
+import com.example.conference_management_system.entity.Role;
+import com.example.conference_management_system.role.RoleType;
+
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.util.Random;
 import java.util.Set;
-
-import com.example.conference_management_system.entity.User;
-import com.example.conference_management_system.exception.DuplicateResourceException;
 
 /*
     An alternative approach that was used in previous projects is to test the repository via the service without mocking
@@ -45,6 +45,7 @@ class UserServiceTest {
                 "password",
                 "test user",
                 Set.of(new Role(RoleType.ROLE_AUTHOR)));
+
         when(this.userRepository.existsByUsernameIgnoreCase(any(String.class))).thenReturn(true);
 
         // Act & Assert

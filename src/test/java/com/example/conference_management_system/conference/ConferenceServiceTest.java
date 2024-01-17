@@ -159,7 +159,8 @@ class ConferenceServiceTest {
         UUID conferenceId = UUID.randomUUID();
         ConferenceUpdateRequest conferenceUpdateRequest = new ConferenceUpdateRequest(
                 RandomStringUtils.randomAlphanumeric(new Random().nextInt(50) + 51),
-                "description");
+                "description"
+        );
         SecurityUser securityUser = getSecurityUser();
 
         Conference conference = getConference(conferenceId);
@@ -337,8 +338,7 @@ class ConferenceServiceTest {
         //Act & Assert
         assertThatThrownBy(() -> this.underTest.startSubmission(conferenceId, securityUser))
                 .isInstanceOf(StateConflictException.class)
-                .hasMessage("Conference is in the state: " + conference.getState() + " and can not start " +
-                        "submission");
+                .hasMessage("Conference is in the state: " + conference.getState() + " and can not start submission");
     }
 
     //startAssignment
@@ -390,8 +390,7 @@ class ConferenceServiceTest {
         //Act & Assert
         assertThatThrownBy(() -> this.underTest.startAssignment(conferenceId, securityUser))
                 .isInstanceOf(StateConflictException.class)
-                .hasMessage("Conference is in the state: " + conference.getState() + " and can not start " +
-                        "assignment");
+                .hasMessage("Conference is in the state: " + conference.getState() + " and can not start assignment");
     }
 
     //startReview()
@@ -737,7 +736,8 @@ class ConferenceServiceTest {
                 .thenReturn(Optional.of(conference));
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.assignReviewer(conferenceId,
+        assertThatThrownBy(() -> this.underTest.assignReviewer(
+                conferenceId,
                 1L,
                 reviewerAssignmentRequest,
                 securityUser)).isInstanceOf(AccessDeniedException.class)
@@ -759,7 +759,8 @@ class ConferenceServiceTest {
                 .thenReturn(Optional.of(conference));
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.assignReviewer(conferenceId,
+        assertThatThrownBy(() -> this.underTest.assignReviewer(
+                conferenceId,
                 1L,
                 reviewerAssignmentRequest,
                 securityUser)).isInstanceOf(StateConflictException.class)
@@ -818,7 +819,8 @@ class ConferenceServiceTest {
 
 
         //Act & Assert
-        assertThatThrownBy(() -> this.underTest.assignReviewer(conferenceId,
+        assertThatThrownBy(() -> this.underTest.assignReviewer(
+                conferenceId,
                 1L,
                 reviewerAssignmentRequest,
                 securityUser)).isInstanceOf(StateConflictException.class)

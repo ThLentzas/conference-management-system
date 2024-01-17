@@ -40,7 +40,7 @@ class AuthControllerTest {
     private static final String AUTH_PATH = "/api/v1/auth";
 
     @Test
-    void shouldReturnHTTP201WhenUserIsRegisteredSuccessfully() throws Exception {
+    void should201WhenUserIsRegisteredSuccessfully() throws Exception {
         String requestBody = """
                 {
                     "username": "username",
@@ -52,14 +52,14 @@ class AuthControllerTest {
         when(this.authService.registerUser(any(RegisterRequest.class))).thenReturn(authentication);
 
         this.mockMvc.perform(post(AUTH_PATH + "/signup").with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(requestBody))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
                 .andExpect(status().isCreated());
     }
 
     @ParameterizedTest
     @NullAndEmptySource
-    void should400WhenRegisterPasswordIsNullOrEmpty(String password) throws Exception{
+    void should400WhenRegisterPasswordIsNullOrEmpty(String password) throws Exception {
         String passwordValue = password == null ? "null" : "\"" + password + "\"";
         String requestBody = String.format("""
                 {
@@ -84,7 +84,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void should403WhenRegisterUserIsCalledWithNoCsrfToken() throws Exception{
+    void should403WhenRegisterUserIsCalledWithNoCsrfToken() throws Exception {
         String requestBody = """
                 {
                     "username": "username",
@@ -110,7 +110,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void should403WhenRegisterUserIsCalledWithInvalidCsrfToken() throws Exception{
+    void should403WhenRegisterUserIsCalledWithInvalidCsrfToken() throws Exception {
         String requestBody = """
                 {
                     "username": "username",
@@ -147,14 +147,14 @@ class AuthControllerTest {
         when(this.authService.loginUser(any(LoginRequest.class))).thenReturn(authentication);
 
         this.mockMvc.perform(post(AUTH_PATH + "/login").with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(requestBody))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
                 .andExpect(status().isOk());
     }
 
     @ParameterizedTest
     @NullAndEmptySource
-    void should400WhenLoginPasswordIsNullOrEmpty(String password) throws Exception{
+    void should400WhenLoginPasswordIsNullOrEmpty(String password) throws Exception {
         String passwordValue = password == null ? "null" : "\"" + password + "\"";
         String requestBody = String.format("""
                 {
@@ -178,7 +178,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void should403WhenLoginUserIsCalledWithNoCsrfToken() throws Exception{
+    void should403WhenLoginUserIsCalledWithNoCsrfToken() throws Exception {
         String requestBody = """
                 {
                     "username": "username",
@@ -203,7 +203,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void should403WhenLoginUserIsCalledWithInvalidCsrfToken() throws Exception{
+    void should403WhenLoginUserIsCalledWithInvalidCsrfToken() throws Exception {
         String requestBody = """
                 {
                     "username": "username",

@@ -1,12 +1,13 @@
 package com.example.conference_management_system.security;
 
-import com.example.conference_management_system.user.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
+
+import com.example.conference_management_system.user.UserRepository;
 
 @Service
 @RequiredArgsConstructor

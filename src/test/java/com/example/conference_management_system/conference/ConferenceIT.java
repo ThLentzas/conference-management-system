@@ -65,6 +65,8 @@ class ConferenceIT extends AbstractIntegrationTest {
                 }
                 """;
 
+        //Registering the user
+
         this.webTestClient.post()
                 .uri(AUTH_PATH + "/signup?_csrf={csrf}", csrfToken)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -80,6 +82,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 }
                 """;
 
+        //Creating the conference
         EntityExchangeResult<byte[]> response = this.webTestClient.post()
                 .uri(CONFERENCE_PATH + "?_csrf={csrf}", csrfToken)
                 .header("Cookie", sessionId)
@@ -120,6 +123,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 }
                 """;
 
+        //Logging in the user after they were assigned a new role and the previous session was invalidated
         this.webTestClient.post()
                 .uri(AUTH_PATH + "/login?_csrf={csrf}", csrfToken)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -207,6 +211,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 }
                 """;
 
+        //Registering the user
         this.webTestClient.post()
                 .uri(AUTH_PATH + "/signup?_csrf={csrf}", csrfToken)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -222,6 +227,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 }
                 """;
 
+        //Creating conference
         EntityExchangeResult<byte[]> response = this.webTestClient.post()
                 .uri(CONFERENCE_PATH + "?_csrf={csrf}", csrfToken)
                 .header("Cookie", sessionId)
@@ -243,6 +249,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 }
                 """;
 
+        //Updating conference
         this.webTestClient.put()
                 .uri(CONFERENCE_PATH + "/{id}?_csrf={csrf}", conferenceId, csrfToken)
                 .header("Cookie", sessionId)
@@ -309,6 +316,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 }
                 """;
 
+        //Registering the user to be added as PC_CHAIR
         this.webTestClient.post()
                 .uri(AUTH_PATH + "/signup?_csrf={csrf}", csrfToken)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -317,6 +325,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .exchange()
                 .expectStatus().isCreated();
 
+        //Creating a csrf token for the new session
         result = this.webTestClient.get()
                 .uri(AUTH_PATH + "/csrf")
                 .accept(MediaType.APPLICATION_JSON)
@@ -340,6 +349,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 }
                 """;
 
+        //Registering the user that would be PC_CHAIR at the conference where we will add the previous user
         this.webTestClient.post()
                 .uri(AUTH_PATH + "/signup?_csrf={csrf}", csrfToken)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -355,6 +365,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 }
                 """;
 
+        //Creating the conference
         EntityExchangeResult<byte[]> response = this.webTestClient.post()
                 .uri(CONFERENCE_PATH + "?_csrf={csrf}", csrfToken)
                 .header("Cookie", sessionId)
@@ -369,6 +380,7 @@ class ConferenceIT extends AbstractIntegrationTest {
         String location = response.getResponseHeaders().getFirst(HttpHeaders.LOCATION);
         UUID conferenceId = UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
 
+        //Making a GET request to be able to retrieve the user's id that we want to add as PC_CHAIR
         UserDTO user = this.webTestClient.get()
                 .uri(USER_PATH + "?username={username}", "username")
                 .header("Cookie", sessionId)
@@ -385,6 +397,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 }
                 """, user.id());
 
+        //Adding the user as PC_CHAIR
         this.webTestClient.put()
                 .uri(CONFERENCE_PATH + "/{id}/pc-chair?_csrf={csrf}", conferenceId, csrfToken)
                 .header("Cookie", sessionId)
@@ -393,6 +406,10 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .exchange()
                 .expectStatus().isNoContent();
 
+        /*
+            The order that the users will have as part of the response in a GET request for a conference is random, so
+            we can't use .jsonPath[0].id, .jsonPath[0].name etc it will work only sometimes
+         */
         ConferenceDTO conference = this.webTestClient.get()
                 .uri(CONFERENCE_PATH + "/{id}", conferenceId)
                 .accept(MediaType.APPLICATION_JSON)
@@ -448,6 +465,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 }
                 """;
 
+        //Registering a user
         this.webTestClient.post()
                 .uri(AUTH_PATH + "/signup?_csrf={csrf}", csrfToken)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -463,6 +481,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 }
                 """;
 
+        //Creating a conference
         EntityExchangeResult<byte[]> response = this.webTestClient.post()
                 .uri(CONFERENCE_PATH + "?_csrf={csrf}", csrfToken)
                 .header("Cookie", sessionId)
@@ -484,6 +503,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 }
                 """;
 
+        //Creating another conference
         response = this.webTestClient.post()
                 .uri(CONFERENCE_PATH + "?_csrf={csrf}", csrfToken)
                 .header("Cookie", sessionId)
@@ -498,42 +518,41 @@ class ConferenceIT extends AbstractIntegrationTest {
         location = response.getResponseHeaders().getFirst(HttpHeaders.LOCATION);
         UUID conferenceId2 = UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
 
-    /*
-            The order that the conferences were inserted in the db is not guaranteed to be the same when fetching them
-            from the db. In the code below we see how we would handle the cases where we don't know the exact order of
-            the conferences in the list.In our case the conferences are sorted by their name, so we can use jsonPath as
-            show in the code below the comment
+        /*
+                The order that the conferences were inserted in the db is not guaranteed to be the same when fetching
+                them from the db. In the code below we see how we would handle the cases where we don't know the exact
+                order of the conferences in the list.In our case the conferences are sorted by their name, so we can
+                use jsonPath as show in the code below the comment
 
-        List<PCChairConferenceDTO> conferences = this.webTestClient.get()
-                .uri(CONFERENCE_PATH)
-                .accept(MediaType.APPLICATION_JSON)
-                .header("Cookie", sessionId)
-                .exchange()
-                .expectBodyList(PCChairConferenceDTO.class)
-                .returnResult()
-                .getResponseBody();
+            List<PCChairConferenceDTO> conferences = this.webTestClient.get()
+                    .uri(CONFERENCE_PATH)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .header("Cookie", sessionId)
+                    .exchange()
+                    .expectBodyList(PCChairConferenceDTO.class)
+                    .returnResult()
+                    .getResponseBody();
 
-        assertThat(conferences).hasSize(2)
-                .anyMatch(conferenceDTO -> conferenceDTO.getId().equals(conferenceId1)
-                        && conferenceDTO.getName().equals("name")
-                        && conferenceDTO.getDescription().equals("description")
-                        && conferenceDTO.getConferenceState().equals(ConferenceState.CREATED)
-                        && conferenceDTO.getUsers().stream().anyMatch(userDTO ->
-                        userDTO.username().equals("username")
-                                && userDTO.fullName().equals("Full Name")
-                                && userDTO.roleTypes().contains(RoleType.ROLE_PC_CHAIR))
-                        && conferenceDTO.getPapers().isEmpty())
-                .anyMatch(conferenceDTO -> conferenceDTO.getId().equals(conferenceId2)
-                        && conferenceDTO.getName().equals("another name")
-                        && conferenceDTO.getDescription().equals("another description")
-                        && conferenceDTO.getConferenceState().equals(ConferenceState.CREATED)
-                        && conferenceDTO.getUsers().stream().anyMatch(userDTO ->
-                        userDTO.username().equals("username")
-                                && userDTO.fullName().equals("Full Name")
-                                && userDTO.roleTypes().contains(RoleType.ROLE_PC_CHAIR))
-                        && conferenceDTO.getPapers().isEmpty());
-    */
-
+            assertThat(conferences).hasSize(2)
+                    .anyMatch(conferenceDTO -> conferenceDTO.getId().equals(conferenceId1)
+                            && conferenceDTO.getName().equals("name")
+                            && conferenceDTO.getDescription().equals("description")
+                            && conferenceDTO.getConferenceState().equals(ConferenceState.CREATED)
+                            && conferenceDTO.getUsers().stream().anyMatch(userDTO ->
+                            userDTO.username().equals("username")
+                                    && userDTO.fullName().equals("Full Name")
+                                    && userDTO.roleTypes().contains(RoleType.ROLE_PC_CHAIR))
+                            && conferenceDTO.getPapers().isEmpty())
+                    .anyMatch(conferenceDTO -> conferenceDTO.getId().equals(conferenceId2)
+                            && conferenceDTO.getName().equals("another name")
+                            && conferenceDTO.getDescription().equals("another description")
+                            && conferenceDTO.getConferenceState().equals(ConferenceState.CREATED)
+                            && conferenceDTO.getUsers().stream().anyMatch(userDTO ->
+                            userDTO.username().equals("username")
+                                    && userDTO.fullName().equals("Full Name")
+                                    && userDTO.roleTypes().contains(RoleType.ROLE_PC_CHAIR))
+                            && conferenceDTO.getPapers().isEmpty());
+        */
         this.webTestClient.get()
                 .uri(CONFERENCE_PATH) // Replace with your actual endpoint
                 .accept(MediaType.APPLICATION_JSON)
@@ -599,6 +618,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 }
                 """;
 
+        //Registering a user
         this.webTestClient.post()
                 .uri(AUTH_PATH + "/signup?_csrf={csrf}", csrfToken)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -614,6 +634,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 }
                 """;
 
+        //Creating a conference
         EntityExchangeResult<byte[]> response = this.webTestClient.post()
                 .uri(CONFERENCE_PATH + "?_csrf={csrf}", csrfToken)
                 .header("Cookie", sessionId)
@@ -628,12 +649,14 @@ class ConferenceIT extends AbstractIntegrationTest {
         String location = response.getResponseHeaders().getFirst(HttpHeaders.LOCATION);
         UUID conferenceId = UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
 
+        //Deleting the previous conference
         this.webTestClient.delete()
                 .uri(CONFERENCE_PATH + "/{id}?_csrf={csrf}", conferenceId, csrfToken)
                 .header("Cookie", sessionId)
                 .exchange()
                 .expectStatus().isNoContent();
 
+        //Making a GET request to /conferences/{id} and expecting 404 after a successful delete
         this.webTestClient.get()
                 .uri(CONFERENCE_PATH + "/{id}", conferenceId)
                 .accept(MediaType.APPLICATION_JSON)

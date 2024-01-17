@@ -1,6 +1,8 @@
 package com.example.conference_management_system.paper;
 
+import com.example.conference_management_system.paper.PaperState;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;

@@ -28,6 +28,7 @@ public class SecurityConfig {
                     authorize.requestMatchers(HttpMethod.GET, "/api/v1/conferences/**").permitAll();
                     authorize.requestMatchers(HttpMethod.GET, "/api/v1/users/**").permitAll();
                     authorize.requestMatchers("/api/v1/auth/**").permitAll();
+                    authorize.requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll();
                     authorize.anyRequest().authenticated();
                 })
                 .formLogin(AbstractHttpConfigurer::disable)

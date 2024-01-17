@@ -1,5 +1,6 @@
 package com.example.conference_management_system.review.dto;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -7,6 +8,7 @@ import java.time.LocalDate;
 
 @Getter
 @Setter
+@EqualsAndHashCode(callSuper = true)
 public class PCChairReviewDTO extends ReviewDTO {
     private String reviewer;
 

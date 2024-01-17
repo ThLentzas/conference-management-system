@@ -11,13 +11,4 @@ import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 
 public interface PaperUserRepository extends JpaRepository<PaperUser, PaperUserId> {
-
-    @Query("""
-                SELECT COUNT(pu) > 0
-                FROM PaperUser pu
-                WHERE pu.paper.id = :paperId AND pu.user.id = :userId AND pu.roleType = :roleType
-            """)
-    boolean existsByPaperIdUserIdAndRoleType(@Param("paperId") Long paperId,
-                                             @Param("userId") Long userId,
-                                             @Param("roleType") RoleType roleType);
 }

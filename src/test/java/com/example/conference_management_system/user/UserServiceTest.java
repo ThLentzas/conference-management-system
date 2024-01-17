@@ -21,9 +21,6 @@ import java.util.Set;
 import com.example.conference_management_system.entity.User;
 import com.example.conference_management_system.exception.DuplicateResourceException;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-
 /*
     An alternative approach that was used in previous projects is to test the repository via the service without mocking
     it.
@@ -86,7 +83,6 @@ class UserServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Invalid full name. Full name must not exceed 50 characters");
     }
-
 
     @ParameterizedTest
     @ValueSource(strings = {"T3st", "T^st"})

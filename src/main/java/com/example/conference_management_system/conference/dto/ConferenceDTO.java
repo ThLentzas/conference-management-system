@@ -1,6 +1,5 @@
 package com.example.conference_management_system.conference.dto;
 
-import com.example.conference_management_system.user.dto.UserDTO;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -8,6 +7,8 @@ import lombok.Setter;
 
 import java.util.Set;
 import java.util.UUID;
+
+import com.example.conference_management_system.user.dto.UserDTO;
 
 @Getter
 @Setter

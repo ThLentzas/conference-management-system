@@ -82,7 +82,7 @@ class ApiExceptionHandler {
         The below exception is thrown when the user has the Role specified in the authorization rules at the
         @PreAuthorize, but they are not the owner of the resource.
 
-        An example would be the user could PC_CHAIR as role, but they need to have that role for the requested
+        An example would be the user could have PC_CHAIR as role, but they need to have that role for the requested
         conference
      */
     @ExceptionHandler(AccessDeniedException.class)

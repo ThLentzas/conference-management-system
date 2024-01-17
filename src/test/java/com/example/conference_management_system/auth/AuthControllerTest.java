@@ -1,7 +1,5 @@
 package com.example.conference_management_system.auth;
 
-import com.example.conference_management_system.entity.Role;
-import com.example.conference_management_system.role.RoleType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
@@ -25,6 +23,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.example.conference_management_system.config.SecurityConfig;
 import com.example.conference_management_system.entity.User;
 import com.example.conference_management_system.security.SecurityUser;
+import com.example.conference_management_system.entity.Role;
+import com.example.conference_management_system.role.RoleType;
 
 import java.util.Set;
 
@@ -59,7 +59,7 @@ class AuthControllerTest {
 
     @ParameterizedTest
     @NullAndEmptySource
-    void shouldReturnHTTP400WhenRegisterPasswordIsNullOrEmpty(String password) throws Exception{
+    void should400WhenRegisterPasswordIsNullOrEmpty(String password) throws Exception{
         String passwordValue = password == null ? "null" : "\"" + password + "\"";
         String requestBody = String.format("""
                 {
@@ -84,7 +84,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void shouldReturnHTTP403WhenRegisterUserIsCalledWithNoCsrfToken() throws Exception{
+    void should403WhenRegisterUserIsCalledWithNoCsrfToken() throws Exception{
         String requestBody = """
                 {
                     "username": "username",
@@ -110,7 +110,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void shouldReturnHTTP403WhenRegisterUserIsCalledWithInvalidCsrfToken() throws Exception{
+    void should403WhenRegisterUserIsCalledWithInvalidCsrfToken() throws Exception{
         String requestBody = """
                 {
                     "username": "username",
@@ -136,7 +136,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void shouldReturnHTTP200WhenUserLogsInSuccessfully() throws Exception {
+    void should200WhenUserLogsInSuccessfully() throws Exception {
         String requestBody = """
                 {
                     "username": "username",
@@ -154,7 +154,7 @@ class AuthControllerTest {
 
     @ParameterizedTest
     @NullAndEmptySource
-    void shouldReturnHTTP400WhenLoginPasswordIsNullOrEmpty(String password) throws Exception{
+    void should400WhenLoginPasswordIsNullOrEmpty(String password) throws Exception{
         String passwordValue = password == null ? "null" : "\"" + password + "\"";
         String requestBody = String.format("""
                 {
@@ -178,7 +178,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void shouldReturnHTTP403WhenLoginUserIsCalledWithNoCsrfToken() throws Exception{
+    void should403WhenLoginUserIsCalledWithNoCsrfToken() throws Exception{
         String requestBody = """
                 {
                     "username": "username",
@@ -203,7 +203,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void shouldReturnHTTP403WhenLoginUserIsCalledWithInvalidCsrfToken() throws Exception{
+    void should403WhenLoginUserIsCalledWithInvalidCsrfToken() throws Exception{
         String requestBody = """
                 {
                     "username": "username",

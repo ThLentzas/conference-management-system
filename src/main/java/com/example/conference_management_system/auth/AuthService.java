@@ -32,7 +32,7 @@ public class AuthService {
     private final RoleRepository roleRepository;
 
     Authentication registerUser(RegisterRequest request) {
-        Set<Role> tmp = request.roleTypes().stream()
+        Set<Role> requestRoles = request.roleTypes().stream()
                 .map(Role::new)
                 .collect(Collectors.toSet());
 
@@ -45,7 +45,7 @@ public class AuthService {
             is added to context, and then we can call save.
          */
         Set<Role> roles = new HashSet<>();
-        for (Role role : tmp) {
+        for (Role role : requestRoles) {
             this.roleRepository.findByType(role.getType()).ifPresent(roles::add);
         }
 

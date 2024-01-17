@@ -6,6 +6,5 @@ public enum ConferenceState {
     ASSIGNMENT,
     REVIEW,
     DECISION,
-    FINAL_SUBMISSION,
     FINAL
 }

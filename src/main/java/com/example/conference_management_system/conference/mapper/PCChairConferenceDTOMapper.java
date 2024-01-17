@@ -3,13 +3,10 @@ package com.example.conference_management_system.conference.mapper;
 import com.example.conference_management_system.conference.dto.PCChairConferenceDTO;
 import com.example.conference_management_system.entity.Conference;
 import com.example.conference_management_system.paper.dto.PCChairPaperDTO;
-import com.example.conference_management_system.paper.dto.PaperDTO;
 import com.example.conference_management_system.paper.mapper.PCChairPaperDTOMapper;
 import com.example.conference_management_system.user.dto.UserDTO;
 import com.example.conference_management_system.user.mapper.UserDTOMapper;
 
-import java.util.Comparator;
-import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;

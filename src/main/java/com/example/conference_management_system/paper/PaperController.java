@@ -10,7 +10,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.annotation.CurrentSecurityContext;
 import org.springframework.security.core.context.SecurityContext;
@@ -39,7 +38,6 @@ import java.net.URI;
 import java.util.List;
 
 import lombok.RequiredArgsConstructor;
-
 
 @RestController
 @RequiredArgsConstructor
@@ -146,6 +144,13 @@ class PaperController {
         return new ResponseEntity<>(paperFile.file(), headers, HttpStatus.OK);
     }
 
+    /*
+       Passing the authentication object straight as parameter would not work. Since the endpoint is permitAll()
+       in case of an unauthenticated user(Anonymous user) calling authentication.getPrincipal() would result in a
+       NullPointerException since authentication would be null.
+
+       https://docs.spring.io/spring-security/reference/servlet/authentication/anonymous.html
+    */
     @GetMapping("/{id}")
     ResponseEntity<PaperDTO> findPaperById(@PathVariable("id") Long id,
                                            @CurrentSecurityContext SecurityContext securityContext) {

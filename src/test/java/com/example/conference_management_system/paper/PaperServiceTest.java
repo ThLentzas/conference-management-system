@@ -2,7 +2,14 @@ package com.example.conference_management_system.paper;
 
 import com.example.conference_management_system.conference.ConferenceState;
 import com.example.conference_management_system.content.ContentRepository;
-import com.example.conference_management_system.entity.*;
+import com.example.conference_management_system.entity.Conference;
+import com.example.conference_management_system.entity.ConferenceUser;
+import com.example.conference_management_system.entity.Content;
+import com.example.conference_management_system.entity.Paper;
+import com.example.conference_management_system.entity.PaperUser;
+import com.example.conference_management_system.entity.Role;
+import com.example.conference_management_system.entity.User;
+import com.example.conference_management_system.entity.key.ConferenceUserId;
 import com.example.conference_management_system.entity.key.PaperUserId;
 import com.example.conference_management_system.exception.DuplicateResourceException;
 import com.example.conference_management_system.exception.ResourceNotFoundException;
@@ -381,8 +388,7 @@ class PaperServiceTest {
                 pdfFile
         );
         SecurityUser securityUser = getSecurityUser();
-        Paper paper = getPaper();
-        paper.setPaperUsers(new HashSet<>());
+        Paper paper = getPaper(1L);
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsers(1L)).thenReturn(Optional.of(paper));
 
@@ -412,7 +418,7 @@ class PaperServiceTest {
         //Arrange
         AuthorAdditionRequest authorAdditionRequest = new AuthorAdditionRequest(1L);
         SecurityUser securityUser = getSecurityUser();
-        Paper paper = getPaper();
+        Paper paper = getPaper(1L);
         paper.setPaperUsers(new HashSet<>());
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsers(1L)).thenReturn(Optional.of(paper));
@@ -431,15 +437,9 @@ class PaperServiceTest {
         User coAuthor = new User("test", "test", "Test User", Set.of(new Role(RoleType.ROLE_REVIEWER)));
         coAuthor.setId(2L);
 
-        PaperUser paperUser1 = new PaperUser();
-        paperUser1.setId(new PaperUserId(1L , securityUser.user().getId()));
-        paperUser1.setUser(securityUser.user());
-        paperUser1.setRoleType(RoleType.ROLE_AUTHOR);
-        PaperUser paperUser2 = new PaperUser();
-        paperUser2.setId(new PaperUserId(1L , coAuthor.getId()));
-        paperUser2.setUser(coAuthor);
-        paperUser2.setRoleType(RoleType.ROLE_REVIEWER);
-        Paper paper = getPaper();
+        Paper paper = getPaper(1L);
+        PaperUser paperUser1 = getPaperUser(paper, securityUser.user(), RoleType.ROLE_AUTHOR);
+        PaperUser paperUser2 = getPaperUser(paper, coAuthor, RoleType.ROLE_REVIEWER);
         paper.setPaperUsers(Set.of(paperUser1, paperUser2));
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsers(1L)).thenReturn(Optional.of(paper));
@@ -457,12 +457,9 @@ class PaperServiceTest {
         AuthorAdditionRequest authorAdditionRequest = new AuthorAdditionRequest(1L);
         SecurityUser securityUser = getSecurityUser();
 
-        PaperUser paperUser1 = new PaperUser();
-        paperUser1.setId(new PaperUserId(1L , securityUser.user().getId()));
-        paperUser1.setUser(securityUser.user());
-        paperUser1.setRoleType(RoleType.ROLE_AUTHOR);
-        Paper paper = getPaper();
-        paper.setPaperUsers(Set.of(paperUser1));
+        Paper paper = getPaper(1L);
+        PaperUser paperUser = getPaperUser(paper, securityUser.user(), RoleType.ROLE_AUTHOR);
+        paper.setPaperUsers(Set.of(paperUser));
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsers(1L)).thenReturn(Optional.of(paper));
         when(this.userService.findUserByIdFetchingRoles(1L)).thenReturn(securityUser.user());
@@ -494,8 +491,7 @@ class PaperServiceTest {
         //Arrange
         ReviewCreateRequest reviewCreateRequest = new ReviewCreateRequest("comment", 6.1);
         SecurityUser securityUser = getSecurityUser();
-        Paper paper = getPaper();
-        paper.setPaperUsers(new HashSet<>());
+        Paper paper = getPaper(1L);
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.of(paper));
 
@@ -511,10 +507,8 @@ class PaperServiceTest {
         ReviewCreateRequest reviewCreateRequest = new ReviewCreateRequest("comment", 6.1);
         SecurityUser securityUser = getSecurityUser();
 
-        PaperUser paperUser = new PaperUser();
-        paperUser.setUser(securityUser.user());
-        paperUser.setRoleType(RoleType.ROLE_REVIEWER);
-        Paper paper = getPaper();
+        Paper paper = getPaper(1L);
+        PaperUser paperUser = getPaperUser(paper, securityUser.user(), RoleType.ROLE_REVIEWER);
         paper.setPaperUsers(Set.of(paperUser));
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.of(paper));
@@ -532,10 +526,8 @@ class PaperServiceTest {
         ReviewCreateRequest reviewCreateRequest = new ReviewCreateRequest("comment", 6.1);
         SecurityUser securityUser = getSecurityUser();
 
-        PaperUser paperUser = new PaperUser();
-        paperUser.setUser(securityUser.user());
-        paperUser.setRoleType(RoleType.ROLE_REVIEWER);
-        Paper paper = getPaper();
+        Paper paper = getPaper(1L);
+        PaperUser paperUser = getPaperUser(paper, securityUser.user(), RoleType.ROLE_REVIEWER);
         paper.setPaperUsers(Set.of(paperUser));
         paper.setConference(new Conference());
 
@@ -554,14 +546,12 @@ class PaperServiceTest {
         ReviewCreateRequest reviewCreateRequest = new ReviewCreateRequest("comment", 6.1);
         SecurityUser securityUser = getSecurityUser();
 
-        PaperUser paperUser = new PaperUser();
-        paperUser.setUser(securityUser.user());
-        Paper paper = getPaper();
-        paper.setPaperUsers(Set.of(paperUser));
-        paperUser.setRoleType(RoleType.ROLE_REVIEWER);
+        Paper paper = getPaper(1L);
+        PaperUser paperUser = getPaperUser(paper, securityUser.user(), RoleType.ROLE_REVIEWER);
         Conference conference = new Conference();
         conference.setState(ConferenceState.REVIEW);
         paper.setConference(conference);
+        paper.setPaperUsers(Set.of(paperUser));
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.of(paper));
 
@@ -589,7 +579,7 @@ class PaperServiceTest {
     void shouldThrowAccessDeniedExceptionWhenRequestingUserIsNotPaperAuthorOnWithdrawPaper() {
         //Arrange
         SecurityUser securityUser = getSecurityUser();
-        Paper paper = getPaper();
+        Paper paper = getPaper(1L);
         paper.setPaperUsers(new HashSet<>());
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.of(paper));
@@ -605,10 +595,8 @@ class PaperServiceTest {
         //Arrange
         SecurityUser securityUser = getSecurityUser();
 
-        PaperUser paperUser = new PaperUser();
-        paperUser.setUser(securityUser.user());
-        paperUser.setRoleType(RoleType.ROLE_AUTHOR);
-        Paper paper = getPaper();
+        Paper paper = getPaper(1L);
+        PaperUser paperUser = getPaperUser(paper, securityUser.user(), RoleType.ROLE_AUTHOR);
         paper.setPaperUsers(Set.of(paperUser));
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.of(paper));
@@ -625,11 +613,9 @@ class PaperServiceTest {
     void shouldDownloadPaperForPaperAuthorOrReviewerOnDownloadPaper(RoleType roleType) throws Exception {
         SecurityUser securityUser = getSecurityUser();
 
-        PaperUser paperUser = new PaperUser();
-        paperUser.setUser(securityUser.user());
-        Paper paper = getPaper();
+        Paper paper = getPaper(1L);
+        PaperUser paperUser = getPaperUser(paper, securityUser.user(), roleType);
         paper.setPaperUsers(Set.of(paperUser));
-        paperUser.setRoleType(roleType);
 
         String generatedFileName = UUID.randomUUID().toString();
         Content content = new Content("test.pdf", generatedFileName, ".pdf");
@@ -653,12 +639,10 @@ class PaperServiceTest {
         SecurityUser securityUser = getSecurityUser();
         securityUser.user().setRoles(Set.of(new Role(RoleType.ROLE_PC_CHAIR)));
 
+        Paper paper = getPaper(1L);
         Conference conference = new Conference();
-        ConferenceUser conferenceUser = new ConferenceUser();
-        conferenceUser.setUser(securityUser.user());
+        ConferenceUser conferenceUser = getConferenceUser(conference, securityUser.user());
         conference.setConferenceUsers(Set.of(conferenceUser));
-        Paper paper = getPaper();
-        paper.setPaperUsers(new HashSet<>());
         paper.setConference(conference);
 
         String generatedFileName = UUID.randomUUID().toString();
@@ -679,7 +663,7 @@ class PaperServiceTest {
     }
 
     @Test
-    void  shouldThrowResourceNotFoundExceptionWhenPaperIsNotFoundOnDownloadPaper() {
+    void shouldThrowResourceNotFoundExceptionWhenPaperIsNotFoundOnDownloadPaper() {
         //Arrange
         SecurityUser securityUser = getSecurityUser();
 
@@ -697,8 +681,7 @@ class PaperServiceTest {
     void shouldThrowAccessDeniedExceptionOnDownloadPaper() {
         //Arrange
         SecurityUser securityUser = getSecurityUser();
-        Paper paper = getPaper();
-        paper.setPaperUsers(new HashSet<>());
+        Paper paper = getPaper(1L);
 
         when(this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(1L)).thenReturn(Optional.of(paper));
 
@@ -713,10 +696,8 @@ class PaperServiceTest {
         //Arrange
         SecurityUser securityUser = getSecurityUser();
 
-        PaperUser paperUser = new PaperUser();
-        paperUser.setUser(securityUser.user());
-        paperUser.setRoleType(RoleType.ROLE_AUTHOR);
-        Paper paper = getPaper();
+        Paper paper = getPaper(1L);
+        PaperUser paperUser = getPaperUser(paper, securityUser.user(), RoleType.ROLE_AUTHOR);
         paper.setPaperUsers(Set.of(paperUser));
 
         when(this.paperRepository.findPaperGraphById(1L)).thenReturn(Optional.of(paper));
@@ -742,20 +723,39 @@ class PaperServiceTest {
                 .hasMessage("Paper not found with id: " + 1L);
     }
 
-    private Paper getPaper() {
-        Paper paper = new Paper();
-        paper.setId(1L);
-        paper.setTitle("title");
-
-        return paper;
-    }
-
     private SecurityUser getSecurityUser() {
         User user = new User("username", "password", "Full Name", Set.of(new Role(RoleType.ROLE_AUTHOR)));
         user.setId(1L);
 
         return new SecurityUser(user);
     }
+
+    private Paper getPaper(Long paperId) {
+        Paper paper = new Paper();
+        paper.setId(paperId);
+        paper.setTitle("title");
+        paper.setPaperUsers(new HashSet<>());
+
+        return paper;
+    }
+
+    private PaperUser getPaperUser(Paper paper, User user, RoleType roleType) {
+        return new PaperUser(
+                new PaperUserId(paper.getId(), user.getId()),
+                paper,
+                user,
+                roleType
+        );
+    }
+
+    private ConferenceUser getConferenceUser(Conference conference, User user) {
+        return new ConferenceUser(
+                new ConferenceUserId(conference.getId(), user.getId()),
+                conference,
+                user
+        );
+    }
+
 
     private byte[] getFileContent() throws IOException {
         Path pdfPath = ResourceUtils.getFile("classpath:files/test.pdf").toPath();

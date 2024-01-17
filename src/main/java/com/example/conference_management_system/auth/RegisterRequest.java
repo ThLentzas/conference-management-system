@@ -16,10 +16,9 @@ record RegisterRequest(
         String fullName,
         Set<RoleType> roleTypes
 ) {
-    /*
-        If the roleTypes are not present in the register request an empty set of roles is assigned to that user.
-     */
-    public RegisterRequest {
+
+    // If the roleTypes are not present in the register request an empty set of roles is assigned to that user.
+    RegisterRequest {
         if (roleTypes == null) {
             roleTypes = new HashSet<>();
         }

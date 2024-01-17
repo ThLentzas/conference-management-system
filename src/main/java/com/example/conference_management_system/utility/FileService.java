@@ -42,7 +42,7 @@ public class FileService {
             String contentType = this.tika.detect(file.getInputStream());
             return this.supportedMimeTypes.containsKey(contentType);
         } catch (IOException ioe) {
-            logger.error("Error detecting file type for {}: {}", file.getOriginalFilename(), ioe.getMessage());
+            logger.warn("Error detecting file type for {}: {}", file.getOriginalFilename(), ioe.getMessage());
             throw new ServerErrorException(SERVER_ERROR_MSG);
         }
     }
@@ -52,7 +52,7 @@ public class FileService {
             Path path = Paths.get(paperDirectoryPath + File.separator + fileName);
             Files.write(path, file.getBytes());
         } catch (IOException ioe) {
-            logger.error("Error storing file {}: {}", fileName , ioe.getMessage());
+            logger.warn("Error storing file {}: {}", fileName , ioe.getMessage());
             throw new ServerErrorException(SERVER_ERROR_MSG);
         }
     }
@@ -67,7 +67,7 @@ public class FileService {
                 logger.warn("File to delete not found: {}", fileName);
             }
         } catch (IOException ioe) {
-            logger.error("Error deleting file {}: {}", fileName, ioe.getMessage());
+            logger.warn("Error deleting file {}: {}", fileName, ioe.getMessage());
             throw new ServerErrorException(SERVER_ERROR_MSG);
         }
     }
@@ -86,11 +86,11 @@ public class FileService {
                 logger.info("Successfully retrieved file: {}", fileName);
                 return resource;
             } else {
-                logger.error("Failed to retrieve file: {}", fileName);
+                logger.warn("Failed to retrieve file: {}", fileName);
                 throw new ServerErrorException(SERVER_ERROR_MSG);
             }
         } catch (MalformedURLException mue) {
-            logger.error("Malformed URL for file: {}, Error: {}", fileName, mue.getMessage());
+            logger.warn("Malformed URL for file: {}, Error: {}", fileName, mue.getMessage());
             throw new ServerErrorException(SERVER_ERROR_MSG);
         }
     }
@@ -100,7 +100,7 @@ public class FileService {
             String contentType = this.tika.detect(file.getInputStream());
             return this.supportedMimeTypes.get(contentType);
         } catch (IOException ioe) {
-            logger.error("Error finding file extension for {}: {}", file.getOriginalFilename(), ioe.getMessage());
+            logger.warn("Error finding file extension for {}: {}", file.getOriginalFilename(), ioe.getMessage());
             throw new ServerErrorException(SERVER_ERROR_MSG);
         }
     }

@@ -75,7 +75,13 @@ public class ConferenceService {
         if (this.conferenceRepository.existsByNameIgnoringCase(conferenceCreateRequest.name())) {
             throw new DuplicateResourceException("A conference with the provided name already exists");
         }
-
+         /*
+            If the current user is assigned a new role, it means that now they have access to new endpoints in
+            subsequent requests but making one request to these endpoint would result in 403 despite them having the
+            role. The reason is the token/cookie was generated upon the user logging in/signing up and had the roles at
+            that time. In order to give the user access to new endpoints either we invalidate the session or we revoke
+            the jwt and we force them to log in again.
+        */
         if (this.roleService.assignRole(securityUser.user(), RoleType.ROLE_PC_CHAIR)) {
             this.authService.invalidateSession(servletRequest);
             logger.info("Current user was assigned a new role and the current session is invalidated");
@@ -217,7 +223,7 @@ public class ConferenceService {
         different conference
      */
     void startFinal(UUID conferenceId, SecurityUser securityUser) {
-        Conference conference = findByConferenceIdFetchingConferenceUsers(conferenceId);
+        Conference conference = findByConferenceIdFetchingConferenceUsersAndPapers(conferenceId);
 
         if (!isPCChairAtConference(conference, securityUser.user())) {
             logger.info("User with id: {} is not PC_CHAIR at conference with id: {}", securityUser.user().getId(),
@@ -235,10 +241,6 @@ public class ConferenceService {
         conference.setState(ConferenceState.FINAL);
         this.conferenceRepository.save(conference);
 
-        /*
-            APPROVED papers get ACCEPTED and REJECTED papers return to CREATED state and are no longer tied to the
-            conference
-         */
         conference.getPapers().stream()
                 .filter(paper -> paper.getState().equals(PaperState.APPROVED))
                 .forEach(paper -> {
@@ -312,15 +314,16 @@ public class ConferenceService {
     /*
         In order to assign a reviewer to a paper the following need to be true:
 
-        1) User who made the request has PC_CHAIR role but not at the request conference
-        2) Conference is found
+        1) Conference is found
+        2) User who made the request has PC_CHAIR role at the conference request
         3) Conference is in ASSIGNMENT state
         4) Paper is found
-        5) Paper has been submitted to this specific conference
+        5) Paper has been submitted to the specific conference
         6) Paper is in SUBMITTED state
         7) The reviewer must be a registered user in our system with role REVIEWER
-        8) The same reviewer can not be assigned to a paper they are already assigned to
-        9) The maximum number(2) of reviewers has already been reached
+        8) The reviewer can not be assigned to a paper they have the role AUTHOR
+        9) The reviewer can not be assigned to a paper they are already assigned to
+        10) The maximum number(2) of reviewers has already been reached
      */
     void assignReviewer(UUID conferenceId,
                         Long paperId,
@@ -342,23 +345,20 @@ public class ConferenceService {
 
         Paper paper = this.paperService.findByPaperIdFetchingPaperUsersAndConference(paperId);
 
-        /*
-            An alternative would be to call conference().getPapers().contains(paper) and see if the paper for the given
-            id belongs to the conference
-        */
         if (paper.getConference() == null || !paper.getConference().getId().equals(conferenceId)) {
-            throw new IllegalArgumentException("Paper with id: " + paper.getId() + "is not submitted to conference " +
+            throw new StateConflictException("Paper with id: " + paper.getId() + " is not submitted to conference " +
                     "with id: " + conference.getId());
         }
 
         if (!paper.getState().equals(PaperState.SUBMITTED)) {
-            throw new StateConflictException("Paper is in state: " + paper.getState() + " and can not assign reviewer");
+            throw new StateConflictException("Paper is in state: " + paper.getState() + " and a reviewer can not be " +
+                    "assigned");
         }
 
         User reviewer = this.userService.findUserByIdFetchingRoles(reviewerAssignmentRequest.userId());
 
-        if (!this.paperService.isInRelationshipWithPaper(paper, reviewer, RoleType.ROLE_AUTHOR)) {
-            throw new StateConflictException("User with id: " + reviewerAssignmentRequest.userId() + "is author of " +
+        if (this.paperService.isInRelationshipWithPaper(paper, reviewer, RoleType.ROLE_AUTHOR)) {
+            throw new DuplicateResourceException("User with id: " + reviewerAssignmentRequest.userId() + " is author of " +
                     "the paper and can not be assigned as a reviewer");
         }
 
@@ -371,7 +371,7 @@ public class ConferenceService {
             role
         */
         if (!roleTypes.contains(RoleType.ROLE_REVIEWER)) {
-            throw new IllegalArgumentException("User is not a reviewer with id: " + reviewer.getId());
+            throw new StateConflictException("User is not a reviewer with id: " + reviewer.getId());
         }
 
         Set<User> reviewers = paper.getPaperUsers().stream()
@@ -379,12 +379,8 @@ public class ConferenceService {
                 .map(PaperUser::getUser)
                 .collect(Collectors.toSet());
 
-        /*
-            An alternative was to call this.reviewRepository.isReviewerAtPaper(paperId, user.getId()) or the
-            reviewerAssignmentRequest.userId(), same thing
-        */
         if (reviewers.contains(reviewer)) {
-            throw new StateConflictException("User already assigned as reviewer");
+            throw new DuplicateResourceException("User already assigned as reviewer to paper with id: " + paperId);
         }
 
         if (reviewers.size() == 2) {
@@ -406,7 +402,7 @@ public class ConferenceService {
                                    SecurityUser securityUser) {
         Conference conference = findByConferenceIdFetchingConferenceUsers(conferenceId);
 
-        if (isPCChairAtConference(conference, securityUser.user())) {
+        if (!isPCChairAtConference(conference, securityUser.user())) {
             logger.info("User with id: {} is not PC_CHAIR at conference with id: {}", securityUser.user().getId(),
                     conferenceId);
 
@@ -421,7 +417,7 @@ public class ConferenceService {
         Paper paper = this.paperService.findByPaperIdFetchingPaperUsersAndConference(paperId);
 
         if (paper.getConference() == null || !paper.getConference().getId().equals(conferenceId)) {
-            throw new IllegalArgumentException("Paper with id: " + paper.getId() + "is not submitted to conference " +
+            throw new StateConflictException("Paper with id: " + paper.getId() + " is not submitted to conference " +
                     "with id: " + conference.getId());
         }
 
@@ -441,15 +437,9 @@ public class ConferenceService {
 
 
     ConferenceDTO findConferenceById(UUID conferenceId, SecurityContext securityContext) {
-        Conference conference = this.conferenceRepository.findByConferenceIdFetchingConferenceUsersAndPapers(
-                conferenceId).orElseThrow(() -> new ResourceNotFoundException(CONFERENCE_NOT_FOUND_MSG + conferenceId));
+        Conference conference = findByConferenceIdFetchingConferenceUsersAndPapers(conferenceId);
 
          /*
-            Passing the authentication object straight as parameter would not work. Since the endpoint is permitAll()
-            in case of an unauthenticated user(Anonymous user) calling authentication.getPrincipal() would result in a
-            NullPointerException since authentication would be null.
-            https://docs.spring.io/spring-security/reference/servlet/authentication/anonymous.html
-
             If the user who made the request has PC_CHAIR role at that conference, they can also see all the related
             papers and their reviews. Any other case, unauthenticated user, REVIEWER, AUTHOR, PC_CHAIR but not in the
             requested conference all see the same info
@@ -494,7 +484,7 @@ public class ConferenceService {
     void deleteConferenceById(UUID conferenceId, SecurityUser securityUser) {
         Conference conference = findByConferenceIdFetchingConferenceUsers(conferenceId);
 
-        if (isPCChairAtConference(conference, securityUser.user())) {
+        if (!isPCChairAtConference(conference, securityUser.user())) {
             logger.info("User with id: {} is not PC_CHAIR at conference with id: {}", securityUser.user().getId(),
                     conferenceId);
 
@@ -502,7 +492,6 @@ public class ConferenceService {
         }
 
         if (!conference.getState().equals(ConferenceState.CREATED)) {
-
             throw new StateConflictException("Conference is in the state: " + conference.getState() + " and can " +
                     "not be deleted");
         }
@@ -513,7 +502,6 @@ public class ConferenceService {
             table to null
         */
         this.conferenceRepository.deleteById(conferenceId);
-
     }
 
     private void validateName(String name) {
@@ -525,6 +513,11 @@ public class ConferenceService {
     private Conference findByConferenceIdFetchingConferenceUsers(UUID conferenceId) {
         return this.conferenceRepository.findByConferenceIdFetchingConferenceUsers(conferenceId).orElseThrow(() ->
                 new ResourceNotFoundException(CONFERENCE_NOT_FOUND_MSG + conferenceId));
+    }
+
+    private Conference findByConferenceIdFetchingConferenceUsersAndPapers(UUID conferenceId) {
+        return this.conferenceRepository.findByConferenceIdFetchingConferenceUsersAndPapers(conferenceId)
+                .orElseThrow(() -> new ResourceNotFoundException(CONFERENCE_NOT_FOUND_MSG + conferenceId));
     }
 
     private boolean isPCChairAtConference(Conference conference, User user) {

@@ -48,7 +48,7 @@ public class Paper {
         Will be stored as csv values.
      */
     private String keywords;
-    @OneToMany(mappedBy = "paper")
+    @OneToMany(mappedBy = "paper", cascade = CascadeType.REMOVE)
     private Set<PaperUser> paperUsers;
     @ManyToOne(fetch = FetchType.LAZY)
     private Conference conference;

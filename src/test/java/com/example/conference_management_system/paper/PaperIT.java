@@ -676,8 +676,6 @@ class PaperIT extends AbstractIntegrationTest {
                 .jsonPath("$[1].keywords[1]").isEqualTo("keyword 2")
                 .jsonPath("$[1].state").isEqualTo(PaperState.CREATED.toString())
                 .jsonPath("$[1].reviews.length()").isEqualTo(0);
-
-
     }
 
     private byte[] getFileContent(String fileName) throws IOException {

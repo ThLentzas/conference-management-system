@@ -1,6 +1,5 @@
 package com.example.conference_management_system.entity;
 
-import com.example.conference_management_system.role.RoleType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -11,11 +10,12 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
-import lombok.ToString;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.io.Serializable;
+
+import com.example.conference_management_system.role.RoleType;
 
 /*
     The reason why both Role and User Entities have to implement Serializable is because they are part of the

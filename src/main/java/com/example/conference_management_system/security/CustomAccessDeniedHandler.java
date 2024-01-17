@@ -1,6 +1,5 @@
 package com.example.conference_management_system.security;
 
-import com.example.conference_management_system.exception.ApiError;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
@@ -12,6 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.conference_management_system.exception.ApiError;
 
 public class CustomAccessDeniedHandler implements AccessDeniedHandler {
     @Override

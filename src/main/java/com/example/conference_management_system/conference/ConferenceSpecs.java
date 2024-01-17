@@ -16,6 +16,10 @@ import java.util.List;
 
 import org.springframework.data.jpa.domain.Specification;
 
+/*
+    The findAll() endpoint can have optional query parameters to filter the conferences. We build the query dynamically
+    and handling the potential N+1 query problems using Specifications and Criteria API.
+ */
 public class ConferenceSpecs implements Specification<Conference> {
     private final String name;
     private final String description;

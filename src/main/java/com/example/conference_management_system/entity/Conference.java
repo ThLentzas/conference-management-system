@@ -1,7 +1,6 @@
 package com.example.conference_management_system.entity;
 
-import com.example.conference_management_system.conference.ConferenceState;
-
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -11,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,6 +23,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDate;
 import java.util.Set;
 import java.util.UUID;
+
+import com.example.conference_management_system.conference.ConferenceState;
 
 @Entity
 @Table(name = "conferences", uniqueConstraints = {
@@ -46,7 +48,7 @@ public class Conference {
     @Column(nullable = false)
     @JdbcType(PostgreSQLEnumJdbcType.class)
     private ConferenceState state;
-    @OneToMany(mappedBy = "conference")
+    @OneToMany(mappedBy = "conference", cascade = CascadeType.REMOVE)
     private Set<ConferenceUser> conferenceUsers;
     @OneToMany(mappedBy = "conference")
     private Set<Paper> papers;

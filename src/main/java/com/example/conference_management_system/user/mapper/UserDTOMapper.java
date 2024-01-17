@@ -5,8 +5,6 @@ import com.example.conference_management_system.entity.User;
 import com.example.conference_management_system.role.RoleType;
 import com.example.conference_management_system.user.dto.UserDTO;
 
-import java.util.Comparator;
-import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;

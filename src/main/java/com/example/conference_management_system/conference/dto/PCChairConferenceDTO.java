@@ -3,7 +3,7 @@ package com.example.conference_management_system.conference.dto;
 import com.example.conference_management_system.conference.ConferenceState;
 import com.example.conference_management_system.paper.dto.PCChairPaperDTO;
 import com.example.conference_management_system.user.dto.UserDTO;
-import lombok.EqualsAndHashCode;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,8 +16,7 @@ public class PCChairConferenceDTO extends ConferenceDTO {
     private ConferenceState conferenceState;
     private Set<PCChairPaperDTO> papers;
 
-    public PCChairConferenceDTO(
-            UUID id,
+    public PCChairConferenceDTO(UUID id,
             String name,
             String description,
             Set<UserDTO> users,

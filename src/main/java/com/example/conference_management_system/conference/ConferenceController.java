@@ -171,8 +171,13 @@ class ConferenceController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
+
     /*
-         https://docs.spring.io/spring-security/reference/servlet/authentication/anonymous.html
+        Passing the authentication object straight as parameter would not work. Since the endpoint is permitAll()
+        in case of an unauthenticated user(Anonymous user) calling authentication.getPrincipal() would result in a
+        NullPointerException since authentication would be null.
+
+        https://docs.spring.io/spring-security/reference/servlet/authentication/anonymous.html
      */
     @GetMapping("/{id}")
     ResponseEntity<ConferenceDTO> findConferenceById(@PathVariable("id") UUID id,

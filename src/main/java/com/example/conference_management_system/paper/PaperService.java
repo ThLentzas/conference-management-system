@@ -104,13 +104,11 @@ public class PaperService {
 
         Content content = new Content();
         setupContent(content, paperCreateRequest.file());
-        Paper paper = new Paper(
-                paperCreateRequest.title(),
+        Paper paper = new Paper(paperCreateRequest.title(),
                 paperCreateRequest.abstractText(),
                 String.join(",", authors),
                 paperCreateRequest.keywords());
-        PaperUser paperUser = new PaperUser(
-                new PaperUserId(paper.getId(), securityUser.user().getId()),
+        PaperUser paperUser = new PaperUser(new PaperUserId(paper.getId(), securityUser.user().getId()),
                 paper,
                 securityUser.user(),
                 RoleType.ROLE_AUTHOR
@@ -124,14 +122,6 @@ public class PaperService {
         return paper.getId();
     }
 
-    /*
-        When we iterate through the users associated with the paper if there is a match then the user is an AUTHOR for
-        that paper since the endpoint is for ROLE_AUTHOR only and cant be a reviewer. Same logic goes for the review
-        paper
-
-        Case: Paper not found -> 404
-        Case: Requesting user is not author on the requested paper -> 403
-     */
     void updatePaper(Long paperId, PaperUpdateRequest paperUpdateRequest, SecurityUser securityUser) {
         if (paperUpdateRequest.title() == null && paperUpdateRequest.authors() == null
                 && paperUpdateRequest.abstractText() == null
@@ -298,12 +288,12 @@ public class PaperService {
     }
 
     /*
-    The users that can download the paper file if the paper file is found are:
-        1)Authors of the paper
-        2)Reviewers of the paper
-        3)Pc chairs that the requested paper is submitted to their conference
+        The users that can download the paper file if the paper file is found are:
+            1)Authors of the paper
+            2)Reviewers of the paper
+            3)Pc chairs that the requested paper is submitted to their conference
 
-    Any other case would result in 403
+        Any other case would result in 403
     */
     PaperFile downloadPaperFile(Long paperId, SecurityUser securityUser) {
         Paper paper = this.paperRepository.findPaperGraphById(paperId).orElseThrow(() -> new ResourceNotFoundException(
@@ -327,7 +317,7 @@ public class PaperService {
         }
 
         /*
-            A paper should always have content(some file). If else then something is wrong with our db and our data
+            A paper should always have content(some file). In any other case something is wrong with our db and our data
             integrity
          */
         Content content = this.contentRepository.findByPaperId(paperId).orElseThrow(() -> {

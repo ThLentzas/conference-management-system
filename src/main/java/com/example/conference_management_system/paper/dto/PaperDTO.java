@@ -1,14 +1,11 @@
 package com.example.conference_management_system.paper.dto;
 
 import lombok.AllArgsConstructor;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
-
-
 
 @Getter
 @Setter

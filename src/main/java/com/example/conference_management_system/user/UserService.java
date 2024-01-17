@@ -1,20 +1,18 @@
 package com.example.conference_management_system.user;
 
-import com.example.conference_management_system.exception.ResourceNotFoundException;
-import com.example.conference_management_system.user.dto.UserDTO;
-import com.example.conference_management_system.user.mapper.UserDTOMapper;
 import org.passay.CharacterRule;
 import org.passay.EnglishCharacterData;
 import org.passay.LengthRule;
 import org.passay.PasswordData;
 import org.passay.PasswordValidator;
 import org.passay.RuleResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.example.conference_management_system.entity.User;
 import com.example.conference_management_system.exception.DuplicateResourceException;
+import com.example.conference_management_system.exception.ResourceNotFoundException;
+import com.example.conference_management_system.user.dto.UserDTO;
+import com.example.conference_management_system.user.mapper.UserDTOMapper;
 
 import lombok.RequiredArgsConstructor;
 
@@ -22,7 +20,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
-    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
     private static final String USER_NOT_FOUND_MSG = "User not found";
     private static final UserDTOMapper dtoMapper = new UserDTOMapper();
 
@@ -47,7 +44,6 @@ public class UserService {
                 new ResourceNotFoundException(USER_NOT_FOUND_MSG + " with id: " + userId)
         );
     }
-
 
     public void validateUser(User user) {
         if (user.getUsername().length() > 20) {

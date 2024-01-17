@@ -2,6 +2,7 @@ package com.example.conference_management_system.paper.dto;
 
 import com.example.conference_management_system.paper.PaperState;
 import com.example.conference_management_system.review.dto.ReviewerReviewDTO;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,8 +15,7 @@ public class ReviewerPaperDTO extends PaperDTO {
     private PaperState state;
     private Set<ReviewerReviewDTO> reviews;
 
-    public ReviewerPaperDTO(
-            Long id,
+    public ReviewerPaperDTO(Long id,
             LocalDate createdDate,
             String title,
             String abstractText,

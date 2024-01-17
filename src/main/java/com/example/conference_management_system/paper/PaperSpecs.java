@@ -1,14 +1,19 @@
 package com.example.conference_management_system.paper;
 
-import com.example.conference_management_system.entity.Conference;
-import com.example.conference_management_system.entity.ConferenceUser;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Fetch;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+
 import com.example.conference_management_system.entity.Paper;
 import com.example.conference_management_system.entity.PaperUser;
-import jakarta.persistence.criteria.*;
-import org.springframework.data.jpa.domain.Specification;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import org.springframework.data.jpa.domain.Specification;
 
 public class PaperSpecs implements Specification<Paper> {
     private final String title;
@@ -22,6 +27,9 @@ public class PaperSpecs implements Specification<Paper> {
     }
 
     /*
+        The findAll() endpoint can have optional query parameters to filter the papers. We build the query dynamically
+        and handling the potential N+1 query problems using Specifications and Criteria API.
+
         The equivalent JPQL query for the fetch setup is something like
 
                 SELECT p

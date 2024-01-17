@@ -33,7 +33,8 @@ public interface ConferenceRepository extends JpaRepository<Conference, UUID>, J
                 SELECT c
                 FROM Conference c
                 JOIN FETCH c.conferenceUsers cu
-                JOIN FETCH cu.user
+                JOIN FETCH cu.user u
+                JOIN FETCH u.roles
                 LEFT JOIN FETCH c.papers
                 WHERE c.id = :id
             """)

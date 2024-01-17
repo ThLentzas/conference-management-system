@@ -1,6 +1,5 @@
 package com.example.conference_management_system.conference;
 
-import com.example.conference_management_system.conference.dto.ConferenceDTO;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
@@ -13,6 +12,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import com.example.conference_management_system.AbstractIntegrationTest;
 import com.example.conference_management_system.role.RoleType;
 import com.example.conference_management_system.user.dto.UserDTO;
+import com.example.conference_management_system.conference.dto.ConferenceDTO;
 
 import java.util.List;
 import java.util.UUID;

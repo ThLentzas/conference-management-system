@@ -1,10 +1,10 @@
 package com.example.conference_management_system.paper.dto;
 
-import com.example.conference_management_system.paper.PaperState;
-import com.example.conference_management_system.review.dto.PCChairReviewDTO;
-
 import lombok.Getter;
 import lombok.Setter;
+
+import com.example.conference_management_system.paper.PaperState;
+import com.example.conference_management_system.review.dto.PCChairReviewDTO;
 
 import java.time.LocalDate;
 import java.util.Set;
@@ -15,8 +15,7 @@ public class PCChairPaperDTO extends PaperDTO {
     private PaperState state;
     private Set<PCChairReviewDTO> reviews;
 
-    public PCChairPaperDTO(
-            Long id,
+    public PCChairPaperDTO(Long id,
             LocalDate createdDate,
             String title,
             String abstractText,

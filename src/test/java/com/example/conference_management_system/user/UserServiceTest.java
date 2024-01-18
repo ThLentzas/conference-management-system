@@ -75,7 +75,7 @@ class UserServiceTest {
         // Arrange
         User actual = new User(
                 "user",
-                "password",
+                "CyN549!@o2Cr",
                 RandomStringUtils.randomAlphanumeric(new Random().nextInt(51) + 51),
                 Set.of(new Role(RoleType.ROLE_AUTHOR)));
 
@@ -91,7 +91,7 @@ class UserServiceTest {
         // Arrange
         User actual = new User(
                 "user",
-                "password",
+                "CyN549!@o2Cr",
                 fullName,
                 Set.of(new Role(RoleType.ROLE_AUTHOR)));
 

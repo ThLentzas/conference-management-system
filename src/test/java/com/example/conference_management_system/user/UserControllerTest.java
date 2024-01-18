@@ -31,24 +31,24 @@ class UserControllerTest {
     private UserService userService;
     private static final String USER_PATH = "/api/v1/users";
 
-    //findUserByUsername()
+    //findUserByName()
     @Test
-    void shouldReturnUserDTOAnd200OnFindUserByUsername() throws Exception {
+    void shouldReturnUserDTOAnd200OnFindUserByName() throws Exception {
         String responseBody = """
                     {
                         "id": 1,
                         "username": "username",
-                        "fullName": "full name",
+                        "fullName": "fullName",
                         "roleTypes": [
                             "ROLE_AUTHOR"
                         ]
                     }
                 """;
 
-        when(this.userService.findUserByUsername("username"))
-                .thenReturn(getUserDTO(1L, "username", "full name", Set.of(RoleType.ROLE_AUTHOR)));
+        when(this.userService.findUserByFullName("fullName"))
+                .thenReturn(getUserDTO(1L, "username", "fullName", Set.of(RoleType.ROLE_AUTHOR)));
 
-        this.mockMvc.perform(get(USER_PATH + "?username={username}", "username")
+        this.mockMvc.perform(get(USER_PATH + "?name={name}", "fullName")
                 .accept(MediaType.APPLICATION_JSON))
                 .andExpectAll(
                         status().isOk(),
@@ -56,20 +56,19 @@ class UserControllerTest {
                 );
     }
 
-    //findUserByUsername()
+
     @Test
-    void should404OnFindUserByUsername() throws Exception {
+    void should404WhenUserIsNotFoundOnFindUserByName() throws Exception {
         String responseBody = String.format("""
                     {
-                        "message": "User not found with username: %s"                  
-                        
+                        "message": "User not found with name: %s"
                     }
-                """, "username");
+                """, "fullName");
 
-        when(this.userService.findUserByUsername("username"))
-                .thenThrow(new ResourceNotFoundException("User not found with username: username"));
+        when(this.userService.findUserByFullName("fullName"))
+                .thenThrow(new ResourceNotFoundException("User not found with name: fullName"));
 
-        this.mockMvc.perform(get(USER_PATH + "?username={username}", "username")
+        this.mockMvc.perform(get(USER_PATH + "?name={name}", "fullName")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpectAll(
                         status().isNotFound(),

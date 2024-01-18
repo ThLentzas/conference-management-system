@@ -8,6 +8,7 @@ import com.example.conference_management_system.role.RoleType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,5 +40,41 @@ class UserRepositoryTest extends AbstractRepositoryTest {
 
         //Assert
         assertThat(this.underTest.existsByUsernameIgnoreCase("test")).isFalse();
+    }
+
+    //findUserByUsernameFetchingRoles()
+    @Test
+    void shouldFindUserByUsernameIgnoringCase() {
+        //Arrange
+        User expected = new User("user", "password", "test user", new HashSet<>());
+
+        this.underTest.save(expected);
+
+        //Act & Assert
+        this.underTest.findUserByUsernameFetchingRoles("user").ifPresent(actual -> {
+            assertThat(actual.getId()).isPositive();
+            assertThat(actual.getUsername()).isEqualTo(expected.getUsername());
+            assertThat(actual.getPassword()).isEqualTo(expected.getPassword());
+            assertThat(actual.getFullName()).isEqualTo(expected.getFullName());
+            assertThat(actual.getRoles()).isEqualTo(expected.getRoles());
+        });
+    }
+
+    //findUserByFullNameFetchingRoles()
+    @Test
+    void shouldFindUserByFullNameIgnoringCase() {
+        //Arrange
+        User expected = new User("user", "password", "test user", new HashSet<>());
+
+        this.underTest.save(expected);
+
+        //Act & Assert
+        this.underTest.findUserByFullNameFetchingRoles("test user").ifPresent(actual -> {
+            assertThat(actual.getId()).isPositive();
+            assertThat(actual.getUsername()).isEqualTo(expected.getUsername());
+            assertThat(actual.getPassword()).isEqualTo(expected.getPassword());
+            assertThat(actual.getFullName()).isEqualTo(expected.getFullName());
+            assertThat(actual.getRoles()).isEqualTo(expected.getRoles());
+        });
     }
 }

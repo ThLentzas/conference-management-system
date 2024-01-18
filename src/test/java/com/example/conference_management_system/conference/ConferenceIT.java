@@ -1,7 +1,5 @@
 package com.example.conference_management_system.conference;
 
-import com.example.conference_management_system.conference.ConferenceState;
-import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
@@ -60,7 +58,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 {
                     "username": "username",
                     "password": "CyN549!@o2Cr",
-                    "fullName": "Full Name",
+                    "fullName": "fullName",
                     "roleTypes": [
                         "ROLE_AUTHOR"
                     ]
@@ -151,7 +149,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .jsonPath("$.description").isEqualTo("description")
                 .jsonPath("$.conferenceState").isEqualTo("CREATED")
                 .jsonPath("$.users[0].username").isEqualTo("username")
-                .jsonPath("$.users[0].fullName").isEqualTo("Full Name")
+                .jsonPath("$.users[0].fullName").isEqualTo("fullName")
                 .jsonPath("$.users[0].roleTypes").value(roleTypes -> assertThat((List<String>) roleTypes).contains(
                         RoleType.ROLE_PC_CHAIR.name(), RoleType.ROLE_AUTHOR.name()))
                 .jsonPath("$.papers").isEmpty();
@@ -162,7 +160,7 @@ class ConferenceIT extends AbstractIntegrationTest {
             Asserting that the user has the new role of ROLE_PC_CHAIR after successfully creating a conference.
          */
         this.webTestClient.get()
-                .uri(USER_PATH + "?username={username}", "username")
+                .uri(USER_PATH + "?name={name}", "fullName")
                 .accept(MediaType.APPLICATION_JSON)
                 .header("Cookie", sessionId)
                 .exchange()
@@ -172,7 +170,6 @@ class ConferenceIT extends AbstractIntegrationTest {
                  */
                 .jsonPath("$.roleTypes").value(roleTypes -> assertThat((List<String>) roleTypes).contains(
                         RoleType.ROLE_PC_CHAIR.name()));
-
     }
 
     @Test
@@ -206,7 +203,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 {
                     "username": "username",
                     "password": "CyN549!@o2Cr",
-                    "fullName": "Full Name",
+                    "fullName": "fullName",
                     "roleTypes": [
                         "ROLE_PC_CHAIR"
                     ]
@@ -277,7 +274,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .jsonPath("$.description").isEqualTo("test description")
                 .jsonPath("$.conferenceState").isEqualTo("CREATED")
                 .jsonPath("$.users[0].username").isEqualTo("username")
-                .jsonPath("$.users[0].fullName").isEqualTo("Full Name")
+                .jsonPath("$.users[0].fullName").isEqualTo("fullName")
                 .jsonPath("$.users[0].roleTypes").value(roleTypes -> assertThat((List<String>) roleTypes).contains(
                         RoleType.ROLE_PC_CHAIR.name()))
                 .jsonPath("$.papers").isEmpty();
@@ -314,7 +311,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 {
                     "username": "username",
                     "password": "CyN549!@o2Cr",
-                    "fullName": "Full Name"
+                    "fullName": "fullName"
                 }
                 """;
 
@@ -384,7 +381,7 @@ class ConferenceIT extends AbstractIntegrationTest {
 
         //Making a GET request to be able to retrieve the user's id that we want to add as PC_CHAIR
         UserDTO user = this.webTestClient.get()
-                .uri(USER_PATH + "?username={username}", "username")
+                .uri(USER_PATH + "?name={name}", "fullName")
                 .header("Cookie", sessionId)
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
@@ -422,7 +419,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .getResponseBody();
 
         assertThat(conference.getUsers()).anyMatch(pcChair -> pcChair.username().equals("username")
-                && pcChair.fullName().equals("Full Name")
+                && pcChair.fullName().equals("fullName")
                 && pcChair.roleTypes().stream().anyMatch(roleType -> roleType.equals(RoleType.ROLE_PC_CHAIR)));
         assertThat(conference.getUsers()).anyMatch(pcChair -> pcChair.username().equals("another username")
                 && pcChair.fullName().equals("Test")
@@ -460,7 +457,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 {
                     "username": "username",
                     "password": "CyN549!@o2Cr",
-                    "fullName": "Full Name",
+                    "fullName": "fullName",
                     "roleTypes": [
                         "ROLE_PC_CHAIR"
                     ]
@@ -568,7 +565,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .jsonPath("$[0].description").isEqualTo("another description")
                 .jsonPath("$[0].conferenceState").isEqualTo(ConferenceState.CREATED.toString())
                 .jsonPath("$[0].users[0].username").isEqualTo("username")
-                .jsonPath("$[0].users[0].fullName").isEqualTo("Full Name")
+                .jsonPath("$[0].users[0].fullName").isEqualTo("fullName")
                 .jsonPath("$[0].users[0].roleTypes").value(roleTypes -> assertThat((List<String>) roleTypes).contains(
                         RoleType.ROLE_PC_CHAIR.name()))
                 .jsonPath("$[0].papers.length()").isEqualTo(0)
@@ -576,7 +573,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .jsonPath("$[1].name").isEqualTo("name")
                 .jsonPath("$[1].description").isEqualTo("description")
                 .jsonPath("$[1].conferenceState").isEqualTo(ConferenceState.CREATED.toString())
-                .jsonPath("$[1].users[0].fullName").isEqualTo("Full Name")
+                .jsonPath("$[1].users[0].fullName").isEqualTo("fullName")
                 .jsonPath("$[1].users[0].roleTypes").value(roleTypes -> assertThat((List<String>) roleTypes).contains(
                         RoleType.ROLE_PC_CHAIR.name()))
                 .jsonPath("$[1].papers.length()").isEqualTo(0);
@@ -613,7 +610,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 {
                     "username": "username",
                     "password": "CyN549!@o2Cr",
-                    "fullName": "Full Name",
+                    "fullName": "fullName",
                     "roleTypes": [
                         "ROLE_PC_CHAIR"
                     ]

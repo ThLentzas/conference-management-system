@@ -39,6 +39,14 @@ public class UserService {
         return dtoMapper.apply(user);
     }
 
+    UserDTO findUserByFullName(String fullName) {
+        User user = this.userRepository.findUserByFullNameFetchingRoles(fullName).orElseThrow(() ->
+                new ResourceNotFoundException(USER_NOT_FOUND_MSG + " with name: " + fullName)
+        );
+
+        return dtoMapper.apply(user);
+    }
+
     public User findUserByIdFetchingRoles(Long userId) {
         return this.userRepository.findUserByIdFetchingRoles(userId).orElseThrow(() ->
                 new ResourceNotFoundException(USER_NOT_FOUND_MSG + " with id: " + userId)
@@ -48,14 +56,6 @@ public class UserService {
     public void validateUser(User user) {
         if (user.getUsername().length() > 20) {
             throw new IllegalArgumentException("Invalid username. Username must not exceed 20 characters");
-        }
-
-        if (user.getFullName().length() > 50) {
-            throw new IllegalArgumentException("Invalid full name. Full name must not exceed 50 characters");
-        }
-
-        if (!user.getFullName().matches("^[a-zA-Z ]*$")) {
-            throw new IllegalArgumentException("Invalid full name. Full name should contain only characters and spaces");
         }
 
         PasswordValidator validator = new org.passay.PasswordValidator(
@@ -69,6 +69,14 @@ public class UserService {
         RuleResult result = validator.validate(new PasswordData(user.getPassword()));
         if (!result.isValid()) {
             throw new IllegalArgumentException(validator.getMessages(result).get(0));
+        }
+
+        if (user.getFullName().length() > 50) {
+            throw new IllegalArgumentException("Invalid full name. Full name must not exceed 50 characters");
+        }
+
+        if (!user.getFullName().matches("^[a-zA-Z ]*$")) {
+            throw new IllegalArgumentException("Invalid full name. Full name should contain only characters and spaces");
         }
     }
 }

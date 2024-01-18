@@ -27,6 +27,11 @@ import com.example.conference_management_system.conference.dto.PaperSubmissionRe
 import com.example.conference_management_system.review.ReviewDecision;
 import com.example.conference_management_system.security.SecurityUser;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
@@ -43,6 +48,17 @@ class ConferenceController {
     private final ConferenceService conferenceService;
 
     @PostMapping
+    @Operation(
+            summary = "Create conference",
+            description = "Accessible to authenticated users. Creating conference adds the role ROLE_PC_CHAIR to the user. The id of the created conference" +
+                    "is in the location header to be used in subsequent requests",
+            tags = {"Conference"},
+            parameters = {
+                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+
+            }, security = {
+            @SecurityRequirement(name = "cookieAuth")
+    })
     ResponseEntity<Void> createConference(@Valid @RequestBody ConferenceCreateRequest conferenceCreateRequest,
                                           @AuthenticationPrincipal SecurityUser securityUser,
                                           UriComponentsBuilder uriBuilder,
@@ -65,6 +81,16 @@ class ConferenceController {
 
     @PreAuthorize("hasRole('PC_CHAIR')")
     @PutMapping("/{id}")
+    @Operation(
+            summary = "Update conference",
+            description = "Accessible only to users with role ROLE_PC_CHAIR. You must be one of the PC Chairs of the conference, having the role is not enough",
+            tags = {"Conference"},
+            parameters = {
+                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+
+            }, security = {
+            @SecurityRequirement(name = "cookieAuth")
+    })
     ResponseEntity<Void> updateConference(@PathVariable("id") UUID id,
                                           @RequestBody ConferenceUpdateRequest conferenceUpdateRequest,
                                           @AuthenticationPrincipal SecurityUser securityUser) {
@@ -78,6 +104,16 @@ class ConferenceController {
      */
     @PreAuthorize("hasRole('PC_CHAIR')")
     @PutMapping("/{id}/submission")
+    @Operation(
+            summary = "Start submission. The state of the conference changes to submission and papers can be submitted",
+            description = "Accessible only to users with role ROLE_PC_CHAIR. You must be one of the PC Chairs of the conference, having the role is not enough",
+            tags = {"Conference"},
+            parameters = {
+                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+
+            }, security = {
+            @SecurityRequirement(name = "cookieAuth")
+    })
     ResponseEntity<Void> startSubmission(@PathVariable("id") UUID id,
                                          @AuthenticationPrincipal SecurityUser securityUser) {
         this.conferenceService.startSubmission(id, securityUser);
@@ -91,6 +127,17 @@ class ConferenceController {
      */
     @PreAuthorize("hasRole('PC_CHAIR')")
     @PutMapping("/{id}/assignment")
+    @Operation(
+            summary = "Start assignment. The state of the conference changes to assignment and reviewers can be assigned to papers. " +
+                    "Papers can no longer submitted",
+            description = "Accessible only to users with role ROLE_PC_CHAIR. You must be one of the PC Chairs of the conference, having the role is not enough",
+            tags = {"Conference"},
+            parameters = {
+                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+
+            }, security = {
+            @SecurityRequirement(name = "cookieAuth")
+    })
     ResponseEntity<Void> startAssignment(@PathVariable("id") UUID id,
                                          @AuthenticationPrincipal SecurityUser securityUser) {
         this.conferenceService.startAssignment(id, securityUser);
@@ -104,6 +151,16 @@ class ConferenceController {
      */
     @PreAuthorize("hasRole('PC_CHAIR')")
     @PutMapping("/{id}/review")
+    @Operation(
+            summary = "Start review. The state of the conference changes to review and reviewers can write reviewers for papers they are assigned to",
+            description = "Accessible only to users with role ROLE_PC_CHAIR. You must be one of the PC Chairs of the conference, having the role is not enough",
+            tags = {"Conference"},
+            parameters = {
+                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+
+            }, security = {
+            @SecurityRequirement(name = "cookieAuth")
+    })
     ResponseEntity<Void> startReview(@PathVariable("id") UUID id,
                                      @AuthenticationPrincipal SecurityUser securityUser) {
         this.conferenceService.startReview(id, securityUser);
@@ -117,6 +174,17 @@ class ConferenceController {
      */
     @PreAuthorize("hasRole('PC_CHAIR')")
     @PutMapping("/{id}/decision")
+    @Operation(
+            summary = "Start decision. The state of the conference changes to decision and a pc chair at the conference can either approve or reject " +
+                    "the submitted papers based on the reviews",
+            description = "Accessible only to users with role ROLE_PC_CHAIR. You must be one of the PC Chairs of the conference, having the role is not enough",
+            tags = {"Conference"},
+            parameters = {
+                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+
+            }, security = {
+            @SecurityRequirement(name = "cookieAuth")
+    })
     ResponseEntity<Void> startDecision(@PathVariable("id") UUID id,
                                        @AuthenticationPrincipal SecurityUser securityUser) {
         this.conferenceService.startDecision(id, securityUser);
@@ -126,10 +194,21 @@ class ConferenceController {
 
     /*
         The state of conference changes to FINAL, the APPROVED papers are getting ACCEPTED and the REJECTED ones are
-        removed from the specific to be submitted to another one.
+        removed from the specific conference to be submitted to another one.
      */
     @PreAuthorize("hasRole('PC_CHAIR')")
     @PutMapping("/{id}/final")
+    @Operation(
+            summary = "Start final. The state of the conference changes to final. The approved papers are getting accepted and the rejected ones are  removed from " +
+                    "the specific conference to be submitted to another one",
+            description = "Accessible only to users with role ROLE_PC_CHAIR. You must be one of the PC Chairs of the conference, having the role is not enough",
+            tags = {"Conference"},
+            parameters = {
+                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+
+            }, security = {
+            @SecurityRequirement(name = "cookieAuth")
+    })
     ResponseEntity<Void> startFinal(@PathVariable("id") UUID id,
                                     @AuthenticationPrincipal SecurityUser securityUser) {
         this.conferenceService.startFinal(id, securityUser);
@@ -139,6 +218,16 @@ class ConferenceController {
 
     @PreAuthorize("hasRole('PC_CHAIR')")
     @PutMapping("/{id}/pc-chair")
+    @Operation(
+            summary = "Add a registered user as pc chair",
+            description = "Accessible only to users with role ROLE_PC_CHAIR. You must be one of the PC Chairs of the conference, having the role is not enough",
+            tags = {"Conference"},
+            parameters = {
+                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+
+            }, security = {
+            @SecurityRequirement(name = "cookieAuth")
+    })
     ResponseEntity<Void> addPCChair(@PathVariable("id") UUID id,
                                     @Valid @RequestBody PCChairAdditionRequest pcChairAdditionRequest,
                                     @AuthenticationPrincipal SecurityUser securityUser) {
@@ -153,6 +242,16 @@ class ConferenceController {
      */
     @PreAuthorize("hasRole('AUTHOR')")
     @PostMapping("/{id}/papers")
+    @Operation(
+            summary = "Submit a paper to a conference",
+            description = "Accessible only to users with role ROLE_AUTHOR. You must be one of the authors of the paper, having the role is not enough",
+            tags = {"Conference"},
+            parameters = {
+                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+
+            }, security = {
+            @SecurityRequirement(name = "cookieAuth")
+    })
     ResponseEntity<Void> submitPaper(@PathVariable("id") UUID id,
                                      @RequestBody PaperSubmissionRequest paperSubmissionRequest,
                                      @AuthenticationPrincipal SecurityUser securityUser) {
@@ -163,6 +262,16 @@ class ConferenceController {
     }
 
     @PreAuthorize("hasRole('PC_CHAIR')")
+    @Operation(
+            summary = "Assign a reviewer to a submitted paper",
+            description = "Accessible only to users with role ROLE_PC_CHAIR. You must be one of the PC Chairs of the conference, having the role is not enough",
+            tags = {"Conference"},
+            parameters = {
+                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+
+            }, security = {
+            @SecurityRequirement(name = "cookieAuth")
+    })
     @PostMapping("/{conferenceId}/papers/{paperId}/reviewer")
     ResponseEntity<Void> assignReviewer(@PathVariable("conferenceId") UUID conferenceId,
                                         @PathVariable("paperId") Long paperId,
@@ -177,6 +286,16 @@ class ConferenceController {
         A paper that has been reviewed can either get APPROVED or REJECTED
      */
     @PreAuthorize("hasRole('PC_CHAIR')")
+    @Operation(
+            summary = "Based on the reviews comments and scores approve or reject a reviewed paper",
+            description = "Accessible only to users with role ROLE_PC_CHAIR. You must be one of the PC Chairs of the conference, having the role is not enough",
+            tags = {"Conference"},
+            parameters = {
+                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+
+            }, security = {
+            @SecurityRequirement(name = "cookieAuth")
+    })
     @PutMapping("/{conferenceId}/papers/{paperId}/{decision}")
     ResponseEntity<Void> updatePaperApprovalStatus(@PathVariable("conferenceId") UUID conferenceId,
                                                    @PathVariable("paperId") Long paperId,
@@ -196,18 +315,29 @@ class ConferenceController {
         https://docs.spring.io/spring-security/reference/servlet/authentication/anonymous.html
      */
     @GetMapping("/{id}")
+    @Operation(
+            summary = "Find conference by id",
+            description = "Public endpoint. If the requested user is in a relationship with the conference extra properties are returned",
+            tags = {"Conference"}
+    )
     ResponseEntity<ConferenceDTO> findConferenceById(@PathVariable("id") UUID id,
-                                                     @CurrentSecurityContext SecurityContext securityContext) {
+                                                     @Parameter(hidden = true) @CurrentSecurityContext
+                                                     SecurityContext securityContext) {
         ConferenceDTO conferenceDTO = this.conferenceService.findConferenceById(id, securityContext);
 
         return new ResponseEntity<>(conferenceDTO, HttpStatus.OK);
     }
 
     @GetMapping
+    @Operation(
+            summary = "Find conferences. Optional filters are: name, description. If none is provided all conferences are returned",
+            description = "Public endpoint. If the requested user is in a relationship with any of the returned conferences extra properties are returned",
+            tags = {"Conference"}
+    )
     ResponseEntity<List<ConferenceDTO>> findConferences(
             @RequestParam(value = "name", defaultValue = "", required = false) String name,
             @RequestParam(value = "description", defaultValue = "", required = false) String description,
-            @CurrentSecurityContext SecurityContext securityContext) {
+            @Parameter(hidden = true) @CurrentSecurityContext SecurityContext securityContext) {
         List<ConferenceDTO> conferences = this.conferenceService.findConferences(name, description, securityContext);
 
         return new ResponseEntity<>(conferences, HttpStatus.OK);
@@ -215,6 +345,16 @@ class ConferenceController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('PC_CHAIR')")
+    @Operation(
+            summary = "Delete a conference by id",
+            description = "Accessible only to users with role ROLE_PC_CHAIR. You must be one of the PC Chairs of the conference, having the role is not enough",
+            tags = {"Conference"},
+            parameters = {
+                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+
+            }, security = {
+            @SecurityRequirement(name = "cookieAuth")
+    })
     ResponseEntity<Void> deleteConferenceById(@PathVariable("id") UUID id,
                                               @AuthenticationPrincipal SecurityUser securityUser) {
         this.conferenceService.deleteConferenceById(id, securityUser);

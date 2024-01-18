@@ -1,8 +1,6 @@
 package com.example.conference_management_system.paper;
 
-import com.example.conference_management_system.paper.PaperState;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
@@ -90,7 +88,7 @@ class PaperIT extends AbstractIntegrationTest {
                 {
                     "username": "username",
                     "password": "CyN549!@o2Cr",
-                    "fullName": "Full Name",
+                    "fullName": "fullName",
                     "roleTypes": [
                         "ROLE_PC_CHAIR"
                     ]
@@ -187,7 +185,7 @@ class PaperIT extends AbstractIntegrationTest {
                 .jsonPath("$.authors.length()").isEqualTo(3)
                 .jsonPath("$.authors[0]").isEqualTo("author 1")
                 .jsonPath("$.authors[1]").isEqualTo("author 2")
-                .jsonPath("$.authors[2]").isEqualTo("Full Name")
+                .jsonPath("$.authors[2]").isEqualTo("fullName")
                 .jsonPath("$.keywords.length()").isEqualTo(2)
                 .jsonPath("$.keywords[0]").isEqualTo("keyword 1")
                 .jsonPath("$.keywords[1]").isEqualTo("keyword 2");
@@ -217,7 +215,7 @@ class PaperIT extends AbstractIntegrationTest {
             Asserting that the user has the new role of ROLE_AUTHOR after successfully creating a paper.
          */
         this.webTestClient.get()
-                .uri(USER_PATH + "?username={username}", "username")
+                .uri(USER_PATH + "?name={name}", "fullName")
                 .accept(MediaType.APPLICATION_JSON)
                 .header("Cookie", sessionId)
                 .exchange()
@@ -397,7 +395,7 @@ class PaperIT extends AbstractIntegrationTest {
                 {
                     "username": "username",
                     "password": "CyN549!@o2Cr",
-                    "fullName": "Full Name",
+                    "fullName": "fullName",
                     "roleTypes": [
                         "ROLE_PC_CHAIR"
                     ]
@@ -472,7 +470,7 @@ class PaperIT extends AbstractIntegrationTest {
         Long paperId = Long.parseLong(location.substring(location.lastIndexOf('/') + 1));
 
         UserDTO user = this.webTestClient.get()
-                .uri(USER_PATH + "?username={username}", "username")
+                .uri(USER_PATH + "?name={name}", "fullName")
                 .header("Cookie", sessionId)
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
@@ -496,7 +494,7 @@ class PaperIT extends AbstractIntegrationTest {
                 .expectStatus().isNoContent();
 
         this.webTestClient.get()
-                .uri(USER_PATH + "?username={username}", "username")
+                .uri(USER_PATH + "?name={name}", "fullName")
                 .header("Cookie", sessionId)
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()

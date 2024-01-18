@@ -1,5 +1,6 @@
 package com.example.conference_management_system.user;
 
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,12 +19,19 @@ class UserController {
     private final UserService userService;
 
     /*
-        This endpoint is tested in the IT of both PaperIT and ConferenceIT when we search for a user by username
+        The request param is always required.
+
+        This endpoint is tested in the IT of both PaperIT and ConferenceIT when we search for a user by full name
         to verify they get a new role after creating paper/conference
      */
     @GetMapping
-    ResponseEntity<UserDTO> findUserByUsername(@RequestParam("username") String username) {
-        UserDTO user = this.userService.findUserByUsername(username);
+    @Operation(
+            summary = "Find user by name. The name parameter is always required",
+            description = "Public endpoint",
+            tags = {"User"}
+    )
+    ResponseEntity<UserDTO> findUserByName(@RequestParam("name") String name) {
+        UserDTO user = this.userService.findUserByFullName(name);
 
         return new ResponseEntity<>(user, HttpStatus.OK);
     }

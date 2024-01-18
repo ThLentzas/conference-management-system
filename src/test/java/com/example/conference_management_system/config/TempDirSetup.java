@@ -8,6 +8,10 @@ import jakarta.annotation.PreDestroy;
 
 import org.springframework.boot.test.context.TestConfiguration;
 
+/*
+    The below configuration allows us to tie the temporary directory for storing test files to the lifecycle of
+    the context
+ */
 @TestConfiguration
 public class TempDirSetup {
     static Path tempDir;

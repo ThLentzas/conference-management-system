@@ -13,6 +13,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+
 import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpSession;
 
@@ -25,6 +29,13 @@ class AuthController {
     private final AuthService authService;
 
     @PostMapping("/signup")
+    @Operation(
+            summary = "Register user",
+            description = "Public endpoint",
+            tags = {"Auth"},
+            parameters = {
+                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN")
+            })
     ResponseEntity<Void> registerUser(@Valid @RequestBody RegisterRequest request, HttpSession session) {
         Authentication authentication = this.authService.registerUser(request);
         setContext(authentication, session);
@@ -33,6 +44,13 @@ class AuthController {
     }
 
     @PostMapping("/login")
+    @Operation(
+            summary = "Login user",
+            description = "Public endpoint",
+            tags = {"Auth"},
+            parameters = {
+                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN")
+            })
     ResponseEntity<Void> loginUser(@Valid @RequestBody LoginRequest request, HttpSession session) {
         Authentication authentication = this.authService.loginUser(request);
         setContext(authentication, session);
@@ -41,8 +59,12 @@ class AuthController {
     }
 
     @GetMapping("/csrf")
-    ResponseEntity<CsrfToken> csrf(CsrfToken token) {
-        return new ResponseEntity<>(token, HttpStatus.OK);
+    @Operation(
+            tags = {"Auth"}
+    )
+    public ResponseEntity<CsrfToken> csrf(@Parameter(hidden = true) CsrfToken csrfToken) {
+
+        return new ResponseEntity<>(csrfToken, HttpStatus.OK);
     }
 
     /*

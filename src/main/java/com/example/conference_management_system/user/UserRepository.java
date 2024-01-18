@@ -29,6 +29,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
                 SELECT u
                 FROM User u
                 LEFT JOIN FETCH u.roles
+                WHERE LOWER(u.fullName) = LOWER(:fullName)
+            """)
+    Optional<User> findUserByFullNameFetchingRoles(@Param("fullName") String fullName);
+
+    @Query("""
+                SELECT u
+                FROM User u
+                LEFT JOIN FETCH u.roles
                 WHERE u.id = :id
             """)
     Optional<User> findUserByIdFetchingRoles(@Param("id") Long id);

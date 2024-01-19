@@ -19,8 +19,8 @@ and despite the user has a new role, they don't have access to the new endpoints
 * Spring Boot 3.2.0
 * Spring Security
 * Spring Data JPA
-* PostgreSQL
 * Spring Sessions with Redis
+* PostgreSQL
 * Flyway
 * Apache Tika
 * TestContainers

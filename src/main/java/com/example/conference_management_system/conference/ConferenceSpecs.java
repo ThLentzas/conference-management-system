@@ -52,6 +52,10 @@ public class ConferenceSpecs implements Specification<Conference> {
         predicates.add(root.isNotNull());
         Predicate[] predicatesArr = predicates.toArray(new Predicate[0]);
 
+        /*
+            We combine our conditions with AND so the final query is something like
+            WHERE c.name = :name AND c.description = :description AND c.id is not null
+         */
         return criteriaBuilder.and(predicatesArr);
     }
 }

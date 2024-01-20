@@ -1,5 +1,6 @@
 package com.example.conference_management_system.auth;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -62,7 +63,8 @@ class AuthController {
     @Operation(
             tags = {"Auth"}
     )
-    public ResponseEntity<CsrfToken> csrf(@Parameter(hidden = true) CsrfToken csrfToken) {
+    public ResponseEntity<CsrfToken> csrf(HttpServletRequest servletRequest) {
+        CsrfToken csrfToken = (CsrfToken) servletRequest.getAttribute(CsrfToken.class.getName());
 
         return new ResponseEntity<>(csrfToken, HttpStatus.OK);
     }

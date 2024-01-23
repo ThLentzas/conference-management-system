@@ -35,7 +35,7 @@ To get started with this project you will need to have the following installed o
 * Maven 3.9.1+
 * PostgreSQL 15.2+
 
-Make sure you create a database with name `conference_ms` and set the password of the default user `postgres` to `postgres`. You also need to add the directory that you want the files to be stored by updating the `papers.directory` property in the application.yaml.
+Make sure you create a database with name `conference_ms` and set the password of the default user `postgres` to `postgres`. You also need to add the directory that you want the files to be stored by updating the `papers.directory` property in the `application.yaml`.
 
 To build and run the project, follow these steps:
 

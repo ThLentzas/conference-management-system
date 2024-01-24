@@ -199,8 +199,8 @@ class PaperIT extends AbstractIntegrationTest {
                 .exchange()
                 .expectStatus().isOk()
                 .expectHeader().contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .expectHeader().contentDisposition(ContentDisposition.attachment()
-                        .filename("test.pdf")
+                .expectHeader().contentDisposition(
+                        ContentDisposition.attachment().filename("test.pdf")
                         .build())
                 .expectBody(byte[].class)
                 .returnResult();
@@ -354,8 +354,8 @@ class PaperIT extends AbstractIntegrationTest {
                 .exchange()
                 .expectStatus().isOk()
                 .expectHeader().contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .expectHeader().contentDisposition(ContentDisposition.attachment()
-                        .filename("test.tex")
+                .expectHeader().contentDisposition(
+                        ContentDisposition.attachment().filename("test.tex")
                         .build())
                 .expectBody(byte[].class)
                 .returnResult();

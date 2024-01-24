@@ -1,7 +1,5 @@
 package com.example.conference_management_system.paper;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -49,7 +47,6 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/v1/papers")
 class PaperController {
     private final PaperService paperService;
-    private static final Logger logger = LoggerFactory.getLogger(PaperController.class);
 
     @PostMapping(consumes = "multipart/form-data")
     @Operation(
@@ -125,7 +122,6 @@ class PaperController {
     ResponseEntity<Void> addCoAuthor(@PathVariable("id") Long id,
                                      @Valid @RequestBody AuthorAdditionRequest authorAdditionRequest,
                                      @AuthenticationPrincipal SecurityUser securityUser) {
-        logger.info("Paper co-author addition request: {}", authorAdditionRequest);
         this.paperService.addCoAuthor(id, authorAdditionRequest, securityUser);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -182,8 +178,8 @@ class PaperController {
         for non-ASCII characters, which is meant to handle special characters in filenames safely. However, this can
         lead to unexpected results in certain browsers or environments that don't handle this encoding well.
      */
-    @PreAuthorize("hasAnyRole('AUTHOR', 'PC_MEMBER', 'PC_CHAIR')")
-    @GetMapping("/{id}/download")
+    @PreAuthorize("hasAnyRole('AUTHOR', 'REVIEWER', 'PC_CHAIR')")
+    @GetMapping(value = "/{id}/download", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE )
     @Operation(
             summary = "Download the paper file(pdf/tex)",
             description = "Accessible only to users with role ROLE_AUTHOR, ROLE_REVIEWER, ROLE_PC_CHAIR. You must be in a relationship with the paper either as author, " +

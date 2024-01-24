@@ -179,7 +179,10 @@ class PaperController {
         lead to unexpected results in certain browsers or environments that don't handle this encoding well.
      */
     @PreAuthorize("hasAnyRole('AUTHOR', 'REVIEWER', 'PC_CHAIR')")
-    @GetMapping(value = "/{id}/download", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE )
+    @GetMapping(value = "/{id}/download", produces = {
+            MediaType.APPLICATION_OCTET_STREAM_VALUE,
+            MediaType.APPLICATION_JSON_VALUE
+    } )
     @Operation(
             summary = "Download the paper file(pdf/tex)",
             description = "Accessible only to users with role ROLE_AUTHOR, ROLE_REVIEWER, ROLE_PC_CHAIR. You must be in a relationship with the paper either as author, " +

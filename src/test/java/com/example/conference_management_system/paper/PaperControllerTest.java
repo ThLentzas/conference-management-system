@@ -910,7 +910,7 @@ class PaperControllerTest {
         when(this.paperService.downloadPaperFile(eq(1L), any(SecurityUser.class))).thenReturn(paperFile);
 
         MvcResult result = this.mockMvc.perform(get(PAPER_PATH + "/{id}/download", 1L)
-                        .accept(MediaType.APPLICATION_OCTET_STREAM, MediaType.APPLICATION_JSON))
+                        .accept(MediaType.APPLICATION_OCTET_STREAM))
                 .andExpectAll(
                         status().isOk(),
                         content().contentType(MediaType.APPLICATION_OCTET_STREAM),
@@ -933,7 +933,7 @@ class PaperControllerTest {
                 .thenThrow(new ResourceNotFoundException("Paper not found with id: " + 1L));
 
         this.mockMvc.perform(get(PAPER_PATH + "/{id}/download", 1L)
-                        .accept(MediaType.APPLICATION_OCTET_STREAM, MediaType.APPLICATION_JSON))
+                        .accept(MediaType.APPLICATION_JSON))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody)
@@ -954,8 +954,7 @@ class PaperControllerTest {
                 .thenThrow(new AccessDeniedException("Access denied"));
 
         this.mockMvc.perform(get(PAPER_PATH + "/{id}/download", 1L)
-                        .accept(MediaType.APPLICATION_OCTET_STREAM,
-                                MediaType.APPLICATION_JSON))
+                        .accept(MediaType.APPLICATION_JSON))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody)
@@ -976,7 +975,7 @@ class PaperControllerTest {
                         "complete your request. Please try again later"));
 
         this.mockMvc.perform(get(PAPER_PATH + "/{id}/download", 1L)
-                        .accept(MediaType.APPLICATION_OCTET_STREAM, MediaType.APPLICATION_JSON))
+                        .accept(MediaType.APPLICATION_JSON))
                 .andExpectAll(
                         status().is5xxServerError(),
                         content().json(responseBody)
@@ -992,7 +991,7 @@ class PaperControllerTest {
                 """;
 
         this.mockMvc.perform(get(PAPER_PATH + "/{id}/download", 1L)
-                        .accept(MediaType.APPLICATION_OCTET_STREAM, MediaType.APPLICATION_JSON))
+                        .accept(MediaType.APPLICATION_JSON))
                 .andExpectAll(
                         status().isUnauthorized(),
                         content().json(responseBody)

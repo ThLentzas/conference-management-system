@@ -13,6 +13,8 @@ import com.example.conference_management_system.security.JpaUserDetailsService;
 
 import lombok.RequiredArgsConstructor;
 
+import java.util.concurrent.Executor;
+
 @Configuration
 @RequiredArgsConstructor
 public class AuthConfig {

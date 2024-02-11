@@ -79,7 +79,8 @@ class AuthController {
         If we have our login/signup endpoints we have to manually set the authentication in the context and then set
         the Spring Security Context key attribute. That way when we try to authorize the user for subsequent requests
         we could extract the Spring Security Context key attribute and that won't be null. Otherwise, it would result in
-        403 FORBIDDEN
+        403 FORBIDDEN. When we update an attribute for the session Spring will also update the session in Redis to
+        keep it up to date
 
         https://docs.spring.io/spring-security/site/docs/3.1.x/reference/technical-overview.html#tech-intro-auth-entry-
         point 6.4.4

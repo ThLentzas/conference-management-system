@@ -9,11 +9,9 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import com.example.conference_management_system.security.JpaUserDetailsService;
+import com.example.conference_management_system.auth.JpaUserDetailsService;
 
 import lombok.RequiredArgsConstructor;
-
-import java.util.concurrent.Executor;
 
 @Configuration
 @RequiredArgsConstructor

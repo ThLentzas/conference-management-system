@@ -31,14 +31,6 @@ public class UserService {
         this.userRepository.save(user);
     }
 
-    UserDTO findUserByUsername(String username) {
-        User user = this.userRepository.findUserByUsernameFetchingRoles(username).orElseThrow(() ->
-                new ResourceNotFoundException(USER_NOT_FOUND_MSG + " with username: " + username)
-        );
-
-        return dtoMapper.apply(user);
-    }
-
     UserDTO findUserByFullName(String fullName) {
         User user = this.userRepository.findUserByFullNameFetchingRoles(fullName).orElseThrow(() ->
                 new ResourceNotFoundException(USER_NOT_FOUND_MSG + " with name: " + fullName)

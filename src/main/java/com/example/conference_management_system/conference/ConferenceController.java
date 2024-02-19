@@ -310,7 +310,8 @@ class ConferenceController {
     /*
         Passing the authentication object straight as parameter would not work. Since the endpoint is permitAll()
         in case of an unauthenticated user(Anonymous user) calling authentication.getPrincipal() would result in a
-        NullPointerException since authentication would be null.
+        NullPointerException since authentication would be null. The authentication object in the case of an
+        unauthenticated user is of type AnonymousAuthenticationToken which is an implementation of authentication.
 
         https://docs.spring.io/spring-security/reference/servlet/authentication/anonymous.html
      */

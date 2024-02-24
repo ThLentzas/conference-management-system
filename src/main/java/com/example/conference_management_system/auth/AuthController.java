@@ -85,7 +85,7 @@ class AuthController {
         https://docs.spring.io/spring-security/site/docs/3.1.x/reference/technical-overview.html#tech-intro-auth-entry-
         point 6.4.4
      */
-    private static void setContext(Authentication authentication, HttpSession session) {
+    private void setContext(Authentication authentication, HttpSession session) {
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(authentication);
         SecurityContextHolder.setContext(context);

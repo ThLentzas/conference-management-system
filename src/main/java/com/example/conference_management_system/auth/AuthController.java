@@ -1,5 +1,6 @@
 package com.example.conference_management_system.auth;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -63,10 +64,11 @@ class AuthController {
     @Operation(
             tags = {"Auth"}
     )
-    public ResponseEntity<CsrfToken> csrf(HttpServletRequest servletRequest) {
-        CsrfToken csrfToken = (CsrfToken) servletRequest.getAttribute(CsrfToken.class.getName());
+    public ResponseEntity<Void> csrf(HttpServletRequest request, HttpServletResponse response) {
+        CsrfToken csrfToken = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
+        response.setHeader(csrfToken.getHeaderName(), csrfToken.getToken());
 
-        return new ResponseEntity<>(csrfToken, HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     /*
@@ -81,9 +83,6 @@ class AuthController {
         we could extract the Spring Security Context key attribute and that won't be null. Otherwise, it would result in
         403 FORBIDDEN. When we update an attribute for the session Spring will also update the session in Redis to
         keep it up to date
-
-        https://docs.spring.io/spring-security/site/docs/3.1.x/reference/technical-overview.html#tech-intro-auth-entry-
-        point 6.4.4
      */
     private void setContext(Authentication authentication, HttpSession session) {
         SecurityContext context = SecurityContextHolder.createEmptyContext();

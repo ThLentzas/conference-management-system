@@ -49,6 +49,11 @@ import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+/*
+    The Csrf token is recommended by OWASP to be included as a request header
+
+    https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html#synchronizer-token-pattern
+ */
 @WebMvcTest(ConferenceController.class)
 @Import({
         SecurityConfig.class
@@ -76,7 +81,7 @@ class ConferenceControllerTest {
                 any(SecurityUser.class),
                 any(HttpServletRequest.class))).thenReturn(conferenceId);
 
-        this.mockMvc.perform(post(CONFERENCE_PATH).with(csrf())
+        this.mockMvc.perform(post(CONFERENCE_PATH).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -106,7 +111,7 @@ class ConferenceControllerTest {
                 any(HttpServletRequest.class))).thenThrow(new DuplicateResourceException("A conference with the" +
                 " provided name already exists"));
 
-        this.mockMvc.perform(post(CONFERENCE_PATH).with(csrf())
+        this.mockMvc.perform(post(CONFERENCE_PATH).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -129,7 +134,7 @@ class ConferenceControllerTest {
                 }
                 """;
 
-        this.mockMvc.perform(post(CONFERENCE_PATH).with(csrf())
+        this.mockMvc.perform(post(CONFERENCE_PATH).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -179,7 +184,7 @@ class ConferenceControllerTest {
                 }
                 """;
 
-        this.mockMvc.perform(post(CONFERENCE_PATH).with(csrf().useInvalidToken())
+        this.mockMvc.perform(post(CONFERENCE_PATH)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -207,7 +212,7 @@ class ConferenceControllerTest {
                 any(ConferenceUpdateRequest.class),
                 any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}", conferenceId).with(csrf())
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}", conferenceId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isNoContent());
@@ -240,7 +245,7 @@ class ConferenceControllerTest {
                         any(ConferenceUpdateRequest.class),
                         any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}", conferenceId).with(csrf())
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}", conferenceId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -270,7 +275,7 @@ class ConferenceControllerTest {
                 any(ConferenceUpdateRequest.class),
                 any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}", conferenceId).with(csrf())
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}", conferenceId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -301,7 +306,7 @@ class ConferenceControllerTest {
                         any(ConferenceUpdateRequest.class),
                         any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}", conferenceId).with(csrf())
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}", conferenceId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -332,7 +337,7 @@ class ConferenceControllerTest {
                         any(ConferenceUpdateRequest.class),
                         any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}", conferenceId).with(csrf())
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}", conferenceId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -349,7 +354,7 @@ class ConferenceControllerTest {
                 }
                 """;
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}", UUID.randomUUID()).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}", UUID.randomUUID()).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isUnauthorized(),
                         content().json(responseBody)
@@ -366,8 +371,7 @@ class ConferenceControllerTest {
                 }
                 """;
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}", UUID.randomUUID())
-                        .with(csrf().useInvalidToken()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}", UUID.randomUUID()).with(csrf().useInvalidToken()))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody)
@@ -400,7 +404,7 @@ class ConferenceControllerTest {
         UUID conferenceId = UUID.randomUUID();
         doNothing().when(this.conferenceService).startSubmission(eq(conferenceId), any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/submission", conferenceId).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/submission", conferenceId).with(csrf().asHeader()))
                 .andExpect(status().isNoContent());
 
         verify(this.conferenceService, times(1)).startSubmission(eq(conferenceId), any(SecurityUser.class));
@@ -419,7 +423,7 @@ class ConferenceControllerTest {
         doThrow(new ResourceNotFoundException("Conference not found with id: " + conferenceId))
                 .when(this.conferenceService).startSubmission(eq(conferenceId), any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/submission", conferenceId).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/submission", conferenceId).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody)
@@ -439,7 +443,7 @@ class ConferenceControllerTest {
         doThrow(new AccessDeniedException("Access denied"))
                 .when(this.conferenceService).startSubmission(eq(conferenceId), any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/submission", conferenceId).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/submission", conferenceId).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody)
@@ -461,7 +465,7 @@ class ConferenceControllerTest {
                 eq(conferenceId),
                 any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/submission", conferenceId).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/submission", conferenceId).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isConflict(),
                         content().json(responseBody)
@@ -476,7 +480,7 @@ class ConferenceControllerTest {
                 }
                 """;
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/submission", UUID.randomUUID()).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/submission", UUID.randomUUID()).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isUnauthorized(),
                         content().json(responseBody)
@@ -528,7 +532,7 @@ class ConferenceControllerTest {
 
         doNothing().when(this.conferenceService).startAssignment(eq(conferenceId), any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/assignment", conferenceId).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/assignment", conferenceId).with(csrf().asHeader()))
                 .andExpect(status().isNoContent());
 
         verify(this.conferenceService, times(1)).startAssignment(eq(conferenceId), any(SecurityUser.class));
@@ -547,7 +551,7 @@ class ConferenceControllerTest {
         doThrow(new ResourceNotFoundException("Conference not found with id: " + conferenceId))
                 .when(this.conferenceService).startAssignment(eq(conferenceId), any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/assignment", conferenceId).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/assignment", conferenceId).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody)
@@ -567,7 +571,7 @@ class ConferenceControllerTest {
         doThrow(new AccessDeniedException("Access denied"))
                 .when(this.conferenceService).startAssignment(eq(conferenceId), any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/assignment", conferenceId).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/assignment", conferenceId).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody)
@@ -589,7 +593,7 @@ class ConferenceControllerTest {
                 eq(conferenceId),
                 any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/assignment", conferenceId).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/assignment", conferenceId).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isConflict(),
                         content().json(responseBody)
@@ -604,7 +608,7 @@ class ConferenceControllerTest {
                 }
                 """;
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/assignment", UUID.randomUUID()).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/assignment", UUID.randomUUID()).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isUnauthorized(),
                         content().json(responseBody)
@@ -656,7 +660,7 @@ class ConferenceControllerTest {
 
         doNothing().when(this.conferenceService).startReview(eq(conferenceId), any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/review", conferenceId).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/review", conferenceId).with(csrf().asHeader()))
                 .andExpect(status().isNoContent());
 
         verify(this.conferenceService, times(1)).startReview(eq(conferenceId), any(SecurityUser.class));
@@ -675,7 +679,7 @@ class ConferenceControllerTest {
         doThrow(new ResourceNotFoundException("Conference not found with id: " + conferenceId))
                 .when(this.conferenceService).startReview(eq(conferenceId), any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/review", conferenceId).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/review", conferenceId).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody)
@@ -695,7 +699,7 @@ class ConferenceControllerTest {
         doThrow(new AccessDeniedException("Access denied"))
                 .when(this.conferenceService).startReview(eq(conferenceId), any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/review", conferenceId).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/review", conferenceId).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody)
@@ -717,7 +721,7 @@ class ConferenceControllerTest {
                 eq(conferenceId),
                 any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/review", conferenceId).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/review", conferenceId).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isConflict(),
                         content().json(responseBody)
@@ -732,7 +736,7 @@ class ConferenceControllerTest {
                 }
                 """;
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/review", UUID.randomUUID()).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/review", UUID.randomUUID()).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isUnauthorized(),
                         content().json(responseBody)
@@ -784,7 +788,7 @@ class ConferenceControllerTest {
 
         doNothing().when(this.conferenceService).startDecision(eq(conferenceId), any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/decision", conferenceId).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/decision", conferenceId).with(csrf().asHeader()))
                 .andExpect(status().isNoContent());
 
         verify(this.conferenceService, times(1)).startDecision(eq(conferenceId), any(SecurityUser.class));
@@ -803,7 +807,7 @@ class ConferenceControllerTest {
         doThrow(new ResourceNotFoundException("Conference not found with id: " + conferenceId))
                 .when(this.conferenceService).startDecision(eq(conferenceId), any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/decision", conferenceId).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/decision", conferenceId).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody)
@@ -823,7 +827,7 @@ class ConferenceControllerTest {
         doThrow(new AccessDeniedException("Access denied")).when(this.conferenceService)
                 .startDecision(eq(conferenceId), any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/decision", conferenceId).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/decision", conferenceId).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody)
@@ -844,7 +848,7 @@ class ConferenceControllerTest {
                 "start the approval or rejection of the submitted papers"))
                 .when(this.conferenceService).startDecision(eq(conferenceId), any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/decision", conferenceId).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/decision", conferenceId).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isConflict(),
                         content().json(responseBody)
@@ -859,7 +863,7 @@ class ConferenceControllerTest {
                 }
                 """;
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/decision", UUID.randomUUID()).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/decision", UUID.randomUUID()).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isUnauthorized(),
                         content().json(responseBody)
@@ -911,7 +915,7 @@ class ConferenceControllerTest {
 
         doNothing().when(this.conferenceService).startFinal(eq(conferenceId), any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/final", conferenceId).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/final", conferenceId).with(csrf().asHeader()))
                 .andExpect(status().isNoContent());
 
         verify(this.conferenceService, times(1)).startFinal(eq(conferenceId), any(SecurityUser.class));
@@ -930,7 +934,7 @@ class ConferenceControllerTest {
         doThrow(new ResourceNotFoundException("Conference not found with id: " + conferenceId))
                 .when(this.conferenceService).startFinal(eq(conferenceId), any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/final", conferenceId).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/final", conferenceId).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody)
@@ -950,7 +954,7 @@ class ConferenceControllerTest {
         doThrow(new AccessDeniedException("Access denied")).when(this.conferenceService)
                 .startFinal(eq(conferenceId), any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/final", conferenceId).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/final", conferenceId).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody)
@@ -971,7 +975,7 @@ class ConferenceControllerTest {
                 "papers can neither be accepted nor rejected"))
                 .when(this.conferenceService).startFinal(eq(conferenceId), any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/final", conferenceId).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/final", conferenceId).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isConflict(),
                         content().json(responseBody)
@@ -986,7 +990,7 @@ class ConferenceControllerTest {
                 }
                 """;
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/final", UUID.randomUUID()).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/final", UUID.randomUUID()).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isUnauthorized(),
                         content().json(responseBody)
@@ -1045,7 +1049,7 @@ class ConferenceControllerTest {
                 any(PCChairAdditionRequest.class),
                 any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/pc-chair", conferenceId).with(csrf())
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/pc-chair", conferenceId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isNoContent());
@@ -1077,7 +1081,7 @@ class ConferenceControllerTest {
                         any(PCChairAdditionRequest.class),
                         any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/pc-chair", conferenceId).with(csrf())
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/pc-chair", conferenceId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -1107,7 +1111,7 @@ class ConferenceControllerTest {
                 any(PCChairAdditionRequest.class),
                 any(SecurityUser.class));
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/pc-chair", conferenceId).with(csrf())
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/pc-chair", conferenceId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -1124,7 +1128,7 @@ class ConferenceControllerTest {
                 }
                 """;
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/pc-chair]", UUID.randomUUID()).with(csrf()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/pc-chair]", UUID.randomUUID()).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isUnauthorized(),
                         content().json(responseBody)
@@ -1177,7 +1181,7 @@ class ConferenceControllerTest {
                 any(PaperSubmissionRequest.class),
                 any(SecurityUser.class));
 
-        this.mockMvc.perform(post(CONFERENCE_PATH + "/{id}/papers", conferenceId).with(csrf())
+        this.mockMvc.perform(post(CONFERENCE_PATH + "/{id}/papers", conferenceId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isNoContent());
@@ -1209,7 +1213,7 @@ class ConferenceControllerTest {
                         any(PaperSubmissionRequest.class),
                         any(SecurityUser.class));
 
-        this.mockMvc.perform(post(CONFERENCE_PATH + "/{id}/papers", conferenceId).with(csrf())
+        this.mockMvc.perform(post(CONFERENCE_PATH + "/{id}/papers", conferenceId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -1239,7 +1243,7 @@ class ConferenceControllerTest {
                 any(SecurityUser.class)
         );
 
-        this.mockMvc.perform(post(CONFERENCE_PATH + "/{id}/papers", conferenceId).with(csrf())
+        this.mockMvc.perform(post(CONFERENCE_PATH + "/{id}/papers", conferenceId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -1256,7 +1260,7 @@ class ConferenceControllerTest {
                 }
                 """;
 
-        this.mockMvc.perform(post(CONFERENCE_PATH + "/{id}/papers]", UUID.randomUUID()).with(csrf()))
+        this.mockMvc.perform(post(CONFERENCE_PATH + "/{id}/papers]", UUID.randomUUID()).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isUnauthorized(),
                         content().json(responseBody)
@@ -1312,7 +1316,7 @@ class ConferenceControllerTest {
         );
 
         this.mockMvc.perform(post(CONFERENCE_PATH + "/{conferenceId}/papers/{paperId}/reviewer", conferenceId, 1L)
-                        .with(csrf())
+                        .with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -1350,7 +1354,7 @@ class ConferenceControllerTest {
                 );
 
         this.mockMvc.perform(post(CONFERENCE_PATH + "/{conferenceId}/papers/{paperId}/reviewer", conferenceId, 1L)
-                        .with(csrf())
+                        .with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -1382,7 +1386,7 @@ class ConferenceControllerTest {
         );
 
         this.mockMvc.perform(post(CONFERENCE_PATH + "/{conferenceId}/papers/{paperId}/reviewer", conferenceId, 1L)
-                        .with(csrf())
+                        .with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -1414,7 +1418,7 @@ class ConferenceControllerTest {
                 );
 
         this.mockMvc.perform(post(CONFERENCE_PATH + "/{conferenceId}/papers/{paperId}/reviewer", conferenceId, 1L)
-                        .with(csrf())
+                        .with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -1437,7 +1441,7 @@ class ConferenceControllerTest {
                 """;
 
         this.mockMvc.perform(post(CONFERENCE_PATH + "/{conferenceId}/papers/{paperId}/reviewer", UUID.randomUUID(), 1L)
-                        .with(csrf())
+                        .with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -1506,7 +1510,7 @@ class ConferenceControllerTest {
         this.mockMvc.perform(put(CONFERENCE_PATH + "/{conferenceId}/papers/{paperId}/{decision}",
                         conferenceId,
                         1L,
-                        ReviewDecision.APPROVED).with(csrf()))
+                        ReviewDecision.APPROVED).with(csrf().asHeader()))
                 .andExpect(status().isNoContent());
 
         verify(this.conferenceService, times(1)).updatePaperApprovalStatus(
@@ -1536,7 +1540,7 @@ class ConferenceControllerTest {
         this.mockMvc.perform(put(CONFERENCE_PATH + "/{conferenceId}/papers/{paperId}/{decision}",
                         conferenceId,
                         1L,
-                        ReviewDecision.APPROVED).with(csrf()))
+                        ReviewDecision.APPROVED).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody)
@@ -1565,7 +1569,7 @@ class ConferenceControllerTest {
         this.mockMvc.perform(put(CONFERENCE_PATH + "/{conferenceId}/papers/{paperId}/{decision}",
                         conferenceId,
                         1L,
-                        ReviewDecision.APPROVED).with(csrf()))
+                        ReviewDecision.APPROVED).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isConflict(),
                         content().json(responseBody)
@@ -1583,7 +1587,7 @@ class ConferenceControllerTest {
         this.mockMvc.perform(put(CONFERENCE_PATH + "/{conferenceId}/papers/{paperId}/{decision}",
                         UUID.randomUUID(),
                         1L,
-                        ReviewDecision.APPROVED).with(csrf()))
+                        ReviewDecision.APPROVED).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isUnauthorized(),
                         content().json(responseBody)
@@ -1722,7 +1726,7 @@ class ConferenceControllerTest {
 
         doNothing().when(this.conferenceService).deleteConferenceById(eq(conferenceId), any(SecurityUser.class));
 
-        this.mockMvc.perform(delete(CONFERENCE_PATH + "/{id}", conferenceId).with(csrf()))
+        this.mockMvc.perform(delete(CONFERENCE_PATH + "/{id}", conferenceId).with(csrf().asHeader()))
                 .andExpect(status().isNoContent());
 
         verify(this.conferenceService, times(1)).deleteConferenceById(eq(conferenceId), any(SecurityUser.class));
@@ -1741,7 +1745,7 @@ class ConferenceControllerTest {
         doThrow(new ResourceNotFoundException("Conference not found with id: " + conferenceId)).when(this.conferenceService)
                 .deleteConferenceById(eq(conferenceId), any(SecurityUser.class));
 
-        this.mockMvc.perform(delete(CONFERENCE_PATH + "/{id}", conferenceId).with(csrf()))
+        this.mockMvc.perform(delete(CONFERENCE_PATH + "/{id}", conferenceId).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody)
@@ -1762,7 +1766,7 @@ class ConferenceControllerTest {
                 "be deleted")).when(this.conferenceService)
                 .deleteConferenceById(eq(conferenceId), any(SecurityUser.class));
 
-        this.mockMvc.perform(delete(CONFERENCE_PATH + "/{id}", conferenceId).with(csrf()))
+        this.mockMvc.perform(delete(CONFERENCE_PATH + "/{id}", conferenceId).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isConflict(),
                         content().json(responseBody)
@@ -1778,7 +1782,7 @@ class ConferenceControllerTest {
                 }
                 """;
 
-        this.mockMvc.perform(delete(CONFERENCE_PATH + "/{id}", id).with(csrf()))
+        this.mockMvc.perform(delete(CONFERENCE_PATH + "/{id}", id).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isUnauthorized(),
                         content().json(responseBody)

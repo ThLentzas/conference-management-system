@@ -57,6 +57,11 @@ import java.util.Arrays;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+/*
+    The Csrf token is recommended by OWASP to be included as a request header
+
+    https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html#synchronizer-token-pattern
+ */
 @WebMvcTest(PaperController.class)
 @Import({
         SecurityConfig.class
@@ -84,7 +89,7 @@ class PaperControllerTest {
                 any(SecurityUser.class),
                 any(HttpServletRequest.class))).thenReturn(1L);
 
-        this.mockMvc.perform(multipart(PAPER_PATH).file(pdfFile).with(csrf())
+        this.mockMvc.perform(multipart(PAPER_PATH).file(pdfFile).with(csrf().asHeader())
                         .with(request -> {
                             request.setMethod("POST");
                             return request;
@@ -125,7 +130,7 @@ class PaperControllerTest {
                 any(HttpServletRequest.class))).thenThrow(new DuplicateResourceException("A paper with the provided" +
                 " title already exists"));
 
-        this.mockMvc.perform(multipart(PAPER_PATH).file(pdfFile).with(csrf())
+        this.mockMvc.perform(multipart(PAPER_PATH).file(pdfFile).with(csrf().asHeader())
                         .with(request -> {
                             request.setMethod("POST");
                             return request;
@@ -155,7 +160,7 @@ class PaperControllerTest {
                 }
                 """;
 
-        this.mockMvc.perform(multipart(PAPER_PATH).file(pdfFile).with(csrf())
+        this.mockMvc.perform(multipart(PAPER_PATH).file(pdfFile).with(csrf().asHeader())
                         .with(request -> {
                             request.setMethod("POST");
                             return request;
@@ -259,7 +264,7 @@ class PaperControllerTest {
                 any(HttpServletRequest.class))).thenThrow(new IllegalArgumentException("You must provide the title " +
                 "of the paper"));
 
-        this.mockMvc.perform(multipart(PAPER_PATH).file(pdfFile).with(csrf())
+        this.mockMvc.perform(multipart(PAPER_PATH).file(pdfFile).with(csrf().asHeader())
                         .with(request -> {
                             request.setMethod("POST");
                             return request;
@@ -288,7 +293,7 @@ class PaperControllerTest {
 
         doNothing().when(this.paperService).updatePaper(eq(1L), any(PaperUpdateRequest.class), any(SecurityUser.class));
 
-        this.mockMvc.perform(multipart(PAPER_PATH + "/{id}", 1L).file(pdfFile).with(csrf())
+        this.mockMvc.perform(multipart(PAPER_PATH + "/{id}", 1L).file(pdfFile).with(csrf().asHeader())
                         .with(request -> {
                             request.setMethod("PUT");
                             return request;
@@ -325,7 +330,7 @@ class PaperControllerTest {
         doThrow(new IllegalArgumentException("You must provide at least one property to update the paper")).when(
                 this.paperService).updatePaper(eq(1L), any(PaperUpdateRequest.class), any(SecurityUser.class));
 
-        this.mockMvc.perform(multipart(PAPER_PATH + "/{id}", 1L).file(pdfFile).with(csrf())
+        this.mockMvc.perform(multipart(PAPER_PATH + "/{id}", 1L).file(pdfFile).with(csrf().asHeader())
                         .with(request -> {
                             request.setMethod("PUT");
                             return request;
@@ -357,7 +362,7 @@ class PaperControllerTest {
                 any(PaperUpdateRequest.class),
                 any(SecurityUser.class));
 
-        this.mockMvc.perform(multipart(PAPER_PATH + "/{id}", 1L).file(pdfFile).with(csrf())
+        this.mockMvc.perform(multipart(PAPER_PATH + "/{id}", 1L).file(pdfFile).with(csrf().asHeader())
                         .with(request -> {
                             request.setMethod("PUT");
                             return request;
@@ -387,7 +392,7 @@ class PaperControllerTest {
                 }
                 """;
 
-        this.mockMvc.perform(multipart(PAPER_PATH + "/{id}", 1L).file(pdfFile).with(csrf())
+        this.mockMvc.perform(multipart(PAPER_PATH + "/{id}", 1L).file(pdfFile).with(csrf().asHeader())
                         .with(request -> {
                             request.setMethod("PUT");
                             return request;
@@ -485,7 +490,7 @@ class PaperControllerTest {
                 any(SecurityUser.class)
         );
 
-        this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L).with(csrf())
+        this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isNoContent());
@@ -508,7 +513,7 @@ class PaperControllerTest {
         doThrow(new ResourceNotFoundException("Paper not found with id: " + 1L)).when(this.paperService)
                 .addCoAuthor(eq(1L), any(AuthorAdditionRequest.class), any(SecurityUser.class));
 
-        this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L).with(csrf())
+        this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -539,7 +544,7 @@ class PaperControllerTest {
                         any(AuthorAdditionRequest.class),
                         any(SecurityUser.class));
 
-        this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L).with(csrf())
+        this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -561,7 +566,7 @@ class PaperControllerTest {
                 }
                 """;
 
-        this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L).with(csrf())
+        this.mockMvc.perform(put(PAPER_PATH + "/{id}/author", 1L).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -634,7 +639,7 @@ class PaperControllerTest {
         when(this.paperService.reviewPaper(eq(1L), any(ReviewCreateRequest.class), any(SecurityUser.class)))
                 .thenReturn(1L);
 
-        this.mockMvc.perform(post(PAPER_PATH + "/{id}/reviews", 1L).with(csrf())
+        this.mockMvc.perform(post(PAPER_PATH + "/{id}/reviews", 1L).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -661,7 +666,7 @@ class PaperControllerTest {
         when(this.paperService.reviewPaper(eq(1L), any(ReviewCreateRequest.class), any(SecurityUser.class)))
                 .thenThrow(new ResourceNotFoundException("Paper not found with id: " + 1L));
 
-        this.mockMvc.perform(post(PAPER_PATH + "/{id}/reviews", 1L).with(csrf())
+        this.mockMvc.perform(post(PAPER_PATH + "/{id}/reviews", 1L).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -689,7 +694,7 @@ class PaperControllerTest {
                 .thenThrow(new ServerErrorException("The server encountered an internal error and was unable to " +
                         "complete your request. Please try again later"));
 
-        this.mockMvc.perform(post(PAPER_PATH + "/{id}/reviews", 1L).with(csrf())
+        this.mockMvc.perform(post(PAPER_PATH + "/{id}/reviews", 1L).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -717,7 +722,7 @@ class PaperControllerTest {
                 .thenThrow(new StateConflictException("Paper is in state: " + PaperState.CREATED + " and can not be " +
                         "reviewed"));
 
-        this.mockMvc.perform(post(PAPER_PATH + "/{id}/reviews", 1L).with(csrf())
+        this.mockMvc.perform(post(PAPER_PATH + "/{id}/reviews", 1L).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -740,7 +745,7 @@ class PaperControllerTest {
                 }
                 """;
 
-        this.mockMvc.perform(post(PAPER_PATH + "/{id}/reviews", 1L).with(csrf())
+        this.mockMvc.perform(post(PAPER_PATH + "/{id}/reviews", 1L).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -806,7 +811,7 @@ class PaperControllerTest {
     void should204WhenPaperIsWithdrawnSuccessfully() throws Exception {
         doNothing().when(this.paperService).withdrawPaper(eq(1L), any(SecurityUser.class));
 
-        this.mockMvc.perform(put(PAPER_PATH + "/{id}/withdraw", 1L).with(csrf()))
+        this.mockMvc.perform(put(PAPER_PATH + "/{id}/withdraw", 1L).with(csrf().asHeader()))
                 .andExpect(status().isNoContent());
 
         verify(this.paperService, times(1)).withdrawPaper(eq(1L), any(SecurityUser.class));
@@ -824,7 +829,7 @@ class PaperControllerTest {
         doThrow(new ResourceNotFoundException("Paper not found with id: " + 1L)).when(this.paperService)
                 .withdrawPaper(eq(1L), any(SecurityUser.class));
 
-        this.mockMvc.perform(put(PAPER_PATH + "/{id}/withdraw", 1L).with(csrf()))
+        this.mockMvc.perform(put(PAPER_PATH + "/{id}/withdraw", 1L).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody)
@@ -843,7 +848,7 @@ class PaperControllerTest {
         doThrow(new StateConflictException("You can not withdraw a paper that has not been submitted to any " +
                 "conference")).when(this.paperService).withdrawPaper(eq(1L), any(SecurityUser.class));
 
-        this.mockMvc.perform(put(PAPER_PATH + "/{id}/withdraw", 1L).with(csrf()))
+        this.mockMvc.perform(put(PAPER_PATH + "/{id}/withdraw", 1L).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isConflict(),
                         content().json(responseBody)
@@ -858,7 +863,7 @@ class PaperControllerTest {
                 }
                 """;
 
-        this.mockMvc.perform(put(PAPER_PATH + "/{id}/withdraw", 1L).with(csrf()))
+        this.mockMvc.perform(put(PAPER_PATH + "/{id}/withdraw", 1L).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isUnauthorized(),
                         content().json(responseBody)

@@ -28,6 +28,11 @@ import com.example.conference_management_system.role.RoleType;
 
 import java.util.Set;
 
+/*
+    The Csrf token is recommended by OWASP to be included as a request header
+
+    https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html#synchronizer-token-pattern
+ */
 @WebMvcTest(AuthController.class)
 @Import({
         SecurityConfig.class
@@ -51,7 +56,7 @@ class AuthControllerTest {
         Authentication authentication = getAuthentication();
         when(this.authService.registerUser(any(RegisterRequest.class))).thenReturn(authentication);
 
-        this.mockMvc.perform(post(AUTH_PATH + "/signup").with(csrf())
+        this.mockMvc.perform(post(AUTH_PATH + "/signup").with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isCreated());
@@ -74,7 +79,7 @@ class AuthControllerTest {
                 }
                 """;
 
-        this.mockMvc.perform(post(AUTH_PATH + "/signup").with(csrf())
+        this.mockMvc.perform(post(AUTH_PATH + "/signup").with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(
@@ -146,7 +151,7 @@ class AuthControllerTest {
         Authentication authentication = getAuthentication();
         when(this.authService.loginUser(any(LoginRequest.class))).thenReturn(authentication);
 
-        this.mockMvc.perform(post(AUTH_PATH + "/login").with(csrf())
+        this.mockMvc.perform(post(AUTH_PATH + "/login").with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isOk());
@@ -168,7 +173,7 @@ class AuthControllerTest {
                 }
                 """;
 
-        this.mockMvc.perform(post(AUTH_PATH + "/login").with(csrf())
+        this.mockMvc.perform(post(AUTH_PATH + "/login").with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpectAll(

@@ -1,4 +1,4 @@
-# DVD Store Service
+# Conference Management System
 
 The Conference Management System Rest API is a Spring Boot-based application designed to manage academic conferences. It provides functionalities for user registration, paper submission, and conference management. 
 The system allows the user to have multiple roles and the available ones are `ROLE_AUTHOR`, `ROLE_REVIEWER`, `ROLE_PC_CHAIR`. The supported files are pdf and Latex(tex).

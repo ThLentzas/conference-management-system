@@ -452,7 +452,8 @@ public class PaperService {
     }
 
     /*
-        Validating both the name and the Mime type of file. We support only .pdf and .tex files.
+        Validating both the name and the Mime type of file. We support only .pdf and .tex files. We check the files
+        signature a sequence of bytes at the start of the file that indicate its type.
      */
     private void validateFile(MultipartFile file) {
         String fileName = file.getOriginalFilename();

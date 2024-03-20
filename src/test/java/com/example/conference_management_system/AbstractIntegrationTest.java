@@ -15,6 +15,12 @@ import com.example.conference_management_system.config.TempDirSetup;
 
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 
+/*
+    Context caching. By having our integration test extend the same base class we improve the total to run our tests by
+    a lot because we only have to start the application context once. We have to provide a clean state for each test.
+
+    https://rieckpil.de/improve-build-times-with-context-caching-from-spring-test/
+ */
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @Import(TempDirSetup.class)
 public class AbstractIntegrationTest {

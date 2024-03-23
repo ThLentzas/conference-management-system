@@ -49,9 +49,11 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.transaction.Transactional;
+import jakarta.servlet.http.HttpServletRequest;
+
 import lombok.RequiredArgsConstructor;
 
-import jakarta.servlet.http.HttpServletRequest;
 
 @Service
 @RequiredArgsConstructor
@@ -124,6 +126,7 @@ public class PaperService {
         return paper.getId();
     }
 
+    @Transactional
     void updatePaper(Long paperId, PaperUpdateRequest paperUpdateRequest, SecurityUser securityUser) {
         if (paperUpdateRequest.title() == null
                 && paperUpdateRequest.authors() == null
@@ -173,10 +176,15 @@ public class PaperService {
                     }
             );
         }
-
+        /*
+            Since the method runs with @Transactional the below save call if the paper's properties changed is not
+            necessary, since the transaction is tied with the method's execution it will update the papers if it detects
+            changes during the transaction without us having to call save() explicitly.
+         */
         this.paperRepository.save(paper);
     }
 
+    @Transactional
     void addCoAuthor(Long paperId, AuthorAdditionRequest authorAdditionRequest, SecurityUser securityUser) {
         Paper paper = this.paperRepository.findByPaperIdFetchingPaperUsers(paperId).orElseThrow(() ->
                 new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId)
@@ -230,6 +238,7 @@ public class PaperService {
         this.paperRepository.save(paper);
     }
 
+    @Transactional
     Long reviewPaper(Long paperId, ReviewCreateRequest reviewCreateRequest, SecurityUser securityUser) {
         Paper paper = this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(paperId).orElseThrow(() ->
                 new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId)
@@ -271,6 +280,7 @@ public class PaperService {
         return review.getId();
     }
 
+    @Transactional
     void withdrawPaper(Long paperId, SecurityUser securityUser) {
         Paper paper = this.paperRepository.findByPaperIdFetchingPaperUsersAndConference(paperId).orElseThrow(() ->
                 new ResourceNotFoundException(PAPER_NOT_FOUND_MSG + paperId)
@@ -290,6 +300,11 @@ public class PaperService {
         paper.setState(PaperState.CREATED);
         paper.setConference(null);
         this.paperRepository.save(paper);
+        /*
+            Since the method runs with @Transactional the below save call if the paper's properties changed is not
+            necessary, since the transaction is tied with the method's execution it will update the papers if it detects
+            changes during the transaction without us having to call save() explicitly.
+         */
     }
 
     /*

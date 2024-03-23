@@ -43,9 +43,11 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import jakarta.transaction.Transactional;
+import jakarta.servlet.http.HttpServletRequest;
+
 import lombok.RequiredArgsConstructor;
 
-import jakarta.servlet.http.HttpServletRequest;
 
 @Service
 @RequiredArgsConstructor
@@ -105,6 +107,7 @@ public class ConferenceService {
         return conference.getId();
     }
 
+    @Transactional
     void updateConference(UUID conferenceId,
                           ConferenceUpdateRequest conferenceUpdateRequest,
                           SecurityUser securityUser) {
@@ -137,9 +140,15 @@ public class ConferenceService {
             throw new IllegalArgumentException("At least one valid property must be provided to update conference");
         }
 
+        /*
+            Since the method runs with @Transactional the below save call if the conference's properties changed is not
+            necessary, since the transaction is tied with the method's execution it will update the conference if it
+            detects changes during the transaction without us having to call save() explicitly.
+         */
         this.conferenceRepository.save(conference);
     }
 
+    @Transactional
     void startSubmission(UUID conferenceId, SecurityUser securityUser) {
         Conference conference = findByConferenceIdFetchingConferenceUsers(conferenceId);
         if (!isPCChairAtConference(conference, securityUser.user())) {
@@ -155,9 +164,15 @@ public class ConferenceService {
         }
 
         conference.setState(ConferenceState.SUBMISSION);
+        /*
+            Since the method runs with @Transactional the below save call if the conference's properties changed is not
+            necessary, since the transaction is tied with the method's execution it will update the conference if it
+            detects changes during the transaction without us having to call save() explicitly.
+         */
         this.conferenceRepository.save(conference);
     }
 
+    @Transactional
     void startAssignment(UUID conferenceId, SecurityUser securityUser) {
         Conference conference = findByConferenceIdFetchingConferenceUsers(conferenceId);
 
@@ -174,10 +189,15 @@ public class ConferenceService {
         }
 
         conference.setState(ConferenceState.ASSIGNMENT);
+        /*
+            Since the method runs with @Transactional the below save call if the conference's properties changed is not
+            necessary, since the transaction is tied with the method's execution it will update the conference if it
+            detects changes during the transaction without us having to call save() explicitly.
+         */
         this.conferenceRepository.save(conference);
     }
 
-
+    @Transactional
     void startReview(UUID conferenceId, SecurityUser securityUser) {
         Conference conference = findByConferenceIdFetchingConferenceUsers(conferenceId);
 
@@ -195,9 +215,15 @@ public class ConferenceService {
         }
 
         conference.setState(ConferenceState.REVIEW);
+        /*
+            Since the method runs with @Transactional the below save call if the conference's properties changed is not
+            necessary, since the transaction is tied with the method's execution it will update the conference if it
+            detects changes during the transaction without us having to call save() explicitly.
+         */
         this.conferenceRepository.save(conference);
     }
 
+    @Transactional
     void startDecision(UUID conferenceId, SecurityUser securityUser) {
         Conference conference = findByConferenceIdFetchingConferenceUsers(conferenceId);
 
@@ -214,6 +240,12 @@ public class ConferenceService {
         }
 
         conference.setState(ConferenceState.DECISION);
+
+        /*
+            Since the method runs with @Transactional the below save call if the conference's properties changed is not
+            necessary, since the transaction is tied with the method's execution it will update the conference if it
+            detects changes during the transaction without us having to call save() explicitly.
+         */
         this.conferenceRepository.save(conference);
     }
 
@@ -222,6 +254,7 @@ public class ConferenceService {
         REJECTEd they return to CREATED state and no longer tied to the conference, so they can be submitted to a
         different conference
      */
+    @Transactional
     void startFinal(UUID conferenceId, SecurityUser securityUser) {
         Conference conference = findByConferenceIdFetchingConferenceUsersAndPapers(conferenceId);
 
@@ -255,8 +288,14 @@ public class ConferenceService {
                     paper.setConference(null);
                     this.paperService.save(paper);
                 });
+        /*
+            Since the method runs with @Transactional the below save call if the conference's/paper's properties changed
+            is not necessary, since the transaction is tied with the method's execution it will update the
+            conference/papers if it detects changes during the transaction without us having to call save() explicitly.
+         */
     }
 
+    @Transactional
     void addPCChair(UUID conferenceId, PCChairAdditionRequest pcChairAdditionRequest, SecurityUser securityUser) {
         Conference conference = findByConferenceIdFetchingConferenceUsers(conferenceId);
 
@@ -283,6 +322,7 @@ public class ConferenceService {
         this.conferenceUserRepository.save(conferenceUser);
     }
 
+    @Transactional
     void submitPaper(UUID conferenceId, PaperSubmissionRequest paperSubmissionRequest, SecurityUser securityUser) {
         Paper paper = this.paperService.findByPaperIdFetchingPaperUsersAndConference(paperSubmissionRequest.paperId());
 
@@ -306,6 +346,11 @@ public class ConferenceService {
             throw new StateConflictException("Paper is in state: " + paper.getState() + " and can not be submitted");
         }
 
+        /*
+            Since the method runs with @Transactional the below save call if the paper's properties changed is not
+            necessary, since the transaction is tied with the method's execution it will update the papers if it detects
+            changes during the transaction without us having to call save() explicitly.
+         */
         paper.setState(PaperState.SUBMITTED);
         paper.setConference(conference);
         this.paperService.save(paper);
@@ -325,6 +370,7 @@ public class ConferenceService {
         9) The reviewer can not be assigned to a paper they are already assigned to
         10) The maximum number(2) of reviewers has already been reached
      */
+    @Transactional
     void assignReviewer(UUID conferenceId,
                         Long paperId,
                         ReviewerAssignmentRequest reviewerAssignmentRequest,
@@ -396,6 +442,7 @@ public class ConferenceService {
         this.paperUserRepository.save(paperUser);
     }
 
+    @Transactional
     void updatePaperApprovalStatus(UUID conferenceId,
                                    Long paperId,
                                    ReviewDecision decision,
@@ -481,6 +528,7 @@ public class ConferenceService {
                 .toList();
     }
 
+    @Transactional
     void deleteConferenceById(UUID conferenceId, SecurityUser securityUser) {
         Conference conference = findByConferenceIdFetchingConferenceUsers(conferenceId);
 

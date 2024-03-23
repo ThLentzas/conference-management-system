@@ -30,6 +30,10 @@ papers:
 logging:
   level:
     org:
+      security: TRACE
       springframework:
         web: DEBUG
-        security: TRACE
+        transaction: TRACE
+        orm:
+          jpa:
+            JpaTransactionManager: TRACE

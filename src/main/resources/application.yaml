@@ -30,6 +30,10 @@ papers:
 logging:
   level:
     org:
+      hibernate:
+        orm:
+          jdbc:
+            bind: TRACE
       security: TRACE
       springframework:
         web: DEBUG

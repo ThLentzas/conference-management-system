@@ -34,7 +34,7 @@ class ConferenceIT extends AbstractIntegrationTest {
     @Test
     void shouldCreateConference() {
 
-        //Getting the csrf token and the cookie of the current session for subsequent requests.
+        //Getting the csrf token and the cookie of the current session for subsequent requests from the response headers
         EntityExchangeResult<byte[]> response = this.webTestClient.get()
                 .uri(AUTH_PATH + "/csrf")
                 .accept(MediaType.APPLICATION_JSON)
@@ -174,7 +174,7 @@ class ConferenceIT extends AbstractIntegrationTest {
 
     @Test
     void shouldUpdateConference() {
-        //Getting the csrf token and the cookie of the current session for subsequent requests.
+        //Getting the csrf token and the cookie of the current session for subsequent requests from the response headers
         EntityExchangeResult<byte[]> response = this.webTestClient.get()
                 .uri(AUTH_PATH + "/csrf")
                 .accept(MediaType.APPLICATION_JSON)
@@ -278,7 +278,7 @@ class ConferenceIT extends AbstractIntegrationTest {
 
     @Test
     void shouldAddPCChair() {
-        //Getting the csrf token and the cookie of the current session for subsequent requests.
+        //Getting the csrf token and the cookie of the current session for subsequent requests from the response headers
         EntityExchangeResult<byte[]> response = this.webTestClient.get()
                 .uri(AUTH_PATH + "/csrf")
                 .accept(MediaType.APPLICATION_JSON)
@@ -420,7 +420,7 @@ class ConferenceIT extends AbstractIntegrationTest {
 
     @Test
     void shouldFindConferences() {
-        //Getting the csrf token and the cookie of the current session for subsequent requests.
+        //Getting the csrf token and the cookie of the current session for subsequent requests from the response headers
         EntityExchangeResult<byte[]> response = this.webTestClient.get()
                 .uri(AUTH_PATH + "/csrf")
                 .accept(MediaType.APPLICATION_JSON)
@@ -569,7 +569,7 @@ class ConferenceIT extends AbstractIntegrationTest {
 
     @Test
     void shouldDeleteConference() {
-        //Getting the csrf token and the cookie of the current session for subsequent requests.
+        //Getting the csrf token and the cookie of the current session for subsequent requests from the response headers
         EntityExchangeResult<byte[]> response = this.webTestClient.get()
                 .uri(AUTH_PATH + "/csrf")
                 .accept(MediaType.APPLICATION_JSON)

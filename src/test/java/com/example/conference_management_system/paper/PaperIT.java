@@ -1,7 +1,5 @@
 package com.example.conference_management_system.paper;
 
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.http.ContentDisposition;
@@ -39,26 +37,6 @@ class PaperIT extends AbstractIntegrationTest {
     private static final String AUTH_PATH = "/api/v1/auth";
     private static final String USER_PATH = "/api/v1/users";
     private static final String PAPER_PATH = "/api/v1/papers";
-
-    /*
-        Non-static @TempDir with @BeforeEach: The temporary directory is created for each test method, and the  system
-        property is set each time. However, the Spring context has already been initialized before the first
-        test method runs, then changing the system property in subsequent methods won't  reconfigure beans that are
-        already created and configured, like our FileService which gets a value from the papers.directory property.
-        The beans would continue using the value of papers.directory that was resolved when they were first created.
-        The value at the time of the creation is still C://papers
-
-        Static @TempDir with @BeforeAll: The temporary directory is created once before any tests run, and the system
-        property is set before the Spring context initializes. That way all the beans get the correct property value
-        right from the start.
-     */
-    @TempDir
-    static Path tempDirectory;
-
-    @BeforeAll
-    static void setupTempDirectory() {
-        System.setProperty("papers.directory", tempDirectory.toString());
-    }
 
     @Test
     void shouldCreatePaper() throws IOException {

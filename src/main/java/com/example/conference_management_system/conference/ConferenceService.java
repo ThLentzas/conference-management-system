@@ -68,7 +68,10 @@ public class ConferenceService {
     /*
         The user that made the request to create the conference must also be assigned the role ROLE_PC_CHAIR for
         that conference.
+
+        https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/orm/jpa/JpaTransactionManager.html
      */
+    @Transactional
     UUID createConference(ConferenceCreateRequest conferenceCreateRequest,
                           SecurityUser securityUser,
                           HttpServletRequest servletRequest) {

@@ -10,6 +10,12 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.util.stream.Collectors;
 
+/*
+    https://www.baeldung.com/spring-response-status
+
+    We removed the @ResponseStatus() from exceptions because either we use it there or as part of the ResponseEntity
+    It's redundant for both.
+ */
 @ControllerAdvice
 class ApiExceptionHandler {
 

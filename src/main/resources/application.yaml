@@ -34,9 +34,9 @@ logging:
         orm:
           jdbc:
             bind: TRACE
-      security: TRACE
       springframework:
         web: DEBUG
+        security: TRACE
         transaction: TRACE
         orm:
           jpa:

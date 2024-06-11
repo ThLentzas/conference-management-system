@@ -1,13 +1,11 @@
 package com.example.conference_management_system.auth;
 
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,7 +18,6 @@ import io.swagger.v3.oas.annotations.enums.ParameterIn;
 
 import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpSession;
-import jakarta.servlet.http.HttpServletRequest;
 
 import lombok.RequiredArgsConstructor;
 
@@ -64,10 +61,7 @@ class AuthController {
     @Operation(
             tags = {"Auth"}
     )
-    public ResponseEntity<Void> csrf(HttpServletRequest request, HttpServletResponse response) {
-        CsrfToken csrfToken = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
-        response.setHeader(csrfToken.getHeaderName(), csrfToken.getToken());
-
+    public ResponseEntity<Void> csrf() {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 

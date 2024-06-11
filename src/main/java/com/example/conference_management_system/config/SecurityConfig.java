@@ -8,11 +8,13 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
-import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 
 import com.example.conference_management_system.security.CustomAccessDeniedHandler;
 import com.example.conference_management_system.security.CustomAuthenticationEntryPoint;
+import com.example.conference_management_system.security.CsrfCookieFilter;
 
 @Configuration
 @EnableWebSecurity(debug = true)
@@ -22,10 +24,6 @@ public class SecurityConfig {
     /*
         We can't use authorize.requestMatchers(HttpMethod.GET, "/api/v1/papers/**").permitAll(); because the endpoint
         to download a paper is api/v1/papers/{id}/download, and it is not permit all.
-
-        The HttpSessionCsrfTokenRepository stores the token in the Session
-        The CsrfTokenRequestAttributeHandler makes the CsrfToken available in the current request, and we are able to
-        access it: CsrfToken csrfToken = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
 
         https://docs.spring.io/spring-security/reference/servlet/exploits/csrf.html#csrf-integration-javascript-spa
      */
@@ -40,14 +38,15 @@ public class SecurityConfig {
                     authorize.anyRequest().authenticated();
                 })
                 .csrf(csrf -> {
-                    csrf.csrfTokenRepository(new HttpSessionCsrfTokenRepository());
+                    csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse());
                     csrf.csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler());
                 })
                 .formLogin(AbstractHttpConfigurer::disable)
                 .exceptionHandling(exception -> {
                     exception.accessDeniedHandler(new CustomAccessDeniedHandler());
                     exception.authenticationEntryPoint(new CustomAuthenticationEntryPoint());
-                });
+                })
+                .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class);
 
         return http.build();
     }

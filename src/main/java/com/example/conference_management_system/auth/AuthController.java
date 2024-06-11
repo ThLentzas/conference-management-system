@@ -33,7 +33,7 @@ class AuthController {
             description = "Public endpoint",
             tags = {"Auth"},
             parameters = {
-                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN")
+                    @Parameter(in = ParameterIn.HEADER, name = "X-XSRF-TOKEN")
             })
     ResponseEntity<Void> registerUser(@Valid @RequestBody RegisterRequest request, HttpSession session) {
         Authentication authentication = this.authService.registerUser(request);
@@ -48,7 +48,7 @@ class AuthController {
             description = "Public endpoint",
             tags = {"Auth"},
             parameters = {
-                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN")
+                    @Parameter(in = ParameterIn.HEADER, name = "X-XSRF-TOKEN")
             })
     ResponseEntity<Void> loginUser(@Valid @RequestBody LoginRequest request, HttpSession session) {
         Authentication authentication = this.authService.loginUser(request);

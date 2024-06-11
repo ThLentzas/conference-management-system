@@ -45,8 +45,8 @@ To build and run the project, follow these steps:
 * Run the project: `mvn spring-boot:run`
 * The application will be available on: http://localhost:8080/swagger-ui/index.html
 
-Your first request should be a `GET` to `/api/v1/auth/csrf` in order to obtain a CSRF token via a response header that you will have to
-set to the `X-CSRF-TOKEN` request header in th SwaggerUI for subsequent requests. This request will also set the `COOKIE` that will
-be used for subsequent requests and will be automatically included by the browser.
+Your first request should be a `GET` to `/api/v1/auth/csrf` in order to obtain a CSRF token via a cookie `XSRF-TOKEN`. You will have to
+set the `X-XSRF-TOKEN` request header in th SwaggerUI for subsequent requests with the value of the token. We used a double submit cookie pattern.
+The `Cookie` for the session and csrf will be automatically included by the browser
 
 ![Swagger UI](https://i.imgur.com/kZwPATm.png)

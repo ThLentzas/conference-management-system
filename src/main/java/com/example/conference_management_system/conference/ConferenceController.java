@@ -54,7 +54,7 @@ class ConferenceController {
                     "is in the location header to be used in subsequent requests",
             tags = {"Conference"},
             parameters = {
-                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+                    @Parameter(in = ParameterIn.HEADER, name = "X-XSRF-TOKEN"),
 
             }, security = {
             @SecurityRequirement(name = "cookieAuth")
@@ -86,7 +86,7 @@ class ConferenceController {
             description = "Accessible only to users with role ROLE_PC_CHAIR. You must be one of the PC Chairs of the conference, having the role is not enough",
             tags = {"Conference"},
             parameters = {
-                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+                    @Parameter(in = ParameterIn.HEADER, name = "X-XSRF-TOKEN"),
 
             }, security = {
             @SecurityRequirement(name = "cookieAuth")
@@ -109,7 +109,7 @@ class ConferenceController {
             description = "Accessible only to users with role ROLE_PC_CHAIR. You must be one of the PC Chairs of the conference, having the role is not enough",
             tags = {"Conference"},
             parameters = {
-                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+                    @Parameter(in = ParameterIn.HEADER, name = "X-XSRF-TOKEN"),
 
             }, security = {
             @SecurityRequirement(name = "cookieAuth")
@@ -133,7 +133,7 @@ class ConferenceController {
             description = "Accessible only to users with role ROLE_PC_CHAIR. You must be one of the PC Chairs of the conference, having the role is not enough",
             tags = {"Conference"},
             parameters = {
-                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+                    @Parameter(in = ParameterIn.HEADER, name = "X-XSRF-TOKEN"),
 
             }, security = {
             @SecurityRequirement(name = "cookieAuth")
@@ -156,7 +156,7 @@ class ConferenceController {
             description = "Accessible only to users with role ROLE_PC_CHAIR. You must be one of the PC Chairs of the conference, having the role is not enough",
             tags = {"Conference"},
             parameters = {
-                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+                    @Parameter(in = ParameterIn.HEADER, name = "X-XSRF-TOKEN"),
 
             }, security = {
             @SecurityRequirement(name = "cookieAuth")
@@ -180,7 +180,7 @@ class ConferenceController {
             description = "Accessible only to users with role ROLE_PC_CHAIR. You must be one of the PC Chairs of the conference, having the role is not enough",
             tags = {"Conference"},
             parameters = {
-                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+                    @Parameter(in = ParameterIn.HEADER, name = "X-XSRF-TOKEN"),
 
             }, security = {
             @SecurityRequirement(name = "cookieAuth")
@@ -204,7 +204,7 @@ class ConferenceController {
             description = "Accessible only to users with role ROLE_PC_CHAIR. You must be one of the PC Chairs of the conference, having the role is not enough",
             tags = {"Conference"},
             parameters = {
-                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+                    @Parameter(in = ParameterIn.HEADER, name = "X-XSRF-TOKEN"),
 
             }, security = {
             @SecurityRequirement(name = "cookieAuth")
@@ -223,7 +223,7 @@ class ConferenceController {
             description = "Accessible only to users with role ROLE_PC_CHAIR. You must be one of the PC Chairs of the conference, having the role is not enough",
             tags = {"Conference"},
             parameters = {
-                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+                    @Parameter(in = ParameterIn.HEADER, name = "X-XSRF-TOKEN"),
 
             }, security = {
             @SecurityRequirement(name = "cookieAuth")
@@ -247,7 +247,7 @@ class ConferenceController {
             description = "Accessible only to users with role ROLE_AUTHOR. You must be one of the authors of the paper, having the role is not enough",
             tags = {"Conference"},
             parameters = {
-                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+                    @Parameter(in = ParameterIn.HEADER, name = "X-XSRF-TOKEN"),
 
             }, security = {
             @SecurityRequirement(name = "cookieAuth")
@@ -267,7 +267,7 @@ class ConferenceController {
             description = "Accessible only to users with role ROLE_PC_CHAIR. You must be one of the PC Chairs of the conference, having the role is not enough",
             tags = {"Conference"},
             parameters = {
-                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+                    @Parameter(in = ParameterIn.HEADER, name = "X-XSRF-TOKEN"),
 
             }, security = {
             @SecurityRequirement(name = "cookieAuth")
@@ -291,7 +291,7 @@ class ConferenceController {
             description = "Accessible only to users with role ROLE_PC_CHAIR. You must be one of the PC Chairs of the conference, having the role is not enough",
             tags = {"Conference"},
             parameters = {
-                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+                    @Parameter(in = ParameterIn.HEADER, name = "X-XSRF-TOKEN"),
 
             }, security = {
             @SecurityRequirement(name = "cookieAuth")
@@ -351,7 +351,7 @@ class ConferenceController {
             description = "Accessible only to users with role ROLE_PC_CHAIR. You must be one of the PC Chairs of the conference, having the role is not enough",
             tags = {"Conference"},
             parameters = {
-                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+                    @Parameter(in = ParameterIn.HEADER, name = "X-XSRF-TOKEN"),
 
             }, security = {
             @SecurityRequirement(name = "cookieAuth")

@@ -55,7 +55,7 @@ class PaperController {
                     "is in the location header to be used in subsequent requests.",
             tags = {"Paper"},
             parameters = {
-                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+                    @Parameter(in = ParameterIn.HEADER, name = "X-XSRF-TOKEN"),
 
             }, security = {
             @SecurityRequirement(name = "cookieAuth")
@@ -88,7 +88,7 @@ class PaperController {
             description = "Accessible only to users with role ROLE_AUTHOR. You must be one of the authors of the paper, having the role is not enough.",
             tags = {"Paper"},
             parameters = {
-                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+                    @Parameter(in = ParameterIn.HEADER, name = "X-XSRF-TOKEN"),
 
             }, security = {
             @SecurityRequirement(name = "cookieAuth")
@@ -114,7 +114,7 @@ class PaperController {
             description = "Accessible only to users with role ROLE_AUTHOR. You must be one of the authors of the paper, having the role is not enough.",
             tags = {"Paper"},
             parameters = {
-                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+                    @Parameter(in = ParameterIn.HEADER, name = "X-XSRF-TOKEN"),
 
             }, security = {
             @SecurityRequirement(name = "cookieAuth")
@@ -134,7 +134,7 @@ class PaperController {
             description = "Accessible only to users with role ROLE_REVIEWER. You must be one of the assigned reviewers of the paper, having the role is not enough",
             tags = {"Paper"},
             parameters = {
-                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+                    @Parameter(in = ParameterIn.HEADER, name = "X-XSRF-TOKEN"),
 
             }, security = {
             @SecurityRequirement(name = "cookieAuth")
@@ -162,7 +162,7 @@ class PaperController {
             description = "Accessible only to users with role ROLE_AUTHOR. You must be one of the authors of the paper, having the role is not enough",
             tags = {"Paper"},
             parameters = {
-                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+                    @Parameter(in = ParameterIn.HEADER, name = "X-XSRF-TOKEN"),
 
             }, security = {
             @SecurityRequirement(name = "cookieAuth")
@@ -189,7 +189,7 @@ class PaperController {
                     "reviewer or PCChair at the conference the paper has been submitted too",
             tags = {"Paper"},
             parameters = {
-                    @Parameter(in = ParameterIn.HEADER, name = "X-CSRF-TOKEN"),
+                    @Parameter(in = ParameterIn.HEADER, name = "X-XSRF-TOKEN"),
 
             }, security = {
             @SecurityRequirement(name = "cookieAuth")

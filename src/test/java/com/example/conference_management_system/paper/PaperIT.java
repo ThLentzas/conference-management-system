@@ -48,7 +48,9 @@ class PaperIT extends AbstractIntegrationTest {
                 .expectBody()
                 .returnResult();
 
-        String csrfToken = response.getResponseHeaders().getFirst("X-CSRF-TOKEN");
+        String csrfTokenCookie = response.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        String csrtTokenValue = csrfTokenCookie.split(";")[0];
+
         /*
             The cookie in the response Header(SET_COOKIE) is in the form of
             SESSION=OTU2ODllODktYjZhMS00YmUxLTk1NGEtMDk0ZTBmODg0Mzhm; Path=/; HttpOnly; SameSite=Lax
@@ -56,8 +58,6 @@ class PaperIT extends AbstractIntegrationTest {
             By splitting with ";" we get the first value which then we set it in the Cookie request header. The expected
             value is SESSION= plus some value.
          */
-        String cookieHeader = response.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
-        String sessionId = cookieHeader.split(";")[0];
         String requestBody = """
                 {
                     "username": "username",
@@ -72,8 +72,8 @@ class PaperIT extends AbstractIntegrationTest {
         this.webTestClient.post()
                 .uri(AUTH_PATH + "/signup")
                 .contentType(MediaType.APPLICATION_JSON)
-                .header("Cookie", sessionId)
-                .header("X-CSRF-TOKEN", csrfToken)
+                .header("Cookie", csrfToken)
+                .header("X-XSRF-TOKEN", csrfToken)
                 .bodyValue(requestBody)
                 .exchange()
                 .expectStatus().isCreated();

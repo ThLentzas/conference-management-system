@@ -1,4 +1,4 @@
-package com.example.conference_management_system.utility;
+package com.example.conference_management_system.file;
 
 import org.apache.tika.Tika;
 import org.slf4j.Logger;

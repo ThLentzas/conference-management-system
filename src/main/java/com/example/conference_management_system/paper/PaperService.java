@@ -28,7 +28,7 @@ import com.example.conference_management_system.role.RoleService;
 import com.example.conference_management_system.role.RoleType;
 import com.example.conference_management_system.security.SecurityUser;
 import com.example.conference_management_system.user.UserService;
-import com.example.conference_management_system.utility.FileService;
+import com.example.conference_management_system.file.FileService;
 
 import java.util.ArrayList;
 import java.util.Arrays;

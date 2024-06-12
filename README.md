@@ -46,7 +46,7 @@ To build and run the project, follow these steps:
 * The application will be available on: http://localhost:8080/swagger-ui/index.html
 
 Your first request should be a `GET` to `/api/v1/auth/csrf` in order to obtain a CSRF token via a cookie `XSRF-TOKEN`. You will have to
-set the `X-XSRF-TOKEN` request header in th SwaggerUI for subsequent requests with the value of the token. We used a double submit cookie pattern.
+set the `X-XSRF-TOKEN` request header in th SwaggerUI for subsequent requests with the value of the token. Retrieve the value from the browser.We used a double submit cookie pattern.
 The `Cookie` for the session and csrf will be automatically included by the browser
 
 ![Swagger UI](https://i.imgur.com/kZwPATm.png)

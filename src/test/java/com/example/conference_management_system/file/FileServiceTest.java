@@ -1,4 +1,4 @@
-package com.example.conference_management_system.utility;
+package com.example.conference_management_system.file;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

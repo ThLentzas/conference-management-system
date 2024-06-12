@@ -3,12 +3,14 @@ package com.example.conference_management_system.auth;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.EntityExchangeResult;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
+import com.example.conference_management_system.utils.WebUtils;
 import com.example.conference_management_system.AbstractIntegrationTest;
+
+import java.util.Map;
 
 /*
     In a @SpringBootTest environment, each test typically runs in isolation with its own application context, which
@@ -27,7 +29,6 @@ class AuthIT extends AbstractIntegrationTest {
 
     @Test
     void shouldLoginUser() {
-        //Getting the csrf token and the cookie of the current session for subsequent requests.
         EntityExchangeResult<byte[]> response = this.webTestClient.get()
                 .uri(AUTH_PATH + "/csrf")
                 .accept(MediaType.APPLICATION_JSON)
@@ -35,16 +36,8 @@ class AuthIT extends AbstractIntegrationTest {
                 .expectBody()
                 .returnResult();
 
-        String csrfToken = response.getResponseHeaders().getFirst("X-CSRF-TOKEN");
-        /*
-            The cookie in the response Header(SET_COOKIE) is in the form of
-            SESSION=OTU2ODllODktYjZhMS00YmUxLTk1NGEtMDk0ZTBmODg0Mzhm; Path=/; HttpOnly; SameSite=Lax
+        Map<String, String> csrf = WebUtils.getCsrfToken(response.getResponseHeaders());
 
-            By splitting with ";" we get the first value which then we set it in the Cookie request header. The expected
-            value is SESSION= plus some value.
-         */
-        String cookieHeader = response.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
-        String sessionId = cookieHeader.split(";")[0];
         String requestBody = """
                 {
                     "username": "username",
@@ -56,14 +49,17 @@ class AuthIT extends AbstractIntegrationTest {
                 }
                 """;
 
-        this.webTestClient.post()
+        response = this.webTestClient.post()
                 .uri(AUTH_PATH + "/signup")
                 .contentType(MediaType.APPLICATION_JSON)
-                .header("Cookie", sessionId)
-                .header("X-CSRF-TOKEN", csrfToken)
+                .header("Cookie", csrf.get("csrfCookie"))
+                .header("X-XSRF-TOKEN", csrf.get("csrfToken"))
                 .bodyValue(requestBody)
                 .exchange()
-                .expectStatus().isCreated();
+                .expectStatus().isCreated()
+                .expectBody().returnResult();
+
+        String sessionId = WebUtils.getSessionId(response.getResponseHeaders());
 
         requestBody = """
                 {
@@ -76,7 +72,8 @@ class AuthIT extends AbstractIntegrationTest {
                 .uri(AUTH_PATH + "/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Cookie", sessionId)
-                .header("X-CSRF-TOKEN", csrfToken)
+                .header("Cookie", csrf.get("csrfCookie"))
+                .header("X-XSRF-TOKEN", csrf.get("csrfToken"))
                 .bodyValue(requestBody)
                 .exchange()
                 .expectStatus().isOk();

@@ -12,8 +12,10 @@ import com.example.conference_management_system.AbstractIntegrationTest;
 import com.example.conference_management_system.role.RoleType;
 import com.example.conference_management_system.user.dto.UserDTO;
 import com.example.conference_management_system.conference.dto.ConferenceDTO;
+import com.example.conference_management_system.utils.WebUtils;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,8 +35,6 @@ class ConferenceIT extends AbstractIntegrationTest {
 
     @Test
     void shouldCreateConference() {
-
-        //Getting the csrf token and the cookie of the current session for subsequent requests from the response headers
         EntityExchangeResult<byte[]> response = this.webTestClient.get()
                 .uri(AUTH_PATH + "/csrf")
                 .accept(MediaType.APPLICATION_JSON)
@@ -42,17 +42,8 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .expectBody()
                 .returnResult();
 
-        String csrfToken = response.getResponseHeaders().getFirst("X-CSRF-TOKEN");
+        Map<String, String> csrf = WebUtils.getCsrfToken(response.getResponseHeaders());
 
-        /*
-            The cookie in the response Header(SET_COOKIE) is in the form of
-            SESSION=OTU2ODllODktYjZhMS00YmUxLTk1NGEtMDk0ZTBmODg0Mzhm; Path=/; HttpOnly; SameSite=Lax
-
-            By splitting with ";" we get the first value which then we set it in the Cookie request header. The expected
-            value is SESSION= plus some value.
-         */
-        String cookieHeader = response.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
-        String sessionId = cookieHeader.split(";")[0];
         String requestBody = """
                 {
                     "username": "username",
@@ -65,14 +56,18 @@ class ConferenceIT extends AbstractIntegrationTest {
                 """;
 
         //Registering the user
-        this.webTestClient.post()
+        response = this.webTestClient.post()
                 .uri(AUTH_PATH + "/signup")
                 .contentType(MediaType.APPLICATION_JSON)
-                .header("Cookie", sessionId)
-                .header("X-CSRF-TOKEN", csrfToken)
+                .header("Cookie", csrf.get("csrfCookie"))
+                .header("X-XSRF-TOKEN", csrf.get("csrfToken"))
                 .bodyValue(requestBody)
                 .exchange()
-                .expectStatus().isCreated();
+                .expectStatus().isCreated()
+                .expectBody()
+                .returnResult();
+
+        String sessionId = WebUtils.getSessionId(response.getResponseHeaders());
 
         requestBody = """
                 {
@@ -86,7 +81,8 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .uri(CONFERENCE_PATH)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Cookie", sessionId)
-                .header("X-CSRF-TOKEN", csrfToken)
+                .header("Cookie", csrf.get("csrfCookie"))
+                .header("X-XSRF-TOKEN", csrf.get("csrfToken"))
                 .bodyValue(requestBody)
                 .exchange()
                 .expectStatus().isCreated()
@@ -111,9 +107,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .expectBody()
                 .returnResult();
 
-        csrfToken = response.getResponseHeaders().getFirst("X-CSRF-TOKEN");
-        cookieHeader = response.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
-        sessionId = cookieHeader.split(";")[0];
+        csrf = WebUtils.getCsrfToken(response.getResponseHeaders());
 
         requestBody = """
                 {
@@ -123,14 +117,17 @@ class ConferenceIT extends AbstractIntegrationTest {
                 """;
 
         //Logging in the user after they were assigned a new role and the previous session was invalidated
-        this.webTestClient.post()
+        response = this.webTestClient.post()
                 .uri(AUTH_PATH + "/login")
                 .contentType(MediaType.APPLICATION_JSON)
-                .header("Cookie", sessionId)
-                .header("X-CSRF-TOKEN", csrfToken)
+                .header("Cookie", csrf.get("csrfCookie"))
+                .header("X-XSRF-TOKEN", csrf.get("csrfToken"))
                 .bodyValue(requestBody)
                 .exchange()
-                .expectStatus().isOk();
+                .expectStatus().isOk()
+                .expectBody().returnResult();
+
+        sessionId = WebUtils.getSessionId(response.getResponseHeaders());
 
         /*
             GET: /api/v1/conferences/{id}
@@ -174,7 +171,6 @@ class ConferenceIT extends AbstractIntegrationTest {
 
     @Test
     void shouldUpdateConference() {
-        //Getting the csrf token and the cookie of the current session for subsequent requests from the response headers
         EntityExchangeResult<byte[]> response = this.webTestClient.get()
                 .uri(AUTH_PATH + "/csrf")
                 .accept(MediaType.APPLICATION_JSON)
@@ -182,16 +178,8 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .expectBody()
                 .returnResult();
 
-        String csrfToken = response.getResponseHeaders().getFirst("X-CSRF-TOKEN");
-        /*
-            The cookie in the response Header(SET_COOKIE) is in the form of
-            SESSION=OTU2ODllODktYjZhMS00YmUxLTk1NGEtMDk0ZTBmODg0Mzhm; Path=/; HttpOnly; SameSite=Lax
+        Map<String, String> csrf = WebUtils.getCsrfToken(response.getResponseHeaders());
 
-            By splitting with ";" we get the first value which then we set it in the Cookie request header. The expected
-            value is SESSION= plus some value.
-         */
-        String cookieHeader = response.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
-        String sessionId = cookieHeader.split(";")[0];
         String requestBody = """
                 {
                     "username": "username",
@@ -204,14 +192,18 @@ class ConferenceIT extends AbstractIntegrationTest {
                 """;
 
         //Registering the user
-        this.webTestClient.post()
+        response = this.webTestClient.post()
                 .uri(AUTH_PATH + "/signup")
                 .contentType(MediaType.APPLICATION_JSON)
-                .header("Cookie", sessionId)
-                .header("X-CSRF-TOKEN", csrfToken)
+                .header("Cookie", csrf.get("csrfCookie"))
+                .header("X-XSRF-TOKEN", csrf.get("csrfToken"))
                 .bodyValue(requestBody)
                 .exchange()
-                .expectStatus().isCreated();
+                .expectStatus().isCreated()
+                .expectBody()
+                .returnResult();
+
+        String sessionId = WebUtils.getSessionId(response.getResponseHeaders());
 
         requestBody = """
                 {
@@ -225,7 +217,8 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .uri(CONFERENCE_PATH)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Cookie", sessionId)
-                .header("X-CSRF-TOKEN", csrfToken)
+                .header("Cookie", csrf.get("csrfCookie"))
+                .header("X-XSRF-TOKEN", csrf.get("csrfToken"))
                 .bodyValue(requestBody)
                 .exchange()
                 .expectStatus().isCreated()
@@ -248,7 +241,8 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .uri(CONFERENCE_PATH + "/{id}", conferenceId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Cookie", sessionId)
-                .header("X-CSRF-TOKEN", csrfToken)
+                .header("Cookie", csrf.get("csrfCookie"))
+                .header("X-XSRF-TOKEN", csrf.get("csrfToken"))
                 .bodyValue(requestBody)
                 .exchange()
                 .expectStatus().isNoContent();
@@ -278,7 +272,6 @@ class ConferenceIT extends AbstractIntegrationTest {
 
     @Test
     void shouldAddPCChair() {
-        //Getting the csrf token and the cookie of the current session for subsequent requests from the response headers
         EntityExchangeResult<byte[]> response = this.webTestClient.get()
                 .uri(AUTH_PATH + "/csrf")
                 .accept(MediaType.APPLICATION_JSON)
@@ -286,16 +279,8 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .expectBody()
                 .returnResult();
 
-        String csrfToken = response.getResponseHeaders().getFirst("X-CSRF-TOKEN");
-        /*
-            The cookie in the response Header(SET_COOKIE) is in the form of
-            SESSION=OTU2ODllODktYjZhMS00YmUxLTk1NGEtMDk0ZTBmODg0Mzhm; Path=/; HttpOnly; SameSite=Lax
+        Map<String, String> csrf = WebUtils.getCsrfToken(response.getResponseHeaders());
 
-            By splitting with ";" we get the first value which then we set it in the Cookie request header. The expected
-            value is SESSION= plus some value.
-         */
-        String cookieHeader = response.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
-        String sessionId = cookieHeader.split(";")[0];
         String requestBody = """
                 {
                     "username": "username",
@@ -308,8 +293,8 @@ class ConferenceIT extends AbstractIntegrationTest {
         this.webTestClient.post()
                 .uri(AUTH_PATH + "/signup")
                 .contentType(MediaType.APPLICATION_JSON)
-                .header("Cookie", sessionId)
-                .header("X-CSRF-TOKEN", csrfToken)
+                .header("Cookie", csrf.get("csrfCookie"))
+                .header("X-XSRF-TOKEN", csrf.get("csrfToken"))
                 .bodyValue(requestBody)
                 .exchange()
                 .expectStatus().isCreated();
@@ -322,9 +307,7 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .expectBody()
                 .returnResult();
 
-        csrfToken = response.getResponseHeaders().getFirst("X-CSRF-TOKEN");
-        cookieHeader = response.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
-        sessionId = cookieHeader.split(";")[0];
+        csrf = WebUtils.getCsrfToken(response.getResponseHeaders());
 
         requestBody = """
                 {
@@ -338,14 +321,18 @@ class ConferenceIT extends AbstractIntegrationTest {
                 """;
 
         //Registering the user that would be PC_CHAIR at the conference where we will add the previous user
-        this.webTestClient.post()
+        response = this.webTestClient.post()
                 .uri(AUTH_PATH + "/signup")
                 .contentType(MediaType.APPLICATION_JSON)
-                .header("Cookie", sessionId)
-                .header("X-CSRF-TOKEN", csrfToken)
+                .header("Cookie", csrf.get("csrfCookie"))
+                .header("X-XSRF-TOKEN", csrf.get("csrfToken"))
                 .bodyValue(requestBody)
                 .exchange()
-                .expectStatus().isCreated();
+                .expectStatus().isCreated()
+                .expectBody()
+                .returnResult();
+
+        String sessionId = WebUtils.getSessionId(response.getResponseHeaders());
 
         requestBody = """
                 {
@@ -359,7 +346,8 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .uri(CONFERENCE_PATH)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Cookie", sessionId)
-                .header("X-CSRF-TOKEN", csrfToken)
+                .header("Cookie", csrf.get("csrfCookie"))
+                .header("X-XSRF-TOKEN", csrf.get("csrfToken"))
                 .bodyValue(requestBody)
                 .exchange()
                 .expectStatus().isCreated()
@@ -392,7 +380,8 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .uri(CONFERENCE_PATH + "/{id}/pc-chair", conferenceId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Cookie", sessionId)
-                .header("X-CSRF-TOKEN", csrfToken)
+                .header("Cookie", csrf.get("csrfCookie"))
+                .header("X-XSRF-TOKEN", csrf.get("csrfToken"))
                 .bodyValue(requestBody)
                 .exchange()
                 .expectStatus().isNoContent();
@@ -420,7 +409,6 @@ class ConferenceIT extends AbstractIntegrationTest {
 
     @Test
     void shouldFindConferences() {
-        //Getting the csrf token and the cookie of the current session for subsequent requests from the response headers
         EntityExchangeResult<byte[]> response = this.webTestClient.get()
                 .uri(AUTH_PATH + "/csrf")
                 .accept(MediaType.APPLICATION_JSON)
@@ -428,16 +416,8 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .expectBody()
                 .returnResult();
 
-        String csrfToken = response.getResponseHeaders().getFirst("X-CSRF-TOKEN");
-        /*
-            The cookie in the response Header(SET_COOKIE) is in the form of
-            SESSION=OTU2ODllODktYjZhMS00YmUxLTk1NGEtMDk0ZTBmODg0Mzhm; Path=/; HttpOnly; SameSite=Lax
+        Map<String, String> csrf = WebUtils.getCsrfToken(response.getResponseHeaders());
 
-            By splitting with ";" we get the first value which then we set it in the Cookie request header. The expected
-            value is SESSION= plus some value.
-         */
-        String cookieHeader = response.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
-        String sessionId = cookieHeader.split(";")[0];
         String requestBody = """
                 {
                     "username": "username",
@@ -450,14 +430,17 @@ class ConferenceIT extends AbstractIntegrationTest {
                 """;
 
         //Registering a user
-        this.webTestClient.post()
+        response = this.webTestClient.post()
                 .uri(AUTH_PATH + "/signup")
                 .contentType(MediaType.APPLICATION_JSON)
-                .header("Cookie", sessionId)
-                .header("X-CSRF-TOKEN", csrfToken)
+                .header("Cookie", csrf.get("csrfCookie"))
+                .header("X-XSRF-TOKEN", csrf.get("csrfToken"))
                 .bodyValue(requestBody)
                 .exchange()
-                .expectStatus().isCreated();
+                .expectStatus().isCreated()
+                .expectBody().returnResult();
+
+        String sessionId = WebUtils.getSessionId(response.getResponseHeaders());
 
         requestBody = """
                 {
@@ -471,7 +454,8 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .uri(CONFERENCE_PATH)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Cookie", sessionId)
-                .header("X-CSRF-TOKEN", csrfToken)
+                .header("Cookie", csrf.get("csrfCookie"))
+                .header("X-XSRF-TOKEN", csrf.get("csrfToken"))
                 .bodyValue(requestBody)
                 .exchange()
                 .expectStatus().isCreated()
@@ -494,7 +478,8 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .uri(CONFERENCE_PATH)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Cookie", sessionId)
-                .header("X-CSRF-TOKEN", csrfToken)
+                .header("Cookie", csrf.get("csrfCookie"))
+                .header("X-XSRF-TOKEN", csrf.get("csrfToken"))
                 .bodyValue(requestBody)
                 .exchange()
                 .expectStatus().isCreated()
@@ -569,7 +554,6 @@ class ConferenceIT extends AbstractIntegrationTest {
 
     @Test
     void shouldDeleteConference() {
-        //Getting the csrf token and the cookie of the current session for subsequent requests from the response headers
         EntityExchangeResult<byte[]> response = this.webTestClient.get()
                 .uri(AUTH_PATH + "/csrf")
                 .accept(MediaType.APPLICATION_JSON)
@@ -577,17 +561,8 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .expectBody()
                 .returnResult();
 
-        String csrfToken = response.getResponseHeaders().getFirst("X-CSRF-TOKEN");
+        Map<String, String> csrf = WebUtils.getCsrfToken(response.getResponseHeaders());
 
-        /*
-            The cookie in the response Header(SET_COOKIE) is in the form of
-            SESSION=OTU2ODllODktYjZhMS00YmUxLTk1NGEtMDk0ZTBmODg0Mzhm; Path=/; HttpOnly; SameSite=Lax
-
-            By splitting with ";" we get the first value which then we set it in the Cookie request header. The expected
-            value is SESSION= plus some value.
-         */
-        String cookieHeader = response.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
-        String sessionId = cookieHeader.split(";")[0];
         String requestBody = """
                 {
                     "username": "username",
@@ -600,14 +575,18 @@ class ConferenceIT extends AbstractIntegrationTest {
                 """;
 
         //Registering a user
-        this.webTestClient.post()
+        response = this.webTestClient.post()
                 .uri(AUTH_PATH + "/signup")
                 .contentType(MediaType.APPLICATION_JSON)
-                .header("Cookie", sessionId)
-                .header("X-CSRF-TOKEN", csrfToken)
+                .header("Cookie", csrf.get("csrfCookie"))
+                .header("X-XSRF-TOKEN", csrf.get("csrfToken"))
                 .bodyValue(requestBody)
                 .exchange()
-                .expectStatus().isCreated();
+                .expectStatus().isCreated()
+                .expectBody()
+                .returnResult();
+
+        String sessionId = WebUtils.getSessionId(response.getResponseHeaders());
 
         requestBody = """
                 {
@@ -621,7 +600,8 @@ class ConferenceIT extends AbstractIntegrationTest {
                 .uri(CONFERENCE_PATH)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Cookie", sessionId)
-                .header("X-CSRF-TOKEN", csrfToken)
+                .header("Cookie", csrf.get("csrfCookie"))
+                .header("X-XSRF-TOKEN", csrf.get("csrfToken"))
                 .bodyValue(requestBody)
                 .exchange()
                 .expectStatus().isCreated()
@@ -636,7 +616,8 @@ class ConferenceIT extends AbstractIntegrationTest {
         this.webTestClient.delete()
                 .uri(CONFERENCE_PATH + "/{id}", conferenceId)
                 .header("Cookie", sessionId)
-                .header("X-CSRF-TOKEN", csrfToken)
+                .header("Cookie", csrf.get("csrfCookie"))
+                .header("X-XSRF-TOKEN", csrf.get("csrfToken"))
                 .exchange()
                 .expectStatus().isNoContent();
 

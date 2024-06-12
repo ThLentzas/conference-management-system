@@ -19,7 +19,7 @@ import com.example.conference_management_system.exception.UnsupportedFileExcepti
 import com.example.conference_management_system.paper.dto.PaperFile;
 import com.example.conference_management_system.review.dto.ReviewCreateRequest;
 import com.example.conference_management_system.user.UserService;
-import com.example.conference_management_system.utility.FileService;
+import com.example.conference_management_system.file.FileService;
 import com.example.conference_management_system.paper.dto.PaperCreateRequest;
 import com.example.conference_management_system.review.ReviewRepository;
 import com.example.conference_management_system.role.RoleService;

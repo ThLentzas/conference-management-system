@@ -43,7 +43,7 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
  */
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @Import(TempDirSetup.class)
-public class AbstractIntegrationTest {
+public abstract class AbstractIntegrationTest {
     @Autowired
     private UserRepository userRepository;
     @Autowired

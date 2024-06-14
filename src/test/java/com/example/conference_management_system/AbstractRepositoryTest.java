@@ -8,7 +8,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 
 import com.example.conference_management_system.config.JpaAuditingConfig;
 
-
 /*
     We have to import the JpaAuditingConfig class for the database to auto-generated the created date.
 
@@ -24,8 +23,7 @@ import com.example.conference_management_system.config.JpaAuditingConfig;
 @Import({
         JpaAuditingConfig.class
 })
-public class AbstractRepositoryTest {
-
+public abstract class AbstractRepositoryTest {
     @ServiceConnection
     protected static final PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>(
             "postgres:15.2-alpine")

@@ -376,35 +376,15 @@ public class PaperService {
     List<PaperDTO> findPapers(String title, String author, String abstractText, SecurityContext securityContext) {
         PaperSpecs paperSpecs = new PaperSpecs(title, author, abstractText);
         List<Paper> papers = this.paperRepository.findAll(paperSpecs, Sort.by("title"));
-        Set<PaperDTO> paperDTOS;
 
-        //Retrieving all the user related papers
         if (securityContext.getAuthentication().getPrincipal() instanceof SecurityUser securityUser) {
-            List<Paper> requestingUserRelatedPapers = papers.stream()
-                    .filter(paper -> isInRelationshipWithPaper(paper, securityUser.user(), RoleType.ROLE_AUTHOR)
-                            || isInRelationshipWithPaper(paper, securityUser.user(), RoleType.ROLE_REVIEWER))
+            return papers.stream()
+                    .map(paper -> associateUser(paper, securityUser.user()))
                     .toList();
-
-            if (!requestingUserRelatedPapers.isEmpty()) {
-                requestingUserRelatedPapers = this.paperRepository.fetchReviewsForPapers(requestingUserRelatedPapers);
-
-                //Mapping each paper according to the role the user has for that paper(AUTHOR or REVIEWER)
-                paperDTOS = requestingUserRelatedPapers.stream()
-                        .map(paper -> isInRelationshipWithPaper(paper, securityUser.user(), RoleType.ROLE_AUTHOR)
-                                ? this.authorPaperDTOMapper.apply(paper) : this.reviewerPaperDTOMapper.apply(paper))
-                        .collect(Collectors.toSet());
-
-                //Mapping the rest of the papers
-                papers.forEach(paper -> paperDTOS.add(this.paperDTOMapper.apply(paper)));
-
-                return paperDTOS.stream()
-                        .sorted(Comparator.comparing(PaperDTO::getTitle))
-                        .toList();
-            }
         }
 
         return papers.stream()
-                .map(paperDTOMapper)
+                .map(this.paperDTOMapper)
                 .toList();
     }
 
@@ -487,7 +467,6 @@ public class PaperService {
                     + " pdf or a Latex one");
         }
     }
-
     private <T> void updatePropertyIfNonNull(T property, Consumer<T> validator, Consumer<T> updater) {
         if (property != null) {
             validator.accept(property);
@@ -506,6 +485,7 @@ public class PaperService {
         Using file.getContentType() would not work. We have to use Apache Tika that verifies the file signature(magic
         number) bytes at the start of each file to correctly identify the Mime type and the file extension.
      */
+
     private void setupContent(Content content, MultipartFile file) {
         String originalFileName = file.getOriginalFilename();
         String generatedFileName = UUID.randomUUID().toString();
@@ -515,5 +495,17 @@ public class PaperService {
         content.setOriginalFileName(originalFileName);
         content.setGeneratedFileName(generatedFileName);
         content.setFileExtension(fileExtension);
+    }
+
+    private PaperDTO associateUser(final Paper paper, final User user) {
+        if(isInRelationshipWithPaper(paper, user, RoleType.ROLE_AUTHOR)) {
+            return this.authorPaperDTOMapper.apply(paper);
+        }
+
+        if(isInRelationshipWithPaper(paper, user, RoleType.ROLE_REVIEWER)) {
+            return this.reviewerPaperDTOMapper.apply(paper);
+        }
+
+        return this.paperDTOMapper.apply(paper);
     }
 }

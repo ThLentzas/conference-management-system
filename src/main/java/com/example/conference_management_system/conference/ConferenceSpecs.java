@@ -35,6 +35,7 @@ public class ConferenceSpecs implements Specification<Conference> {
         Fetch<Conference, ConferenceUser> conferenceUsersFetch = root.fetch("conferenceUsers", JoinType.INNER);
         Fetch<ConferenceUser, User> userFetch = conferenceUsersFetch.fetch("user", JoinType.INNER);
         userFetch.fetch("roles", JoinType.INNER);
+        root.fetch("papers", JoinType.LEFT);
 
         /*
             Case-insensitive searching

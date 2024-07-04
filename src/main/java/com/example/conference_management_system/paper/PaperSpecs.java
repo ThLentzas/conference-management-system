@@ -34,14 +34,19 @@ public class PaperSpecs implements Specification<Paper> {
 
                 SELECT p
                 FROM Paper p
-                JOIN FETCH p.paperUsers pu
-                JOIN FETCH pu.user
+                JOIN p.paperUsers pu
+                JOIN pu.user u
+                LEFT JOIN p.reviews r
+                WHERE LOWER(p.title) LIKE '%some title%'
+                    AND LOWER(p.authors) LIKE '%some author%'
+                    AND LOWER(p.abstractText) LIKE '%some abstract%'
      */
     @Override
     public Predicate toPredicate(Root<Paper> root, CriteriaQuery<?> query, CriteriaBuilder criteriaBuilder) {
         List<Predicate> predicates = new ArrayList<>();
         Fetch<Paper, PaperUser> paperUsersFetch = root.fetch("paperUsers", JoinType.INNER);
         paperUsersFetch.fetch("user", JoinType.INNER);
+        root.fetch("reviews", JoinType.LEFT);
 
         if (!this.title.isBlank()) {
             predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("title")),
@@ -61,6 +66,10 @@ public class PaperSpecs implements Specification<Paper> {
         predicates.add(root.isNotNull());
         Predicate[] predicatesArr = predicates.toArray(new Predicate[0]);
 
+        /*
+            We combine our conditions with AND so the final query is something like
+            WHERE p.title = :title AND = p.author = :author AND p.abstractText = :abstractText
+         */
         return criteriaBuilder.and(predicatesArr);
     }
 }

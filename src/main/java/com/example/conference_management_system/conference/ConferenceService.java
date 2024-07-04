@@ -509,20 +509,10 @@ public class ConferenceService {
     List<ConferenceDTO> findConferences(String name, String description, SecurityContext securityContext) {
         ConferenceSpecs conferenceSpecs = new ConferenceSpecs(name, description);
         List<Conference> conferences = this.conferenceRepository.findAll(conferenceSpecs, Sort.by("name"));
-        Set<ConferenceDTO> conferenceDTOs = new HashSet<>();
 
         if (securityContext.getAuthentication().getPrincipal() instanceof SecurityUser securityUser) {
-            List<Conference> pcChairConferences = conferences.stream()
-                    .filter(conference -> isPCChairAtConference(conference, securityUser.user()))
-                    .toList();
-
-            pcChairConferences = this.conferenceRepository.fetchPapersForConferences(pcChairConferences);
-            pcChairConferences.forEach(conference ->
-                    conferenceDTOs.add(this.pcChairConferenceDTOMapper.apply(conference)));
-            conferences.forEach(conference -> conferenceDTOs.add(this.conferenceDTOMapper.apply(conference)));
-
-            return conferenceDTOs.stream()
-                    .sorted(Comparator.comparing(ConferenceDTO::getName))
+            return conferences.stream()
+                    .map(conference -> associateUser(conference, securityUser.user()))
                     .toList();
         }
 
@@ -574,5 +564,10 @@ public class ConferenceService {
     private boolean isPCChairAtConference(Conference conference, User user) {
         return conference.getConferenceUsers().stream()
                 .anyMatch(conferenceUser -> conferenceUser.getUser().equals(user));
+    }
+
+    private ConferenceDTO associateUser(Conference conference, User user) {
+        return isPCChairAtConference(conference, user) ? this.pcChairConferenceDTOMapper.apply(conference) :
+                this.conferenceDTOMapper.apply(conference);
     }
 }

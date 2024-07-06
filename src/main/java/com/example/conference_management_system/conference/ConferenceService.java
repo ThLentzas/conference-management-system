@@ -35,13 +35,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import jakarta.transaction.Transactional;
 import jakarta.servlet.http.HttpServletRequest;
 
 import lombok.RequiredArgsConstructor;
@@ -68,6 +68,15 @@ public class ConferenceService {
         that conference.
 
         https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/orm/jpa/JpaTransactionManager.html
+
+        Ignore SonarLint's suggestion to make it public
+
+        Method visibility and @Transactional
+        The @Transactional annotation is typically used on methods with public visibility. As of 6.0, protected or
+        package-visible methods can also be made transactional for class-based proxies by default. Note that
+        transactional methods in interface-based proxies must always be public and defined in the proxied interface.
+
+        https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html
      */
     @Transactional
     UUID createConference(ConferenceCreateRequest conferenceCreateRequest,
@@ -108,6 +117,16 @@ public class ConferenceService {
         return conference.getId();
     }
 
+    /*
+        Ignore SonarLint's suggestion to make it public
+
+        Method visibility and @Transactional
+        The @Transactional annotation is typically used on methods with public visibility. As of 6.0, protected or
+        package-visible methods can also be made transactional for class-based proxies by default. Note that
+        transactional methods in interface-based proxies must always be public and defined in the proxied interface.
+
+        https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html
+     */
     @Transactional
     void updateConference(UUID conferenceId,
                           ConferenceUpdateRequest conferenceUpdateRequest,
@@ -149,6 +168,16 @@ public class ConferenceService {
         this.conferenceRepository.save(conference);
     }
 
+    /*
+        Ignore SonarLint's suggestion to make it public
+
+        Method visibility and @Transactional
+        The @Transactional annotation is typically used on methods with public visibility. As of 6.0, protected or
+        package-visible methods can also be made transactional for class-based proxies by default. Note that
+        transactional methods in interface-based proxies must always be public and defined in the proxied interface.
+
+        https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html
+     */
     @Transactional
     void startSubmission(UUID conferenceId, SecurityUser securityUser) {
         Conference conference = findByConferenceIdFetchingConferenceUsers(conferenceId);

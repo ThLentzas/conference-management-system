@@ -131,6 +131,7 @@ class PaperServiceTest {
                 "test.pdf",
                 "application/pdf",
                 getFileContent());
+
         //Generating a random alphanumeric string of minimum length of 101.
         PaperCreateRequest paperCreateRequest = new PaperCreateRequest(
                 RandomStringUtils.randomAlphanumeric(new Random().nextInt(100) + 101),
@@ -157,7 +158,6 @@ class PaperServiceTest {
                 "test.pdf",
                 "application/pdf",
                 getFileContent());
-        //Generating a random alphanumeric string of minimum length of 101.
         PaperCreateRequest paperCreateRequest = new PaperCreateRequest(
                 "title",
                 "abstractText",
@@ -207,7 +207,7 @@ class PaperServiceTest {
                 "test.pdf",
                 "application/pdf",
                 getFileContent());
-        //Generating a random alphanumeric string of minimum length of 101.
+
         PaperCreateRequest paperCreateRequest = new PaperCreateRequest(
                 "title",
                 "abstractText",

@@ -100,13 +100,9 @@ class PaperControllerTest {
                         .param("keywords", "keyword 1, keyword 2")
                         .contentType(MediaType.MULTIPART_FORM_DATA))
                 .andExpectAll(
-                        status().isCreated()
+                        status().isCreated(),
+                        header().string("Location", containsString(PAPER_PATH + "/" + 1L))
                 );
-
-        verify(this.paperService, times(1)).createPaper(
-                any(PaperCreateRequest.class),
-                any(SecurityUser.class),
-                any(HttpServletRequest.class));
     }
 
     @Test

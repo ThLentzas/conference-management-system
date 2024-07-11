@@ -61,7 +61,7 @@ class PCChairPaperDTOMapperTest {
                 Set.of(pcChairReviewDTO)
         );
 
-        PCChairPaperDTO actual = this.underTest.apply(paper);
+        PCChairPaperDTO actual = this.underTest.convert(paper);
 
         assertThat(actual).isEqualTo(expected);
     }

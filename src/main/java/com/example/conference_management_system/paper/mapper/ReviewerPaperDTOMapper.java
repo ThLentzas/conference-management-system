@@ -11,14 +11,16 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class ReviewerPaperDTOMapper implements Function<Paper, ReviewerPaperDTO> {
+// https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/core/convert/converter/Converter.html
+import org.springframework.core.convert.converter.Converter;
+
+public class ReviewerPaperDTOMapper implements Converter<Paper, ReviewerPaperDTO> {
     private final ReviewerReviewDTOMapper reviewerReviewDTOMapper = new ReviewerReviewDTOMapper();
 
     @Override
-    public ReviewerPaperDTO apply(Paper paper) {
+    public ReviewerPaperDTO convert(Paper paper) {
         Set<ReviewerReviewDTO> reviews = new HashSet<>();
 
         for (Review review : paper.getReviews()) {

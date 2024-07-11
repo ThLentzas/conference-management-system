@@ -523,10 +523,10 @@ public class ConferenceService {
          */
         if (securityContext.getAuthentication().getPrincipal() instanceof SecurityUser securityUser
                 && isPCChairAtConference(conference, securityUser.user())) {
-            return this.pcChairConferenceDTOMapper.apply(conference);
+            return this.pcChairConferenceDTOMapper.convert(conference);
         }
 
-        return this.conferenceDTOMapper.apply(conference);
+        return this.conferenceDTOMapper.convert(conference);
     }
 
     /*
@@ -544,7 +544,7 @@ public class ConferenceService {
         }
 
         return conferences.stream()
-                .map(this.conferenceDTOMapper)
+                .map(this.conferenceDTOMapper::convert)
                 .toList();
     }
 
@@ -594,7 +594,7 @@ public class ConferenceService {
     }
 
     private ConferenceDTO associateUser(Conference conference, User user) {
-        return isPCChairAtConference(conference, user) ? this.pcChairConferenceDTOMapper.apply(conference) :
-                this.conferenceDTOMapper.apply(conference);
+        return isPCChairAtConference(conference, user) ? this.pcChairConferenceDTOMapper.convert(conference) :
+                this.conferenceDTOMapper.convert(conference);
     }
 }

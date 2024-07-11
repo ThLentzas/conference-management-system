@@ -36,7 +36,7 @@ public class UserService {
                 new ResourceNotFoundException(USER_NOT_FOUND_MSG + " with name: " + fullName)
         );
 
-        return dtoMapper.apply(user);
+        return dtoMapper.convert(user);
     }
 
     public User findUserByIdFetchingRoles(Long userId) {

@@ -6,13 +6,14 @@ import com.example.conference_management_system.role.RoleType;
 import com.example.conference_management_system.user.dto.UserDTO;
 
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class UserDTOMapper implements Function<User, UserDTO> {
+import org.springframework.core.convert.converter.Converter;
+
+public class UserDTOMapper implements Converter<User, UserDTO> {
 
     @Override
-    public UserDTO apply(User user) {
+    public UserDTO convert(User user) {
         Set<RoleType> roleTypes = user.getRoles().stream()
                 .map(Role::getType)
                 .collect(Collectors.toSet());

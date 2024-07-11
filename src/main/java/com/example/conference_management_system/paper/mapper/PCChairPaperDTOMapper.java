@@ -11,14 +11,16 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class PCChairPaperDTOMapper implements Function<Paper, PCChairPaperDTO> {
+// https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/core/convert/converter/Converter.html
+import org.springframework.core.convert.converter.Converter;
+
+public class PCChairPaperDTOMapper implements Converter<Paper, PCChairPaperDTO> {
     private final PCChairReviewDTOMapper pcChairReviewDTOMapper = new PCChairReviewDTOMapper();
 
     @Override
-    public PCChairPaperDTO apply(Paper paper) {
+    public PCChairPaperDTO convert(Paper paper) {
         Set<PCChairReviewDTO> reviews = new HashSet<>();
 
         for (Review review : paper.getReviews()) {

@@ -30,7 +30,7 @@ class UserDTOMapperTest {
 
         UserDTO expected = new UserDTO(1L, "username", "full name", Set.of(RoleType.ROLE_REVIEWER));
 
-        UserDTO actual = this.underTest.apply(user);
+        UserDTO actual = this.underTest.convert(user);
 
         assertThat(actual).isEqualTo(expected);
     }

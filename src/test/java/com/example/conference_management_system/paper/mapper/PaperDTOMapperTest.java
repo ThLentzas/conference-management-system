@@ -36,7 +36,7 @@ class PaperDTOMapperTest {
                 keywords
         );
 
-        PaperDTO actual = this.underTest.apply(paper);
+        PaperDTO actual = this.underTest.convert(paper);
 
         assertThat(actual).isEqualTo(expected);
     }

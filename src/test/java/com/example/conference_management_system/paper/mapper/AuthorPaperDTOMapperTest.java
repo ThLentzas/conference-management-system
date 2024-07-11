@@ -62,7 +62,7 @@ class AuthorPaperDTOMapperTest {
                 Set.of(authorReviewDTO)
         );
 
-        AuthorPaperDTO actual = this.underTest.apply(paper);
+        AuthorPaperDTO actual = this.underTest.convert(paper);
 
         assertThat(actual).isEqualTo(expected);
     }

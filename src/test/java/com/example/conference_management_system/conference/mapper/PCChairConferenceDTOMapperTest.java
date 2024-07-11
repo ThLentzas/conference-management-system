@@ -101,7 +101,7 @@ class PCChairConferenceDTOMapperTest {
                 Set.of(pcChairPaperDTO)
         );
 
-        PCChairConferenceDTO actual = this.underTest.apply(conference);
+        PCChairConferenceDTO actual = this.underTest.convert(conference);
 
         assertThat(actual).isEqualTo(expected);
     }

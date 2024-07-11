@@ -61,7 +61,7 @@ class ReviewerPaperDTOMapperTest {
                 Set.of(reviewerReviewDTO)
         );
 
-        ReviewerPaperDTO actual = this.underTest.apply(paper);
+        ReviewerPaperDTO actual = this.underTest.convert(paper);
 
         assertThat(actual).isEqualTo(expected);
     }

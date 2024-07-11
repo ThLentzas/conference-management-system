@@ -400,15 +400,15 @@ public class PaperService {
 
         if (context.getAuthentication().getPrincipal() instanceof SecurityUser securityUser) {
             if (isInRelationshipWithPaper(paper, securityUser.user(), RoleType.ROLE_AUTHOR)) {
-                return this.authorPaperDTOMapper.apply(paper);
+                return this.authorPaperDTOMapper.convert(paper);
             }
 
             if (isInRelationshipWithPaper(paper, securityUser.user(), RoleType.ROLE_REVIEWER)) {
-                return this.reviewerPaperDTOMapper.apply(paper);
+                return this.reviewerPaperDTOMapper.convert(paper);
             }
         }
 
-        return this.paperDTOMapper.apply(paper);
+        return this.paperDTOMapper.convert(paper);
     }
 
     List<PaperDTO> findPapers(String title, String author, String abstractText, SecurityContext securityContext) {
@@ -422,7 +422,7 @@ public class PaperService {
         }
 
         return papers.stream()
-                .map(this.paperDTOMapper)
+                .map(this.paperDTOMapper::convert)
                 .toList();
     }
 
@@ -537,13 +537,13 @@ public class PaperService {
 
     private PaperDTO associateUser(final Paper paper, final User user) {
         if(isInRelationshipWithPaper(paper, user, RoleType.ROLE_AUTHOR)) {
-            return this.authorPaperDTOMapper.apply(paper);
+            return this.authorPaperDTOMapper.convert(paper);
         }
 
         if(isInRelationshipWithPaper(paper, user, RoleType.ROLE_REVIEWER)) {
-            return this.reviewerPaperDTOMapper.apply(paper);
+            return this.reviewerPaperDTOMapper.convert(paper);
         }
 
-        return this.paperDTOMapper.apply(paper);
+        return this.paperDTOMapper.convert(paper);
     }
 }

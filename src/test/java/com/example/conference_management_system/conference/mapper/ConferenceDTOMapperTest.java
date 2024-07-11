@@ -54,7 +54,7 @@ class ConferenceDTOMapperTest {
                 Set.of(userDTO)
         );
 
-        ConferenceDTO actual = this.underTest.apply(conference);
+        ConferenceDTO actual = this.underTest.convert(conference);
 
         assertThat(actual).isEqualTo(expected);
 

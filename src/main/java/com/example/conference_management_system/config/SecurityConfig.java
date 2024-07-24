@@ -43,6 +43,8 @@ public class SecurityConfig {
                                 sessionManagementConfigurer.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .csrf(csrf -> {
                     csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse());
+                    // Why new CsrfTokenRequestAttributeHandler() instead of SPA in the docs?
+                    // Not vulnerable to BREACH. https://auth0.com/blog/spring-boot-angular-crud/
                     csrf.csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler());
                 })
                 .formLogin(AbstractHttpConfigurer::disable)

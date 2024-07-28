@@ -77,6 +77,8 @@ class AuthController {
         we could extract the Spring Security Context key attribute and that won't be null. Otherwise, it would result in
         403 FORBIDDEN. When we update an attribute for the session Spring will also update the session in Redis to
         keep it up to date
+
+        There is an improved version in the oauth2 project
      */
     private void setContext(Authentication authentication, HttpSession session) {
         SecurityContext context = SecurityContextHolder.createEmptyContext();

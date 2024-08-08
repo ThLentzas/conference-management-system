@@ -20,6 +20,9 @@ import java.util.Map;
 
 import com.example.conference_management_system.exception.ServerErrorException;
 
+/*
+    This class should have been a FilesUtil class not a Bean
+ */
 @Service
 public class FileService {
     private final String paperDirectoryPath;

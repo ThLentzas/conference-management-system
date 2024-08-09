@@ -177,6 +177,8 @@ class PaperController {
         Using .filename(paperFile.originalFileName(), StandardCharsets.UTF_8), it triggers the use of RFC 5987 encoding
         for non-ASCII characters, which is meant to handle special characters in filenames safely. However, this can
         lead to unexpected results in certain browsers or environments that don't handle this encoding well.
+
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
      */
     @PreAuthorize("hasAnyRole('AUTHOR', 'REVIEWER', 'PC_CHAIR')")
     @GetMapping(value = "/{id}/download", produces = {

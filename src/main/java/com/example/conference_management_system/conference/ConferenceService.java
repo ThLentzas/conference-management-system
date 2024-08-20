@@ -537,12 +537,17 @@ public class ConferenceService {
         ConferenceSpecs conferenceSpecs = new ConferenceSpecs(name, description);
         List<Conference> conferences = this.conferenceRepository.findAll(conferenceSpecs, Sort.by("name"));
 
+        /*
+            Case: If the current user is PCChair at any of the returned conferences we return more properties, otherwise
+            we return public information about the conferences.
+         */
         if (securityContext.getAuthentication().getPrincipal() instanceof SecurityUser securityUser) {
             return conferences.stream()
                     .map(conference -> associateUser(conference, securityUser.user()))
                     .toList();
         }
 
+        // Guest user
         return conferences.stream()
                 .map(this.conferenceDTOMapper::convert)
                 .toList();

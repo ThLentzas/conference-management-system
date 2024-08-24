@@ -526,9 +526,9 @@ class ConferenceIT extends AbstractIntegrationTest {
                             && conferenceDTO.getPapers().isEmpty());
         */
         this.webTestClient.get()
-                .uri(CONFERENCE_PATH) // Replace with your actual endpoint
+                .uri(CONFERENCE_PATH)
                 .accept(MediaType.APPLICATION_JSON)
-                .header("Cookie", sessionId) // If required for your context
+                .header("Cookie", sessionId)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()

@@ -1128,7 +1128,7 @@ class ConferenceControllerTest {
                 }
                 """;
 
-        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/pc-chair]", UUID.randomUUID()).with(csrf().asHeader()))
+        this.mockMvc.perform(put(CONFERENCE_PATH + "/{id}/pc-chair", UUID.randomUUID()).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isUnauthorized(),
                         content().json(responseBody)
@@ -1260,7 +1260,7 @@ class ConferenceControllerTest {
                 }
                 """;
 
-        this.mockMvc.perform(post(CONFERENCE_PATH + "/{id}/papers]", UUID.randomUUID()).with(csrf().asHeader()))
+        this.mockMvc.perform(post(CONFERENCE_PATH + "/{id}/papers", UUID.randomUUID()).with(csrf().asHeader()))
                 .andExpectAll(
                         status().isUnauthorized(),
                         content().json(responseBody)
